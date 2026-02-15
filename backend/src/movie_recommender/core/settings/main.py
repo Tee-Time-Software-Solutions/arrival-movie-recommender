@@ -6,6 +6,7 @@ from movie_recommender.core.settings.schemas import (
     RedisSettings,
     DatabaseSettings,
     StorageSettings,
+    TMDBSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ class AppSettings:
         """Load all settings from environment."""
         self.environment = self._get_environment()
         self.app_logic = self._load_app_logic_settings()
+        self.tmdb = self._load_tmdb_settings()
         self.redis = self._load_redis_settings()
         # self.database = self._load_database_settings() # TODO: implement db
         # self.storage = self._load_storage_settings() # TODO: implement storage
@@ -43,8 +45,14 @@ class AppSettings:
     def _load_app_logic_settings(self) -> AppLogicSettings:
         batch_size = os.getenv("BATCH_SIZE")
         queue_min_capacity = os.getenv("QUEUE_MIN_CAPACITY")
-
         return AppLogicSettings(batch_size, queue_min_capacity)
+
+    def _load_tmdb_settings(self) -> TMDBSettings:
+        return TMDBSettings(
+            api_key=os.getenv("TMDB_API_KEY"),
+            img_url=os.getenv("TMDB_IMG_URL"),
+            base_url=os.getenv("TMDB_BASE_URL"),
+        )
 
     def _load_redis_settings(self) -> RedisSettings:
         """Load Redis settings."""

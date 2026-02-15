@@ -11,6 +11,12 @@ class AppLogicSettings(BaseModel):
     queue_min_capacity: int
 
 
+class TMDBSettings(BaseModel):
+    api_key: str
+    img_url: str
+    base_url: str
+
+
 class RedisSettings(BaseModel):
     """Redis connection settings."""
 

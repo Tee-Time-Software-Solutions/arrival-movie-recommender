@@ -1,5 +1,6 @@
 import logging
 import os
+from movie_recommender.core.settings.main import AppSettings
 import requests
 
 from movie_recommender.schemas.movies import CastMember, MovieDetails, MovieProvider
@@ -10,11 +11,10 @@ logger = logging.getLogger(__name__)
 class MovieHydrator:
     def __init__(self, db_session) -> None:
         self.db = db_session
-        self.TMDB_API_KEY = (
-            "71b58f96fc68e45669adcd6e2b5d6922"  # os.getenv("TMDB_API_KEY")
-        )
-        self.BASE_URL = "https://api.themoviedb.org/3"
-        self.IMG_URL = "https://image.tmdb.org/t/p/w500"
+        self.settings = AppSettings()
+        self.TMDB_API_KEY = self.settings.tmdb.api_key
+        self.BASE_URL = self.settings.tmdb.base_url
+        self.IMG_URL = self.settings.tmdb.img_url
 
     async def get_or_fetch_movie(self, movie_database_id: int, movie_title: str):
         """
