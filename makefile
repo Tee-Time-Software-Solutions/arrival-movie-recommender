@@ -19,6 +19,8 @@ help: ## Help
 
 install: ## Install projet-wide dependencies
 	$(MAKE) -C backend install
+	$(MAKE) -C frontend install
+
 
 dev-start: ## Start dev (no rebuild, fast). Use dev-rebuild if deps changed
 	$(MAKE) check-enviroment-variables
