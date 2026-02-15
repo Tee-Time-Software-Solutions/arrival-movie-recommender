@@ -1,5 +1,21 @@
 
 services:
+  frontend:
+      build:
+        context: ../frontend
+        dockerfile: Dockerfile
+      image: frontend:dev
+      ports:
+        - "5173:5173"
+      volumes:
+        - ../frontend/app:/app
+        - /app/node_modules  # Anonymous volume for node_modules
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:5173"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+        start_period: 30s
   backend:
       build:
         context: ../backend
