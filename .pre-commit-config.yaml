@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: backend-format
         name: Backend format (make format-fix)
-        entry: bash -c 'cd backend && source ../.venv/bin/activate && make format-fix'
+        entry: bash -c 'make -C backend format-fix'
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
