@@ -1,0 +1,26 @@
+
+services:
+  backend:
+      build:
+        context: ../backend
+        dockerfile: Dockerfile
+      image: movie_recommender:dev
+      ports:
+        - "8000:8000"
+      volumes:
+        - ../backend/src:/app/src
+      command: ["sh", "-c", "uvicorn src.movie_recommender.main:app --reload --reload-dir src --host 0.0.0.0 --port 8000"]
+      depends_on:
+        redis:
+          condition: service_healthy
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/dependencies"] # TODO: change to /depndencies
+        interval: 30s
+        timeout: 5s
+        retries: 5
+        start_period: 5s
+      env_file:
+        - ${BACKEND_ENV_FILE}
+
+
+volumes:
