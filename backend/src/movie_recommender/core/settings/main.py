@@ -43,9 +43,11 @@ class AppSettings:
         return env
 
     def _load_app_logic_settings(self) -> AppLogicSettings:
-        batch_size = os.getenv("BATCH_SIZE")
-        queue_min_capacity = os.getenv("QUEUE_MIN_CAPACITY")
-        return AppLogicSettings(batch_size, queue_min_capacity)
+        batch_size = int(os.getenv("BATCH_SIZE", "15"))
+        queue_min_capacity = int(os.getenv("QUEUE_MIN_CAPACITY", "5"))
+        return AppLogicSettings(
+            batch_size=batch_size, queue_min_capacity=queue_min_capacity
+        )
 
     def _load_tmdb_settings(self) -> TMDBSettings:
         return TMDBSettings(
