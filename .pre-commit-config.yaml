@@ -1,0 +1,33 @@
+repos:
+  # Generic hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0  # check for latest
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: debug-statements
+        files: "^backend/.*\\.py$"
+      - id: detect-private-key
+
+  # Backend: Format using Makefile
+  - repo: local
+    hooks:
+      - id: backend-format
+        name: Backend format (make format-fix)
+        entry: bash -c 'cd backend && source ../.venv/bin/activate && make format-fix'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        always_run: false
+
+  # Secrets: scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        name: Chechking possible leakage of secrets

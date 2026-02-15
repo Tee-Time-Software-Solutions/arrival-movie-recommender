@@ -8,5 +8,7 @@ dependencies = [
       "fastapi",
       "uvicorn",
       "gunicorn",
-      "pydantic"
+      "pydantic",
+      "pre-commit>=4.5.1",
+      "ruff>=0.15.1",
 ]

@@ -1,11 +1,12 @@
 ## DEPENENDECIES
 - Package installer: uv
 
-## ROADMAP 
+## ROADMAP
 ### Set-up
 1. Set-up PR reviewers
       - AI
-      - Enforce one human checker 
+      - Enforce one human checker
+2. Add pre-commit
 
 ### Backend
 1. Displaying a movie
