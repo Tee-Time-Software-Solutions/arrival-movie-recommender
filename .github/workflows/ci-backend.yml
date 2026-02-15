@@ -1,0 +1,46 @@
+name: CI - Backend
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+
+env:
+  PYTHON_VERSION: '3.13'
+  WORKING_DIR: ./backend
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/pyproject.toml"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Run format check
+        run: make format-check
