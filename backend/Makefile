@@ -1,4 +1,5 @@
 .DEFAULT_GOAL := help
+SHELL := /bin/bash
 
 # VARIABLES
 RED = \033[31m
