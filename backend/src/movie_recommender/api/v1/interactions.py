@@ -1,10 +1,9 @@
 from fastapi import APIRouter
 
-from backend.src.movie_recommender.schemas.interactions import (
+from movie_recommender.schemas.interactions import (
     RegisteredFeedback,
     SwipeRequest,
 )
-
 
 router = APIRouter(prefix="/interactions")
 

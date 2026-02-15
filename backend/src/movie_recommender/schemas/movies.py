@@ -5,6 +5,7 @@ from enum import Enum
 
 class MovieCard(BaseModel):
     movie_id: str = Field(..., description="Unique movie ID in the database.")
+    tmdb_id: str = Field(..., description="Unique TMDB ID in the database.")
     title: str = Field(..., description="Movie title from the database.")
     poster_url: str = Field(
         ..., description="High-quality poster image URL for the movie card."
@@ -30,7 +31,7 @@ class CastMember(BaseModel):
 
 
 class ProviderType(str, Enum):
-    STREAMING = "streaming"
+    FLATRATE = "flatrate"
     RENT = "rent"
     BUY = "buy"
 

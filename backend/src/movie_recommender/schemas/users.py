@@ -1,10 +1,10 @@
 from pydantic import BaseModel, Field, HttpUrl
 from typing import List, Optional
 
-from backend.src.movie_recommender.schemas.movies import MovieProvider
+from movie_recommender.schemas.movies import MovieProvider
 
 
-class UserAnalytics:
+class UserAnalytics(BaseModel):
     total_swipes: int
     total_likes: int
     total_dislikes: int

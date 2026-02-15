@@ -1,9 +1,8 @@
 from fastapi import APIRouter
 
-from backend.src.movie_recommender.schemas.users import (
+from movie_recommender.schemas.users import (
     UserPreferences,
     UserProfileSummary,
-    UserStats,
 )
 
 
@@ -21,7 +20,7 @@ async def get_full_profile_view() -> UserProfileSummary:
     """
 
 
-@router.update(path="/me/preferences")
+@router.patch(path="/me/preferences")
 async def update_preferences(updated_preferences: UserPreferences) -> UserPreferences:
     """
     1. Fetch from db the user stats

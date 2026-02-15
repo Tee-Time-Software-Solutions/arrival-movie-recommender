@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+gunicorn
+pydantic
+pre-commit>=4.5.1
+ruff>=0.15.1
+redis>=7.1.1
+requests>=2.32.5
