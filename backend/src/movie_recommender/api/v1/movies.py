@@ -1,28 +1,36 @@
-from fastapi import APIRouter
+import logging
+from fastapi import APIRouter, Depends, HTTPException
 
-router = APIRouter(prefix="/health")
+from movie_recommender.schemas.movies import MovieDetails
+from movie_recommender.dependencies.feed_manager import get_feed_manager
+from movie_recommender.services.feed_manager.main import FeedManager
+
+router = APIRouter(prefix="/movies")
+
+logger = logging.getLogger(__name__)
 
 
 @router.get(path="/feed")
-async def fetch_movies_feed() -> MovieCard:
+async def fetch_movies_feed(
+    feed_manager: FeedManager = Depends(get_feed_manager),
+) -> MovieDetails:
     """
     1. Pop from redis queue
-    2. If length of rq is < threshold refill in a background task
-          2.1 Get name of movie by calling recommender.get_next(preferences=None)
-      If length == 0:
-         Wait for the background task
+    2. If length  < threshold or == 0:
+            - Refill in a background task (bg job if rq.length > 0)
+                  - Augment data with metadata
+    3. Get name of movie by calling recommender.get_next(preferences=None) # Preferneces will be added in the future
     3. Returns popped movie
-    """
 
+    To be expandend:
+      - Add user preferences
 
-@router.get(path="/{movie_id}/details")
-async def fetch_movie_details(movie_id: int) -> MovieDetails:
+    Dependencies:
+      - Current user
     """
-    1. Fetch from cache/db the metadata of TMDB
-    If it exists:
-          return
-    else:
-          1. Sync request to TMDB, if its down return 404 error
-          2. Save result to DB/Cache
-          3. Return data to user
-    """
+    logger.debug("Fetching next movie from feed")
+    movie = await feed_manager.get_next_movie(user_id=1, user_preferences=None)
+    logger.info(f"Got movie: {movie}")
+    if not movie:
+        raise HTTPException(status_code=404, detail="No movies found")
+    return movie
