@@ -1,12 +1,12 @@
-## DEPENENDECIES
-- Package installer: uv
+## COLLABORATING
+1. Start with make install
+2. Then, export ENVIRONMENT="dev"
+3. Finally, make dev-rebuild
+
+- If you find any problem with this set-up report the problem by opening an issue
 
 ## ROADMAP
-### Set-up
-1. Set-up PR reviewers
-      - AI
-      - Enforce one human checker
-2. Add pre-commit
+
 
 ### Backend
 1. Displaying a movie
