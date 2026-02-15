@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/health")
+from backend.src.movie_recommender.schemas.movies import MovieCard, MovieDetails
+
+router = APIRouter(prefix="/movies")
 
 
 @router.get(path="/feed")
@@ -8,10 +10,16 @@ async def fetch_movies_feed() -> MovieCard:
     """
     1. Pop from redis queue
     2. If length of rq is < threshold refill in a background task
-          2.1 Get name of movie by calling recommender.get_next(preferences=None)
+          2.1 Get name of movie by calling recommender.get_next(preferences=None) # Preferneces will be added in the future
       If length == 0:
          Wait for the background task
     3. Returns popped movie
+
+    To be expandend:
+      - Add user preferences
+
+    Dependencies:
+      - Current user
     """
 
 
