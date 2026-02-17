@@ -149,7 +149,7 @@ function App() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 p-4">
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md">º
         <div
           ref={cardRef}
           className="relative cursor-grab active:cursor-grabbing"

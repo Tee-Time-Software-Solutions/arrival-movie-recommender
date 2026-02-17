@@ -14,6 +14,16 @@ class Recommender:
         Def: given a user_id and number of movies to retrieve it returns a list of IDs of movies. These movie IDs must
              may be provided by the recommeder. They must be unique and not clash with existing ones in the db.
             The n returned  movies must respect user preferneces defined in the paremeter 'user_preferences'
+
+        TODO:
+            change user_preferences param to 'list_of_filtered_movies: List[ids:int]'
         """
         # Mock data
         return [(1, "Arrival"), (2, "Interstellar"), (3, "The Matrix")]
+
+    def get_user_feedback(
+        self, user_id: str, movie_id: int, interaction_type, is_supercharged: bool
+    ) -> None: ...
+
+
+# Add new function that id, movie_name out of ingested csv
