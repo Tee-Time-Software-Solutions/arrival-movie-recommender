@@ -17,6 +17,9 @@ dependencies = [
       "python-json-logger>=4.0.0",
       "pandas",
       "pyarrow",
+      "scipy",
+      "implicit",
+      "tqdm",
 ]
 
 [dependency-groups]
