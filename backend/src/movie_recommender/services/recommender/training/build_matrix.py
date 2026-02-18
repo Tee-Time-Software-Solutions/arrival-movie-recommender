@@ -55,16 +55,20 @@ def build_sparse_matrix():
     print(f"Non-zero entries: {R_train.nnz}")
 
     # ---- Save artifacts ----
-    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    ARTIFACTS.mkdir(parents=True, exist_ok=True)
 
     print("Saving sparse matrix...")
     save_npz(MATRIX_PATH, R_train)
 
     print("Saving mappings...")
+    # Convert numpy int keys/values to native Python int for JSON serialization
+    def _to_native(d):
+        return {int(k): int(v) for k, v in d.items()}
+
     mappings = {
-        "user_id_to_index": user_id_to_index,
-        "movie_id_to_index": movie_id_to_index,
-        "index_to_movie_id": index_to_movie_id,
+        "user_id_to_index": _to_native(user_id_to_index),
+        "movie_id_to_index": _to_native(movie_id_to_index),
+        "index_to_movie_id": _to_native(index_to_movie_id),
     }
 
     with open(MAPPINGS_PATH, "w") as f:
