@@ -10,7 +10,16 @@ src/movie_recommender/api/v1/health.py
 src/movie_recommender/api/v1/interactions.py
 src/movie_recommender/api/v1/movies.py
 src/movie_recommender/api/v1/users.py
-src/movie_recommender/dependencies/main.py
+src/movie_recommender/core/clients/redis.py
+src/movie_recommender/core/logger/__init__.py
+src/movie_recommender/core/logger/colorfulFormatter.py
+src/movie_recommender/core/logger/main.py
+src/movie_recommender/core/settings/__init__.py
+src/movie_recommender/core/settings/main.py
+src/movie_recommender/core/settings/schemas.py
+src/movie_recommender/dependencies/feed_manager.py
+src/movie_recommender/dependencies/redis.py
+src/movie_recommender/dependencies/settings.py
 src/movie_recommender/schemas/__init__.py
 src/movie_recommender/schemas/interactions.py
 src/movie_recommender/schemas/movies.py
@@ -18,3 +27,7 @@ src/movie_recommender/schemas/users.py
 src/movie_recommender/services/feed_manager/main.py
 src/movie_recommender/services/hydrator/main.py
 src/movie_recommender/services/recommender/main.py
+src/movie_recommender/services/recommender/training/__init__.py
+src/movie_recommender/services/recommender/training/filtering.py
+src/movie_recommender/services/recommender/training/preprocess_movies.py
+src/movie_recommender/services/recommender/training/preprocess_ratings.py
