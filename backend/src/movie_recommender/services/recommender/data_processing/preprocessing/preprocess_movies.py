@@ -1,11 +1,9 @@
 # recommender/training/preprocess_movies.py
-
 import re
 from pathlib import Path
-
 import pandas as pd
-
-from movie_recommender.services.recommender.paths import DATA_RAW, DATA_PROCESSED    
+from movie_recommender.services.recommender.paths_dev import DATA_RAW, DATA_PROCESSED 
+   
 RAW_PATH = DATA_RAW / "movies.csv"
 PROCESSED_PATH = DATA_PROCESSED / "movies_clean.parquet"
 

@@ -1,11 +1,11 @@
 # prune_movies.py (or inside filtering.py)
 import pandas as pd
 from pathlib import Path
-from movie_recommender.services.recommender.paths import DATA_PROCESSED
+from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
+
 MOVIES_INPUT = DATA_PROCESSED / "movies_clean.parquet"
 MOVIES_OUTPUT = DATA_PROCESSED / "movies_filtered.parquet"
 INTERACTIONS_INPUT = DATA_PROCESSED / "interactions_filtered.parquet"
-
 
 def prune_movies():
     interactions = pd.read_parquet(INTERACTIONS_INPUT)
