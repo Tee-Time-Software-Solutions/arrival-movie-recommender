@@ -3,6 +3,7 @@ import time
 from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies import preprocess_movies
 from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings import preprocess_ratings
 from movie_recommender.services.recommender.data_processing.preprocessing.filtering import run_filtering
+from movie_recommender.services.recommender.data_processing.preprocessing.prune_movies import prune_movies
 from movie_recommender.services.recommender.data_processing.split import run_split
 from movie_recommender.services.recommender.learning.build_matrix import build_sparse_matrix
 from movie_recommender.services.recommender.learning.train_als import train
@@ -23,16 +24,19 @@ def run_pipeline():
     print("\nStep 3: Filtering sparse users/movies...")
     run_filtering()
 
-    print("\nStep 4: Chronological split...")
+    print("\nStep 4: Pruning movie metadata to interaction set...")
+    prune_movies()
+
+    print("\nStep 5: Chronological split...")
     run_split()
 
-    print("\nStep 5: Building sparse matrix...")
+    print("\nStep 6: Building sparse matrix...")
     build_sparse_matrix()
 
-    print("\nStep 6: Training ALS...")
+    print("\nStep 7: Training ALS...")
     train()
 
-    print("\nStep 7: Evaluating model...")
+    print("\nStep 8: Evaluating model...")
     evaluate()
 
     total_time = time.time() - start_time
