@@ -5,11 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RAW_PATH = PROJECT_ROOT / "data" / "raw" / "movies.csv"
-PROCESSED_PATH = PROJECT_ROOT / "data" / "processed" / "movies_clean.parquet"
-
+from movie_recommender.services.recommender.paths import DATA_RAW, DATA_PROCESSED    
+RAW_PATH = DATA_RAW / "movies.csv"
+PROCESSED_PATH = DATA_PROCESSED / "movies_clean.parquet"
 
 def extract_year(title: str):
     """

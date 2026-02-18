@@ -1,11 +1,10 @@
 # prune_movies.py (or inside filtering.py)
 import pandas as pd
 from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-MOVIES_INPUT = PROJECT_ROOT / "data" / "processed" / "movies_clean.parquet"
-MOVIES_OUTPUT = PROJECT_ROOT / "data" / "processed" / "movies_filtered.parquet"
-INTERACTIONS_INPUT = PROJECT_ROOT / "data" / "processed" / "interactions_filtered.parquet"
+from movie_recommender.services.recommender.paths import DATA_PROCESSED
+MOVIES_INPUT = DATA_PROCESSED / "movies_clean.parquet"
+MOVIES_OUTPUT = DATA_PROCESSED / "movies_filtered.parquet"
+INTERACTIONS_INPUT = DATA_PROCESSED / "interactions_filtered.parquet"
 
 
 def prune_movies():
