@@ -19,6 +19,7 @@ dependencies = [
       "pyarrow",
       "scipy",
       "implicit",
+      "tqdm",
 ]
 
 [dependency-groups]

@@ -33,6 +33,7 @@ src/movie_recommender/services/recommender/data_processing/preprocessing/filteri
 src/movie_recommender/services/recommender/data_processing/preprocessing/preprocess_movies.py
 src/movie_recommender/services/recommender/data_processing/preprocessing/preprocess_ratings.py
 src/movie_recommender/services/recommender/data_processing/preprocessing/prune_movies.py
+src/movie_recommender/services/recommender/learning/build_matrix.py
+src/movie_recommender/services/recommender/learning/evaluate.py
+src/movie_recommender/services/recommender/learning/train_als.py
 src/movie_recommender/services/recommender/tests/inspect_data.py
-src/movie_recommender/services/recommender/training/build_matrix.py
-src/movie_recommender/services/recommender/training/train_als.py

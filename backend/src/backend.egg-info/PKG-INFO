@@ -18,3 +18,4 @@ Requires-Dist: pandas
 Requires-Dist: pyarrow
 Requires-Dist: scipy
 Requires-Dist: implicit
+Requires-Dist: tqdm
