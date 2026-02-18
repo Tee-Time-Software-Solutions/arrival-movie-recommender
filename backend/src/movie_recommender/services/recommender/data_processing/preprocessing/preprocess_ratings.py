@@ -2,7 +2,7 @@
 
 from pathlib import Path
 import pandas as pd
-from movie_recommender.services.recommender.paths import DATA_RAW, DATA_PROCESSED
+from movie_recommender.services.recommender.paths_dev import DATA_RAW, DATA_PROCESSED
 
 RAW_PATH = DATA_RAW / "ratings.csv"
 PROCESSED_PATH = DATA_PROCESSED / "interactions_clean.parquet"

@@ -1,12 +1,11 @@
 import pandas as pd
 from pathlib import Path
+from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
 
-# Paths
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-INTERACTIONS_CLEAN_PATH = PROJECT_ROOT / "data" / "processed" / "interactions_clean.parquet"
-INTERACTIONS_FILTERED_PATH = PROJECT_ROOT / "data" / "processed" / "interactions_filtered.parquet"
-MOVIES_CLEAN_PATH = PROJECT_ROOT / "data" / "processed" / "movies_clean.parquet"
-MOVIES_FILTERED_PATH = PROJECT_ROOT / "data" / "processed" / "movies_filtered.parquet"
+INTERACTIONS_CLEAN_PATH = DATA_PROCESSED / "interactions_clean.parquet"
+INTERACTIONS_FILTERED_PATH = DATA_PROCESSED / "interactions_filtered.parquet"
+MOVIES_CLEAN_PATH = DATA_PROCESSED / "movies_clean.parquet"
+MOVIES_FILTERED_PATH = DATA_PROCESSED / "movies_filtered.parquet"
 
 # Quick size overview for all processed files
 print("=== DATASET SIZES (MB) ===")
