@@ -1,11 +1,11 @@
 # recommender/training/filtering.py
 
+from movie_recommender.services.recommender.paths import DATA_PROCESSED
 from pathlib import Path
 import pandas as pd
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PROCESSED_INPUT = PROJECT_ROOT / "data" / "processed" / "interactions_clean.parquet"
-PROCESSED_OUTPUT = PROJECT_ROOT / "data" / "processed" / "interactions_filtered.parquet"
+PROCESSED_INPUT = DATA_PROCESSED / "interactions_clean.parquet"
+PROCESSED_OUTPUT = DATA_PROCESSED / "interactions_filtered.parquet"
 
 MIN_USER_INTERACTIONS = 10
 MIN_MOVIE_INTERACTIONS = 20
