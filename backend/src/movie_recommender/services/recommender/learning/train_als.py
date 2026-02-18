@@ -1,5 +1,3 @@
-# recommender/training/train_als.py
-
 from pathlib import Path
 import json
 import numpy as np
@@ -9,7 +7,8 @@ from movie_recommender.services.recommender.paths_dev import ARTIFACTS
 
 
 MATRIX_PATH = ARTIFACTS / "R_train.npz"
-EMBEDDINGS_PATH = ARTIFACTS / "movie_embeddings.npy"
+MOVIE_EMBEDDINGS_PATH = ARTIFACTS / "movie_embeddings.npy"
+USER_EMBEDDINGS_PATH = ARTIFACTS / "user_embeddings.npy"
 MODEL_INFO_PATH = ARTIFACTS / "model_info.json"
 
 
@@ -42,14 +41,16 @@ def train():
 
     print("Training complete.")
 
-    # Extract movie embeddings
-    # model.item_factors corresponds to movies
-    movie_embeddings = model.item_factors
+    # Extract embeddings (implicit: item_factors=movies, user_factors=users)
+    movie_embeddings = model.item_factors.astype(np.float32)
+    user_embeddings = model.user_factors.astype(np.float32)
 
     print(f"Movie embeddings shape: {movie_embeddings.shape}")
+    print(f"User embeddings shape: {user_embeddings.shape}")
 
     # Save embeddings
-    np.save(EMBEDDINGS_PATH, movie_embeddings)
+    np.save(MOVIE_EMBEDDINGS_PATH, movie_embeddings)
+    np.save(USER_EMBEDDINGS_PATH, user_embeddings)
 
     # Save model metadata
     model_info = {
@@ -58,6 +59,7 @@ def train():
         "iterations": ITERATIONS,
         "alpha": ALPHA,
         "num_movies": movie_embeddings.shape[0],
+        "num_users": user_embeddings.shape[0],
         "embedding_dim": movie_embeddings.shape[1]
     }
 

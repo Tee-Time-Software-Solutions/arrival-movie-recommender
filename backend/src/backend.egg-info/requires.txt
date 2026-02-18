@@ -12,3 +12,4 @@ pandas
 pyarrow
 scipy
 implicit
+tqdm
