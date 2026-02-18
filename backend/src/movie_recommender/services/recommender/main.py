@@ -17,3 +17,5 @@ class Recommender:
         """
         # Mock data
         return [(1, "Arrival"), (2, "Interstellar"), (3, "The Matrix")]
+
+    # missing update_user() and similar_movies()
