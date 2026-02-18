@@ -27,7 +27,12 @@ src/movie_recommender/schemas/users.py
 src/movie_recommender/services/feed_manager/main.py
 src/movie_recommender/services/hydrator/main.py
 src/movie_recommender/services/recommender/main.py
-src/movie_recommender/services/recommender/training/__init__.py
-src/movie_recommender/services/recommender/training/filtering.py
-src/movie_recommender/services/recommender/training/preprocess_movies.py
-src/movie_recommender/services/recommender/training/preprocess_ratings.py
+src/movie_recommender/services/recommender/paths_dev.py
+src/movie_recommender/services/recommender/data_processing/split.py
+src/movie_recommender/services/recommender/data_processing/preprocessing/filtering.py
+src/movie_recommender/services/recommender/data_processing/preprocessing/preprocess_movies.py
+src/movie_recommender/services/recommender/data_processing/preprocessing/preprocess_ratings.py
+src/movie_recommender/services/recommender/data_processing/preprocessing/prune_movies.py
+src/movie_recommender/services/recommender/tests/inspect_data.py
+src/movie_recommender/services/recommender/training/build_matrix.py
+src/movie_recommender/services/recommender/training/train_als.py
