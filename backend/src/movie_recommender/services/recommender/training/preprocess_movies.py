@@ -64,9 +64,6 @@ def preprocess_movies():
     # Split genres
     df["genres"] = df["genres"].apply(split_genres)
 
-    # Optional default columns (future-proof)
-    df["is_adult"] = False
-
     # Reorder columns
     df = df[
         [
@@ -74,7 +71,6 @@ def preprocess_movies():
             "title",
             "release_year",
             "genres",
-            "is_adult",
         ]
     ]
 
