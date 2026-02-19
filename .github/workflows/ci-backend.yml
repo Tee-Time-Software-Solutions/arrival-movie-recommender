@@ -51,6 +51,13 @@ jobs:
       run:
         working-directory: ${{ env.WORKING_DIR }}
 
+    env:
+      ENVIRONMENT: test
+      TMDB_API_KEY: test
+      TMDB_IMG_URL: http://test
+      TMDB_BASE_URL: http://test
+      REDIS_URL: redis://localhost:6379
+
     steps:
       - uses: actions/checkout@v4
 

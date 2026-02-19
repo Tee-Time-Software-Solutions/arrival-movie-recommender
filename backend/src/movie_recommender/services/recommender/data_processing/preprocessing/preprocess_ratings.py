@@ -7,6 +7,7 @@ from movie_recommender.services.recommender.paths_dev import DATA_RAW, DATA_PROC
 RAW_PATH = DATA_RAW / "ratings.csv"
 PROCESSED_PATH = DATA_PROCESSED / "interactions_clean.parquet"
 
+
 def map_rating_to_bucket(rating: float) -> int:
     """
     Convert 0.5–5.0 rating into 1–4 discrete system.
@@ -46,10 +47,12 @@ def preprocess_ratings():
     )
 
     # Rename columns
-    df = df.rename(columns={
-        "userId": "user_id",
-        "movieId": "movie_id",
-    })
+    df = df.rename(
+        columns={
+            "userId": "user_id",
+            "movieId": "movie_id",
+        }
+    )
 
     print("Mapping ratings to swipe buckets...")
 
