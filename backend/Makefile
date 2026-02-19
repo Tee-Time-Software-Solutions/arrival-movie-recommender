@@ -26,3 +26,7 @@ format-check: ## Formats
 format-fix: ## Format code (for pre-commit)
 	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
 	$(VENV_ACTIVATE) && ruff format src/
+
+test: ## Run unit tests with pytest
+	@echo "$(YELLOW)Running tests...$(RESET)"
+	$(VENV_ACTIVATE) && pytest tests/ -v
