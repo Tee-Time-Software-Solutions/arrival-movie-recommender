@@ -1,0 +1,21 @@
+Metadata-Version: 2.4
+Name: backend
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: gunicorn
+Requires-Dist: pydantic
+Requires-Dist: pre-commit>=4.5.1
+Requires-Dist: ruff>=0.15.1
+Requires-Dist: redis>=7.1.1
+Requires-Dist: requests>=2.32.5
+Requires-Dist: dotenv>=0.9.9
+Requires-Dist: python-json-logger>=4.0.0
+Requires-Dist: pandas
+Requires-Dist: pyarrow
+Requires-Dist: scipy
+Requires-Dist: implicit
+Requires-Dist: tqdm
