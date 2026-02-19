@@ -1,8 +1,8 @@
 import type { MovieDetails, WatchedMovie } from "@/types/movie";
 
 export const MOCK_USER = {
-  displayName: "Movie Lover",
-  email: "movielover@example.com",
+  displayName: "Bruce Wayne",
+  email: "bwayne@waynecorp.com",
   photoURL: null as string | null,
 };
 
