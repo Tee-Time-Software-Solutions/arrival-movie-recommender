@@ -1,4 +1,5 @@
 .DEFAULT_GOAL := help
+SHELL := /bin/bash
 
 # VARIABLES
 RED = \033[31m
@@ -15,8 +16,7 @@ APP_PATH = src.movie_recommender.main:app
 
 # 0) Set-up
 install: ## Install packages with uv
-	uv venv $(VENV) --python 3.11
-	uv pip install -e ".[dev,tests]"
+	uv sync --group dev
 
 help:
 	@echo "$(BLUE)Available commands:$(RESET)"
@@ -32,8 +32,12 @@ dev: ## Start backend in dev
 format-check: ## Formats
 	@echo "$(YELLOW)Running CI formatting$(RESET)"
 	@echo "$(BLUE)Checking code formatting with ruff...$(RESET)"
-	@$(VENV_ACTIVATE) && ruff format --check src/
+	uv run ruff format --check src/
 
 format-fix: ## Format code (for pre-commit)
 	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
-	$(VENV_ACTIVATE) && ruff format src/
+	uv run ruff format src/
+
+test: ## Run unit tests with pytest
+	@echo "$(YELLOW)Running tests...$(RESET)"
+	uv run pytest tests/ -v

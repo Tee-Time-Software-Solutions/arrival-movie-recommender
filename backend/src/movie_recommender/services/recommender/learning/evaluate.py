@@ -16,10 +16,7 @@ K = 10
 
 
 def dcg_at_k(relevance):
-    return sum(
-        rel / np.log2(idx + 2)
-        for idx, rel in enumerate(relevance)
-    )
+    return sum(rel / np.log2(idx + 2) for idx, rel in enumerate(relevance))
 
 
 def evaluate():
@@ -63,9 +60,7 @@ def evaluate():
         # Remove seen movies
         seen_movies = train_lookup.get(user_id, set())
         seen_indices = [
-            movie_id_to_index[m]
-            for m in seen_movies
-            if m in movie_id_to_index
+            movie_id_to_index[m] for m in seen_movies if m in movie_id_to_index
         ]
         scores[seen_indices] = -np.inf
 
@@ -73,10 +68,7 @@ def evaluate():
         top_k_indices = np.argpartition(scores, -K)[-K:]
         top_k_indices = top_k_indices[np.argsort(-scores[top_k_indices])]
 
-        recommended_movies = {
-            index_to_movie_id[idx]
-            for idx in top_k_indices
-        }
+        recommended_movies = {index_to_movie_id[idx] for idx in top_k_indices}
 
         true_movies = val_lookup[user_id]
 
@@ -87,8 +79,7 @@ def evaluate():
         precision = len(hits) / K
 
         relevance = [
-            1 if index_to_movie_id[idx] in true_movies else 0
-            for idx in top_k_indices
+            1 if index_to_movie_id[idx] in true_movies else 0 for idx in top_k_indices
         ]
 
         dcg = dcg_at_k(relevance)

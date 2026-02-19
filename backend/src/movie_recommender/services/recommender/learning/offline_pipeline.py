@@ -1,11 +1,21 @@
 import time
 
-from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies import preprocess_movies
-from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings import preprocess_ratings
-from movie_recommender.services.recommender.data_processing.preprocessing.filtering import run_filtering
-from movie_recommender.services.recommender.data_processing.preprocessing.prune_movies import prune_movies
+from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies import (
+    preprocess_movies,
+)
+from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings import (
+    preprocess_ratings,
+)
+from movie_recommender.services.recommender.data_processing.preprocessing.filtering import (
+    run_filtering,
+)
+from movie_recommender.services.recommender.data_processing.preprocessing.prune_movies import (
+    prune_movies,
+)
 from movie_recommender.services.recommender.data_processing.split import run_split
-from movie_recommender.services.recommender.learning.build_matrix import build_sparse_matrix
+from movie_recommender.services.recommender.learning.build_matrix import (
+    build_sparse_matrix,
+)
 from movie_recommender.services.recommender.learning.train_als import train
 from movie_recommender.services.recommender.learning.evaluate import evaluate
 

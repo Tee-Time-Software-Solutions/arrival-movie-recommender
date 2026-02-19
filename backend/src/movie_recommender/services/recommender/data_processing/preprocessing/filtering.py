@@ -54,9 +54,7 @@ def run_filtering():
     print(f"Initial movies: {df['movie_id'].nunique()}")
 
     df_filtered = iterative_core_filter(
-        df,
-        MIN_USER_INTERACTIONS,
-        MIN_MOVIE_INTERACTIONS
+        df, MIN_USER_INTERACTIONS, MIN_MOVIE_INTERACTIONS
     )
 
     print("\nFinal stats:")
