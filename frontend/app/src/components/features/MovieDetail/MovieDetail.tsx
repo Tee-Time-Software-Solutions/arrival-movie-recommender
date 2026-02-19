@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Star } from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
 import { getProviderLogoUrl } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import type { ProviderType } from "@/types/movie";
 
 interface MovieDetailContentProps {
   movie: MovieDetails;
@@ -14,20 +12,6 @@ function getYoutubeVideoId(url: string): string | null {
   const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
   return match ? match[1] : null;
 }
-
-const providerFilterLabels: Record<string, string> = {
-  all: "All",
-  flatrate: "Stream",
-  rent: "Rent",
-  buy: "Buy",
-};
-
-const providerFilterColors: Record<string, string> = {
-  all: "bg-primary text-primary-foreground",
-  flatrate: "bg-green-600 text-white",
-  rent: "bg-orange-600 text-white",
-  buy: "bg-purple-600 text-white",
-};
 
 function ProviderLogo({ name }: { name: string }) {
   const [failed, setFailed] = useState(false);
@@ -52,17 +36,14 @@ function ProviderLogo({ name }: { name: string }) {
 }
 
 export function MovieDetailContent({ movie }: MovieDetailContentProps) {
-  const [showProviders, setShowProviders] = useState(false);
-  const [providerFilter, setProviderFilter] = useState<string>("all");
-
-  const filteredProviders =
-    providerFilter === "all"
-      ? movie.movie_providers
-      : movie.movie_providers.filter(
-          (p) => p.provider_type === providerFilter,
-        );
-
   const videoId = getYoutubeVideoId(movie.trailer_url);
+
+  const streamingProviders = movie.movie_providers.filter(
+    (p) => p.provider_type === "flatrate",
+  );
+  const paidProviders = movie.movie_providers.filter(
+    (p) => p.provider_type === "rent" || p.provider_type === "buy",
+  );
 
   return (
     <div className="space-y-6 p-4">
@@ -96,6 +77,49 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
         </p>
       </div>
 
+      {/* Providers — inline after synopsis */}
+      {streamingProviders.length > 0 && (
+        <div>
+          <h3 className="mb-2 font-semibold">Available on</h3>
+          <div className="flex gap-4 overflow-x-auto pb-1">
+            {streamingProviders.map((provider, idx) => (
+              <div
+                key={idx}
+                className="flex shrink-0 flex-col items-center"
+              >
+                <div className="h-12 w-12 overflow-hidden rounded-xl shadow-sm">
+                  <ProviderLogo name={provider.name} />
+                </div>
+                <span className="mt-1 max-w-[72px] truncate text-center text-[10px] text-muted-foreground">
+                  {provider.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {paidProviders.length > 0 && (
+        <div>
+          <h3 className="mb-1 text-sm text-muted-foreground">Rent or Buy</h3>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {paidProviders.map((provider, idx) => (
+              <div
+                key={idx}
+                className="flex shrink-0 flex-col items-center opacity-70"
+              >
+                <div className="h-10 w-10 overflow-hidden rounded-xl shadow-sm">
+                  <ProviderLogo name={provider.name} />
+                </div>
+                <span className="mt-1 max-w-[64px] truncate text-center text-[10px] text-muted-foreground">
+                  {provider.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Trailer */}
       {videoId && (
         <div>
@@ -112,112 +136,38 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
         </div>
       )}
 
-      {/* Cast */}
+      {/* Cast — horizontal scroll */}
       {movie.cast.length > 0 && (
         <div>
           <h3 className="mb-2 font-semibold">Cast</h3>
-          <div className="space-y-2">
+          <div className="flex gap-4 overflow-x-auto pb-2">
             {movie.cast.map((member) => (
-              <div key={member.name} className="flex items-center gap-3">
+              <div
+                key={member.name}
+                className="flex shrink-0 flex-col items-center"
+              >
                 {member.profile_path ? (
                   <img
                     src={member.profile_path}
                     alt={member.name}
-                    className="h-10 w-10 rounded-full object-cover"
+                    className="h-12 w-12 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-xs">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-xs">
                     {member.name.charAt(0)}
                   </div>
                 )}
-                <div>
-                  <p className="text-sm font-medium">{member.name}</p>
-                  {member.role_type && (
-                    <p className="text-xs text-muted-foreground">
-                      {member.role_type}
-                    </p>
-                  )}
-                </div>
+                <p className="mt-1 max-w-[72px] truncate text-center text-[11px] font-medium">
+                  {member.name}
+                </p>
+                {member.role_type && (
+                  <p className="max-w-[72px] truncate text-center text-[10px] text-muted-foreground">
+                    {member.role_type}
+                  </p>
+                )}
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Providers */}
-      {movie.movie_providers.length > 0 && (
-        <div>
-          <button
-            onClick={() => setShowProviders(!showProviders)}
-            className="flex w-full items-center justify-between rounded-lg bg-secondary px-4 py-3 font-semibold transition hover:bg-secondary/80"
-          >
-            <span>
-              Watch On ({movie.movie_providers.length} providers)
-            </span>
-            {showProviders ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
-
-          {showProviders && (
-            <div className="mt-3 space-y-3">
-              <div className="flex gap-2">
-                {(
-                  Object.keys(providerFilterLabels) as Array<
-                    "all" | ProviderType
-                  >
-                ).map((filter) => {
-                  const count =
-                    filter === "all"
-                      ? movie.movie_providers.length
-                      : movie.movie_providers.filter(
-                          (p) => p.provider_type === filter,
-                        ).length;
-                  return (
-                    <button
-                      key={filter}
-                      onClick={() => setProviderFilter(filter)}
-                      className={cn(
-                        "rounded px-3 py-1 text-xs font-medium transition",
-                        providerFilter === filter
-                          ? providerFilterColors[filter]
-                          : "bg-secondary text-muted-foreground hover:bg-secondary/80",
-                      )}
-                    >
-                      {providerFilterLabels[filter]} ({count})
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                {filteredProviders.map((provider, idx) => (
-                  <div
-                    key={idx}
-                    className="flex shrink-0 flex-col items-center"
-                  >
-                    <div
-                      className={cn(
-                        "h-14 w-14 overflow-hidden rounded-xl border-2 shadow-md",
-                        provider.provider_type === "flatrate"
-                          ? "border-green-500"
-                          : provider.provider_type === "rent"
-                            ? "border-orange-500"
-                            : "border-purple-500",
-                      )}
-                    >
-                      <ProviderLogo name={provider.name} />
-                    </div>
-                    <span className="mt-1 max-w-[80px] text-center text-[10px] leading-tight text-muted-foreground">
-                      {provider.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
