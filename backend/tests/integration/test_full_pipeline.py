@@ -692,3 +692,282 @@ class TestFullLoop:
 
         assert len(seen) == 5, f"Expected 5 seen movies, got {len(seen)}"
         assert user_id in pipeline_recommender.online_user_vectors
+
+
+# ---------------------------------------------------------------------------
+# 7. Single-user journey: one user through the entire recommendation lifecycle
+# ---------------------------------------------------------------------------
+
+
+class TestSingleUserJourney:
+    """Follow ONE user through a full recommendation session using
+    hand-crafted embeddings where genres point in distinct directions.
+
+    This makes the online updater's effect clearly visible: liking an
+    ACTION movie raises action scores MORE than comedy/horror scores,
+    because the embeddings are geometrically separated.
+
+    Embedding space (6 dimensions):
+      ACTION  → dimensions 0-1   (e.g. Die Hard   = [1, 0,  0, 0,  0, 0])
+      COMEDY  → dimensions 2-3   (e.g. Superbad   = [0, 0,  1, 0,  0, 0])
+      HORROR  → dimensions 4-5   (e.g. The Shining = [0, 0,  0, 0,  1, 0])
+    """
+
+    @pytest.fixture
+    def journey_recommender(self) -> Recommender:
+        movie_embeddings = np.array([
+            # ACTION (dims 0-1)
+            [1.0, 0.1,  0.0, 0.0,  0.0, 0.0],   # 0: Die Hard
+            [0.9, 0.2,  0.0, 0.0,  0.0, 0.0],   # 1: Mad Max
+            [0.8, 0.3,  0.1, 0.0,  0.0, 0.0],   # 2: Top Gun
+            [1.0, 0.0,  0.0, 0.0,  0.1, 0.0],   # 3: John Wick
+            # COMEDY (dims 2-3)
+            [0.0, 0.0,  1.0, 0.1,  0.0, 0.0],   # 4: Superbad
+            [0.0, 0.0,  0.9, 0.2,  0.0, 0.0],   # 5: The Hangover
+            [0.0, 0.0,  0.8, 0.3,  0.0, 0.0],   # 6: Mean Girls
+            [0.1, 0.0,  1.0, 0.0,  0.0, 0.0],   # 7: Bridesmaids
+            # HORROR (dims 4-5)
+            [0.0, 0.0,  0.0, 0.0,  1.0, 0.1],   # 8: The Shining
+            [0.0, 0.0,  0.0, 0.0,  0.9, 0.2],   # 9: Hereditary
+            [0.0, 0.0,  0.0, 0.1,  0.8, 0.3],   # 10: The Conjuring
+            [0.0, 0.0,  0.0, 0.0,  1.0, 0.0],   # 11: Midsommar
+        ], dtype=np.float32)
+
+        # User starts as a slight action fan
+        user_embeddings = np.array([
+            [0.4, 0.1, 0.2, 0.1, 0.1, 0.0],   # user 1: slight action lean
+        ], dtype=np.float32)
+
+        artifacts = RecommenderArtifacts(
+            movie_embeddings=movie_embeddings,
+            user_embeddings=user_embeddings,
+            user_id_to_index={1: 0},
+            movie_id_to_index={
+                100: 0, 101: 1, 102: 2, 103: 3,
+                200: 4, 201: 5, 202: 6, 203: 7,
+                300: 8, 301: 9, 302: 10, 303: 11,
+            },
+            index_to_movie_id={
+                0: 100, 1: 101, 2: 102, 3: 103,
+                4: 200, 5: 201, 6: 202, 7: 203,
+                8: 300, 9: 301, 10: 302, 11: 303,
+            },
+            movie_id_to_title={
+                100: "Die Hard",     101: "Mad Max",
+                102: "Top Gun",      103: "John Wick",
+                200: "Superbad",     201: "The Hangover",
+                202: "Mean Girls",   203: "Bridesmaids",
+                300: "The Shining",  301: "Hereditary",
+                302: "The Conjuring", 303: "Midsommar",
+            },
+        )
+
+        rec = Recommender.__new__(Recommender)
+        rec.artifacts = artifacts
+        rec._artifact_load_error = None
+        rec.online_user_vectors = {}
+        rec.user_seen_movie_ids = {}
+        rec.eta = 0.3
+        rec.norm_cap = 10.0
+        return rec
+
+    def test_user_recommendation_journey(self, journey_recommender: Recommender):
+        USER = "1"
+        rec = journey_recommender
+        artifacts = rec.artifacts
+        N_RECS = 5  # how many recommendations to request each time
+
+        cluster_for_id = {
+            100: "action", 101: "action", 102: "action", 103: "action",
+            200: "comedy", 201: "comedy", 202: "comedy", 203: "comedy",
+            300: "horror", 301: "horror", 302: "horror", 303: "horror",
+        }
+
+        # ── helpers ──
+
+        def _get_recs(n=N_RECS):
+            """Call the actual get_top_n and return recommendations."""
+            return rec.get_top_n(user_id=USER, n=n, user_preferences=None)
+
+        def _print_recs(recs, label="Recommendations"):
+            print(f"  ┌─ {label} ─────────────────────────────────────────┐")
+            if not recs:
+                print(f"  │  (none)")
+            for i, (mid, title) in enumerate(recs, 1):
+                cluster = cluster_for_id[mid].upper()
+                print(f"  │  {i}. {title:<20s} [{cluster}]")
+            print(f"  └──────────────────────────────────────────────────────┘")
+
+        def _avg_delta_by_cluster(before, after):
+            deltas = {}
+            for mid in after:
+                if mid in before:
+                    c = cluster_for_id[mid]
+                    deltas.setdefault(c, []).append(after[mid] - before[mid])
+            return {c: sum(ds) / len(ds) for c, ds in deltas.items()}
+
+        def _score_all_unseen():
+            vec = rec._current_user_vector(USER)
+            seen = rec.user_seen_movie_ids.get(USER, set())
+            return {
+                mid: float(artifacts.movie_embeddings[idx] @ vec)
+                for mid, idx in artifacts.movie_id_to_index.items()
+                if mid not in seen
+            }
+
+        def _print_cluster_deltas(cluster_deltas):
+            for c in sorted(cluster_deltas, key=lambda c: -cluster_deltas[c]):
+                d = cluster_deltas[c]
+                arrow = "▲" if d > 0 else ("▼" if d < 0 else "─")
+                print(f"           {c.upper():<8s} avg Δ: {arrow} {d:+.4f}")
+
+        def _pick_from_cluster(scores, cluster):
+            candidates = {
+                mid: s for mid, s in scores.items()
+                if cluster_for_id[mid] == cluster
+            }
+            return max(candidates, key=candidates.get)
+
+        # ══════════════════════════════════════════════════════════════════
+
+        print("\n")
+        print("=" * 75)
+        print(f"  USER {USER} — RECOMMENDATION JOURNEY  (eta={rec.eta})")
+        print(f"  Embeddings: ACTION→dims[0-1]  COMEDY→dims[2-3]  HORROR→dims[4-5]")
+        print("=" * 75)
+
+        # ── Step 1: User opens app for the first time ──
+        recs = _get_recs()
+        scores = _score_all_unseen()
+
+        print(f"\n  STEP 1 · User opens app — no history, asks for {N_RECS} movies")
+        _print_recs(recs, "Top 5 recommendations")
+        rec_genres_1 = [cluster_for_id[mid] for mid, _ in recs]
+        print(f"           Genres: {[g.upper() for g in rec_genres_1]}")
+
+        assert len(recs) == N_RECS
+        assert len(recs) == len(set(mid for mid, _ in recs)), "No duplicates"
+        # User has slight action lean → action should appear in recs
+        assert "action" in rec_genres_1
+
+        # ── Step 2: User LIKES the top action movie shown ──
+        prev = scores
+        like_id = _pick_from_cluster(scores, "action")
+        like_title = artifacts.movie_id_to_title[like_id]
+
+        rec.update_user(user_id=USER, movie_id=like_id, action_type=SwipeAction.LIKE)
+        scores = _score_all_unseen()
+        deltas = _avg_delta_by_cluster(prev, scores)
+        recs = _get_recs()
+
+        print(f"\n  STEP 2 · LIKE \"{like_title}\" [ACTION]")
+        _print_recs(recs, f"Updated recommendations")
+        _print_cluster_deltas(deltas)
+
+        rec_ids = [mid for mid, _ in recs]
+        assert like_id not in rec_ids, "Liked movie should be excluded"
+        assert deltas["action"] > deltas["comedy"]
+        assert deltas["action"] > deltas["horror"]
+
+        # ── Step 3: User LIKES another action movie ──
+        prev = scores
+        like_id2 = _pick_from_cluster(scores, "action")
+        like_title2 = artifacts.movie_id_to_title[like_id2]
+
+        rec.update_user(user_id=USER, movie_id=like_id2, action_type=SwipeAction.LIKE)
+        scores = _score_all_unseen()
+        deltas = _avg_delta_by_cluster(prev, scores)
+        recs = _get_recs()
+
+        print(f"\n  STEP 3 · LIKE \"{like_title2}\" [ACTION]  (double down)")
+        _print_recs(recs, f"Updated recommendations")
+        _print_cluster_deltas(deltas)
+
+        assert like_id2 not in [mid for mid, _ in recs]
+        assert deltas["action"] > deltas["comedy"]
+        assert deltas["action"] > deltas["horror"]
+
+        # ── Step 4: User DISLIKES a horror movie ──
+        prev = scores
+        dislike_id = _pick_from_cluster(scores, "horror")
+        dislike_title = artifacts.movie_id_to_title[dislike_id]
+
+        rec.update_user(
+            user_id=USER, movie_id=dislike_id, action_type=SwipeAction.DISLIKE
+        )
+        scores = _score_all_unseen()
+        deltas = _avg_delta_by_cluster(prev, scores)
+        recs = _get_recs()
+
+        print(f"\n  STEP 4 · DISLIKE \"{dislike_title}\" [HORROR]")
+        _print_recs(recs, f"Updated recommendations")
+        _print_cluster_deltas(deltas)
+
+        assert dislike_id not in [mid for mid, _ in recs]
+        assert deltas["horror"] < deltas["action"]
+        assert deltas["horror"] < deltas["comedy"]
+
+        # ── Step 5: User SKIPS a comedy ──
+        prev = scores
+        skip_id = _pick_from_cluster(scores, "comedy")
+        skip_title = artifacts.movie_id_to_title[skip_id]
+
+        vec_before = rec._current_user_vector(USER).copy()
+        rec.update_user(user_id=USER, movie_id=skip_id, action_type=SwipeAction.SKIP)
+        vec_after = rec._current_user_vector(USER)
+        scores = _score_all_unseen()
+        recs = _get_recs()
+
+        print(f"\n  STEP 5 · SKIP \"{skip_title}\" [COMEDY]")
+        _print_recs(recs, f"Updated recommendations")
+        print(f"           Vector changed: No (skip = no preference signal)")
+
+        assert skip_id not in [mid for mid, _ in recs], "Skipped movie excluded"
+        assert np.array_equal(vec_before, vec_after)
+
+        # ── Step 6: One more action LIKE ──
+        prev = scores
+        like_id3 = _pick_from_cluster(scores, "action")
+        like_title3 = artifacts.movie_id_to_title[like_id3]
+
+        rec.update_user(user_id=USER, movie_id=like_id3, action_type=SwipeAction.LIKE)
+        scores_final = _score_all_unseen()
+        deltas = _avg_delta_by_cluster(prev, scores_final)
+        recs_final = _get_recs()
+
+        print(f"\n  STEP 6 · LIKE \"{like_title3}\" [ACTION]  (third action like)")
+        _print_recs(recs_final, f"Final recommendations")
+        _print_cluster_deltas(deltas)
+
+        # ── Summary ──
+        initial_vector = rec._base_user_vector(USER)
+        final_vector = rec._current_user_vector(USER)
+        drift = float(np.linalg.norm(final_vector - initial_vector))
+        seen = rec.user_seen_movie_ids.get(USER, set())
+        final_genres = [cluster_for_id[mid] for mid, _ in recs_final]
+
+        # Format vectors for display: label each dim pair by genre
+        def _fmt_vec(v):
+            return (
+                f"ACTION[{v[0]:+.4f}, {v[1]:+.4f}]  "
+                f"COMEDY[{v[2]:+.4f}, {v[3]:+.4f}]  "
+                f"HORROR[{v[4]:+.4f}, {v[5]:+.4f}]"
+            )
+
+        print(f"\n  ═══ JOURNEY SUMMARY ═══════════════════════════════════════════")
+        print(f"  │  Swipes:  3 action LIKES, 1 horror DISLIKE, 1 comedy SKIP")
+        print(f"  │  Total seen:             {len(seen)}")
+        print(f"  │  Recs returned:           {len(recs_final)}")
+        print(f"  │  Final rec genres:        {[g.upper() for g in final_genres]}")
+        print(f"  │")
+        print(f"  │  User vector (start):  {_fmt_vec(initial_vector)}")
+        print(f"  │  User vector (final):  {_fmt_vec(final_vector)}")
+        print(f"  │  Vector drift (L2):       {drift:.4f}")
+        print(f"  │  Online vector stored:    {USER in rec.online_user_vectors}")
+        print(f"  ═════════════════════════════════════════════════════════════════")
+        print()
+
+        assert len(seen) == 5
+        assert len(recs_final) > 0, "Should still have movies to recommend"
+        assert drift > 0
+        assert USER in rec.online_user_vectors
