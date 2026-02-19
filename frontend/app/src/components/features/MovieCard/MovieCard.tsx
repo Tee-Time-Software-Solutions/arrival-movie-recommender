@@ -98,11 +98,11 @@ export function MovieCard({
     >
       {/* LIKE stamp */}
       <motion.div
-        className="pointer-events-none absolute left-6 top-1/2 z-10 -translate-y-1/2 rounded-xl border-4 border-green-500 bg-green-500/10 px-4 py-2"
+        className="pointer-events-none absolute left-6 top-1/2 z-10 -translate-y-1/2 rounded-xl border-4 border-primary bg-primary/10 px-4 py-2"
         style={forceSwipe === null || forceSwipe === undefined ? { opacity: likeOpacity } : undefined}
         animate={forceSwipe ? { opacity: forceSwipe === "right" ? 1 : 0 } : undefined}
       >
-        <span className="text-2xl font-bold text-green-500">LIKE</span>
+        <span className="text-2xl font-bold text-primary">LIKE</span>
       </motion.div>
 
       {/* NOPE stamp */}
@@ -156,7 +156,7 @@ export function MovieCard({
             {movie.genres.slice(0, 4).map((genre) => (
               <span
                 key={genre}
-                className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground"
+                className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary"
               >
                 {genre}
               </span>
