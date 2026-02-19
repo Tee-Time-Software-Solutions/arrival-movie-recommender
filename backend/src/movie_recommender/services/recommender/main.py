@@ -37,6 +37,7 @@ class Recommender:
         self.artifacts: Optional[RecommenderArtifacts] = None
         self._artifact_load_error: Optional[str] = None
         self.online_user_vectors: Dict[str, np.ndarray] = {}
+        self.user_seen_movie_ids: Dict[str, set[int]] = {}
         self.eta = 0.05
         self.norm_cap = 10.0
 
@@ -86,7 +87,24 @@ class Recommender:
         user_vector = self._current_user_vector(user_id)
 
         scores = artifacts.movie_embeddings @ user_vector
-        top_indices = _top_n_indices(scores, n)
+        seen_movies = self.user_seen_movie_ids.get(user_id, set())
+        seen_indices = [
+            artifacts.movie_id_to_index[movie_id]
+            for movie_id in seen_movies
+            if movie_id in artifacts.movie_id_to_index
+        ]
+
+        if seen_indices:
+            scores = scores.copy()
+            scores[seen_indices] = -np.inf
+
+        candidate_indices = np.where(np.isfinite(scores))[0]
+        if len(candidate_indices) == 0:
+            return []
+
+        candidate_scores = scores[candidate_indices]
+        top_local_indices = _top_n_indices(candidate_scores, n)
+        top_indices = candidate_indices[top_local_indices].tolist()
 
         recommendations: List[Tuple[int, str]] = []
         for movie_index in top_indices:
@@ -107,6 +125,7 @@ class Recommender:
     ) -> None:
         artifacts = self._require_artifacts()
         preference = swipe_to_preference(action_type, is_supercharged)
+        self.user_seen_movie_ids.setdefault(user_id, set()).add(int(movie_id))
 
         movie_index = artifacts.movie_id_to_index.get(int(movie_id))
         if movie_index is None:
