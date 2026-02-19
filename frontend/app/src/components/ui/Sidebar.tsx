@@ -1,54 +1,42 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { MdExplore } from "react-icons/md";
-import { IoChatbubbleEllipses } from "react-icons/io5";
-import { FaUserCircle } from "react-icons/fa";
-import {
-  TbLayoutSidebarLeftCollapse,
-  TbLayoutSidebarLeftExpand,
-} from "react-icons/tb";
+import { IoHome, IoChatbubble, IoLogOutOutline, IoPersonCircleOutline } from "react-icons/io5";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
 const tabs = [
-  { path: "/", icon: MdExplore, label: "Discover" },
-  { path: "/chat", icon: IoChatbubbleEllipses, label: "Chat" },
-  { path: "/profile", icon: FaUserCircle, label: "Profile" },
+  { path: "/", icon: IoHome, label: "Discover" },
+  { path: "/chat", icon: IoChatbubble, label: "Chat" },
+  { path: "/profile", icon: IoPersonCircleOutline, label: "Profile" },
 ] as const;
 
 interface SidebarProps {
   collapsed: boolean;
-  onToggle: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const clear = useAuthStore((s) => s.clear);
+
+  const handleLogout = () => {
+    clear();
+    navigate("/landing");
+  };
 
   return (
     <nav
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={cn(
         "fixed left-0 top-0 z-50 hidden h-screen flex-col border-r border-border bg-background transition-[width] duration-300 md:flex",
         collapsed ? "w-[72px]" : "w-[240px]",
       )}
     >
-      {/* Toggle + Logo */}
-      <div className={cn("flex items-center py-6", collapsed ? "justify-center px-0" : "justify-between px-4")}>
-        {!collapsed && (
-          <h1 className="text-xl font-bold tracking-tight">Arrival</h1>
-        )}
-        <button
-          onClick={onToggle}
-          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-        >
-          {collapsed ? (
-            <TbLayoutSidebarLeftExpand className="h-6 w-6" />
-          ) : (
-            <TbLayoutSidebarLeftCollapse className="h-6 w-6" />
-          )}
-        </button>
-      </div>
 
       {/* Navigation */}
-      <div className="flex flex-1 flex-col gap-1 px-3">
+      <div className="flex flex-1 flex-col justify-center gap-1 px-3">
         {tabs.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
           return (
@@ -60,7 +48,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 "group relative flex items-center rounded-lg py-3 text-sm transition-colors",
                 collapsed ? "justify-center px-0" : "gap-4 px-3",
                 isActive
-                  ? "bg-accent font-semibold text-foreground"
+                  ? "bg-primary/10 font-semibold text-primary"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
               )}
             >
@@ -76,6 +64,27 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </button>
           );
         })}
+      </div>
+
+      {/* Logout */}
+      <div className="px-3 pb-6">
+        <button
+          onClick={handleLogout}
+          title={collapsed ? "Log out" : undefined}
+          className={cn(
+            "group relative flex w-full items-center rounded-lg py-3 text-sm text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500",
+            collapsed ? "justify-center px-0" : "gap-4 px-3",
+          )}
+        >
+          <IoLogOutOutline className="h-6 w-6 shrink-0" />
+          {!collapsed && <span>Log out</span>}
+
+          {collapsed && (
+            <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background group-hover:block">
+              Log out
+            </span>
+          )}
+        </button>
       </div>
     </nav>
   );
