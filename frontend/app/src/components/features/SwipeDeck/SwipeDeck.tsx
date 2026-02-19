@@ -47,6 +47,7 @@ export function SwipeDeck({
       setForceSwipe(direction);
       const movie = currentMovie;
       setTimeout(() => {
+        setForceSwipe(null);
         if (direction === "right") onLike(movie);
         else onDislike(movie);
       }, 300);
