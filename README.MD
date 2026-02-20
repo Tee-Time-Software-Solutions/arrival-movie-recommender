@@ -2,10 +2,10 @@
 ### 1) MVP
 #### STATELESS APP
 - [X] Displaying a movie
-- [ ] Liking/disliking movie
-- [ ] Supercharging feature
-- [ ] Showing new movie after feedback has been provided happens
-- [ ] Swiping top for watched
+- [X] Liking/disliking movie
+- [X] Supercharging feature
+- [X] Showing new movie after feedback has been provided happens
+- [X] Swiping top for watched
 - [X] Swiping down for metadata
 - [X] Augment info data with TMDB api
 
@@ -16,6 +16,7 @@
 - [ ] Adding user preferences
 
 ### 2) NON-MVP
+- [ ] Onboarding with 10 chatbot selected movies in order to manage cold-start
 - [ ] Talk with chatbot (natural language conversation influences reco algorithm, user preferences and act as a search engine)
 - [ ] DB indexing strategy
 - [ ] Filter by cast crew
