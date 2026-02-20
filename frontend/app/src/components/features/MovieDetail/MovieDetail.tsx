@@ -105,7 +105,7 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
           <div className="flex gap-3 overflow-x-auto pb-1">
             {paidProviders.map((provider, idx) => (
               <div
-                key={idx}
+                key={provider.name}
                 className="flex shrink-0 flex-col items-center opacity-70"
               >
                 <div className="h-10 w-10 overflow-hidden rounded-xl shadow-sm">
