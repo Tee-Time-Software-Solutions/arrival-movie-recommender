@@ -5,7 +5,7 @@ import {
   useTransform,
   type PanInfo,
 } from "framer-motion";
-import { Star, Heart } from "lucide-react";
+import { Star, Zap } from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
 import { SWIPE_THRESHOLD, CARD_ROTATION_FACTOR } from "@/lib/constants";
 
@@ -13,9 +13,10 @@ interface MovieCardProps {
   movie: MovieDetails;
   onLike: () => void;
   onDislike: () => void;
+  onSuperLike: () => void;
+  onSuperDislike: () => void;
   onExpand: () => void;
   onWatched: () => void;
-  onLove: () => void;
   isTop: boolean;
   forceSwipe?: "left" | "right" | "down" | null;
 }
@@ -27,21 +28,21 @@ export function MovieCard({
   movie,
   onLike,
   onDislike,
+  onSuperLike,
+  onSuperDislike,
   onExpand,
   onWatched,
-  onLove,
   isTop,
   forceSwipe,
 }: MovieCardProps) {
   const [exitX, setExitX] = useState(0);
   const [exitY, setExitY] = useState(0);
   const [swiped, setSwiped] = useState(false);
-  const [loved, setLoved] = useState(false);
+  const [supercharged, setSupercharged] = useState(false);
 
   // Long-press detection
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isDraggingRef = useRef(false);
-  const lovedRef = useRef(false);
+  const superchargedRef = useRef(false);
 
   const clearHoldTimer = useCallback(() => {
     if (holdTimerRef.current) {
@@ -80,17 +81,9 @@ export function MovieCard({
   const watchedOpacity = useTransform(y, [0, SWIPE_THRESHOLD], [0, 1]);
 
   const handlePointerDown = () => {
-    isDraggingRef.current = false;
-    lovedRef.current = false;
     holdTimerRef.current = setTimeout(() => {
-      if (!isDraggingRef.current) {
-        lovedRef.current = true;
-        setLoved(true);
-        // After the love animation plays, trigger the callback
-        setTimeout(() => {
-          onLove();
-        }, 500);
-      }
+      superchargedRef.current = true;
+      setSupercharged(true);
     }, HOLD_DURATION);
   };
 
@@ -99,27 +92,24 @@ export function MovieCard({
   };
 
   const handleDragStart = () => {
-    isDraggingRef.current = true;
     clearHoldTimer();
   };
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
-    // If loved was triggered during hold, ignore drag end
-    if (lovedRef.current) return;
-
     const { offset, velocity } = info;
     const absX = Math.abs(offset.x);
     const absY = Math.abs(offset.y);
+    const charged = superchargedRef.current;
 
     if (absX > absY) {
       if (offset.x > SWIPE_THRESHOLD || velocity.x > 500) {
         setExitX(500);
         setSwiped(true);
-        onLike();
+        charged ? onSuperLike() : onLike();
       } else if (offset.x < -SWIPE_THRESHOLD || velocity.x < -500) {
         setExitX(-500);
         setSwiped(true);
-        onDislike();
+        charged ? onSuperDislike() : onDislike();
       }
     } else {
       if (offset.y < -SWIPE_THRESHOLD || velocity.y < -500) {
@@ -136,11 +126,7 @@ export function MovieCard({
 
   const exitRotation = exitX > 0 ? 20 : exitX < 0 ? -20 : 0;
 
-  // Build the animate target
   const getAnimateState = () => {
-    if (loved) {
-      return { scale: 0.8, opacity: 0 };
-    }
     if (swiped) {
       return { x: exitX, y: exitY, opacity: 0, rotate: exitRotation, scale: 1 };
     }
@@ -151,7 +137,7 @@ export function MovieCard({
     <motion.div
       className="absolute inset-0 cursor-grab active:cursor-grabbing"
       style={{ x, y, rotate }}
-      drag={!loved}
+      drag
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.8}
       onDragStart={handleDragStart}
@@ -163,22 +149,44 @@ export function MovieCard({
       animate={getAnimateState()}
       transition={CARD_SPRING}
     >
-      {/* LIKE stamp */}
+      {/* LIKE / SUPER LIKE stamp */}
       <motion.div
-        className="pointer-events-none absolute left-6 top-1/2 z-10 -translate-y-1/2 rounded-xl border-4 border-primary bg-primary/10 px-4 py-2"
+        className={`pointer-events-none absolute left-6 top-1/2 z-10 -translate-y-1/2 rounded-xl border-4 px-4 py-2 ${
+          supercharged
+            ? "border-yellow-400 bg-yellow-400/20"
+            : "border-primary bg-primary/10"
+        }`}
         style={forceSwipe === null || forceSwipe === undefined ? { opacity: likeOpacity } : undefined}
         animate={forceSwipe ? { opacity: forceSwipe === "right" ? 1 : 0 } : undefined}
       >
-        <span className="text-2xl font-bold text-primary">LIKE</span>
+        {supercharged ? (
+          <span className="flex items-center gap-1 text-2xl font-bold text-yellow-400">
+            <Zap className="h-6 w-6 fill-yellow-400" />
+            SUPER LIKE
+          </span>
+        ) : (
+          <span className="text-2xl font-bold text-primary">LIKE</span>
+        )}
       </motion.div>
 
-      {/* NOPE stamp */}
+      {/* NOPE / SUPER NOPE stamp */}
       <motion.div
-        className="pointer-events-none absolute right-6 top-1/2 z-10 -translate-y-1/2 rounded-xl border-4 border-red-500 bg-red-500/10 px-4 py-2"
+        className={`pointer-events-none absolute right-6 top-1/2 z-10 -translate-y-1/2 rounded-xl border-4 px-4 py-2 ${
+          supercharged
+            ? "border-orange-500 bg-orange-500/20"
+            : "border-red-500 bg-red-500/10"
+        }`}
         style={forceSwipe === null || forceSwipe === undefined ? { opacity: dislikeOpacity } : undefined}
         animate={forceSwipe ? { opacity: forceSwipe === "left" ? 1 : 0 } : undefined}
       >
-        <span className="text-2xl font-bold text-red-500">NOPE</span>
+        {supercharged ? (
+          <span className="flex items-center gap-1 text-2xl font-bold text-orange-500">
+            <Zap className="h-6 w-6 fill-orange-500" />
+            SUPER NOPE
+          </span>
+        ) : (
+          <span className="text-2xl font-bold text-red-500">NOPE</span>
+        )}
       </motion.div>
 
       {/* INFO stamp */}
@@ -198,16 +206,33 @@ export function MovieCard({
         <span className="text-2xl font-bold text-violet-500">WATCHED</span>
       </motion.div>
 
-      {/* YOU LOVED IT overlay */}
+      {/* Supercharged glow overlay */}
       <motion.div
-        className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-black/60"
+        className="pointer-events-none absolute inset-0 z-0 rounded-2xl ring-4 ring-yellow-400/60"
         initial={{ opacity: 0 }}
-        animate={{ opacity: loved ? 1 : 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Heart className="mb-2 h-16 w-16 fill-pink-500 text-pink-500" />
-        <span className="text-2xl font-bold text-pink-500">YOU LOVED IT</span>
-      </motion.div>
+        animate={{
+          opacity: supercharged ? 1 : 0,
+          boxShadow: supercharged
+            ? "0 0 30px rgba(250, 204, 21, 0.4), 0 0 60px rgba(250, 204, 21, 0.2)"
+            : "0 0 0px transparent",
+        }}
+        transition={{ duration: 0.3 }}
+      />
+
+      {/* Supercharged indicator */}
+      {supercharged && (
+        <motion.div
+          className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+        >
+          <div className="flex items-center gap-2 rounded-full bg-black/60 px-5 py-2.5">
+            <Zap className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+            <span className="text-lg font-bold text-yellow-400">SUPERCHARGED</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Card content */}
       <div className="h-full overflow-hidden rounded-2xl bg-card shadow-2xl">

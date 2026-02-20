@@ -15,7 +15,8 @@ interface SwipeDeckProps {
   onLike: (movie: MovieDetails) => void;
   onDislike: (movie: MovieDetails) => void;
   onWatched: (movie: MovieDetails) => void;
-  onLove: (movie: MovieDetails) => void;
+  onSuperLike: (movie: MovieDetails) => void;
+  onSuperDislike: (movie: MovieDetails) => void;
 }
 
 export function SwipeDeck({
@@ -24,7 +25,8 @@ export function SwipeDeck({
   onLike,
   onDislike,
   onWatched,
-  onLove,
+  onSuperLike,
+  onSuperDislike,
 }: SwipeDeckProps) {
   const [mode, setMode] = useState<DeckMode>("card");
   const [forceSwipe, setForceSwipe] = useState<"left" | "right" | "down" | null>(null);
@@ -84,17 +86,12 @@ export function SwipeDeck({
           e.preventDefault();
           triggerSwipe("down");
           break;
-        case "l":
-        case "L":
-          e.preventDefault();
-          onLove(currentMovie);
-          break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mode, currentMovie, triggerSwipe, onLove]);
+  }, [mode, currentMovie, triggerSwipe]);
 
   if (!currentMovie) {
     return (
@@ -130,7 +127,8 @@ export function SwipeDeck({
             onDislike={() => onDislike(currentMovie)}
             onExpand={() => setMode("details")}
             onWatched={() => onWatched(currentMovie)}
-            onLove={() => onLove(currentMovie)}
+            onSuperLike={() => onSuperLike(currentMovie)}
+            onSuperDislike={() => onSuperDislike(currentMovie)}
             forceSwipe={forceSwipe}
           />
         </motion.div>
@@ -144,7 +142,7 @@ export function SwipeDeck({
             <span className="mr-3">↑ Details</span>
             <span className="mr-3">↓ Watched</span>
             <span className="mr-3">Like →</span>
-            <span>Hold = ♥</span>
+            <span>Hold + Swipe = Super</span>
           </p>
         </div>
       )}

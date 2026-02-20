@@ -74,10 +74,16 @@ export function DiscoverPage() {
     registerSwipe(movie.movie_id, "skip").catch(console.error);
   };
 
-  const handleLove = async (movie: MovieDetails) => {
+  const handleSuperLike = async (movie: MovieDetails) => {
     likeMovie(movie);
     nextMovie();
     registerSwipe(movie.movie_id, "like", true).catch(console.error);
+  };
+
+  const handleSuperDislike = async (movie: MovieDetails) => {
+    dislikeMovie(movie);
+    nextMovie();
+    registerSwipe(movie.movie_id, "dislike", true).catch(console.error);
   };
 
   if (loading && queue.length === 0) {
@@ -117,7 +123,8 @@ export function DiscoverPage() {
         onLike={handleLike}
         onDislike={handleDislike}
         onWatched={handleWatched}
-        onLove={handleLove}
+        onSuperLike={handleSuperLike}
+        onSuperDislike={handleSuperDislike}
       />
     </div>
   );
