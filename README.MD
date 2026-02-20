@@ -16,6 +16,7 @@
 - [ ] Adding user preferences
 
 ### 2) NON-MVP
+- [ ] Onboarding with 10 chatbot selected movies in order to manage cold-start
 - [ ] Talk with chatbot (natural language conversation influences reco algorithm, user preferences and act as a search engine)
 - [ ] DB indexing strategy
 - [ ] Filter by cast crew
