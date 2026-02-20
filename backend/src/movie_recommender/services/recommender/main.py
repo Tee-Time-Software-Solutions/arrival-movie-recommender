@@ -30,7 +30,7 @@ class Recommender:
             - Implement after MVP
         """
 
-    def get_user_feedback(
+    def set_user_feedback(
         self, user_id: str, movie_id: int, interaction_type, is_supercharged: bool
     ) -> None:
         """
