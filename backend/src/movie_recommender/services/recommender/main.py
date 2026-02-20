@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple
 
+from movie_recommender.schemas.interactions import SwipeAction
 from movie_recommender.schemas.users import UserPreferences
 
 
@@ -30,8 +31,12 @@ class Recommender:
             - Implement after MVP
         """
 
-    def get_user_feedback(
-        self, user_id: str, movie_id: int, interaction_type, is_supercharged: bool
+    def set_user_feedback(
+        self,
+        user_id: str,
+        movie_id: int,
+        interaction_type: SwipeAction,
+        is_supercharged: bool,
     ) -> None:
         """
         Belongs to:
