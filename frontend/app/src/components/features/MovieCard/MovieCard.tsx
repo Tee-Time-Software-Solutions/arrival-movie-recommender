@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   motion,
   useMotionValue,
   useTransform,
   type PanInfo,
 } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
 import { SWIPE_THRESHOLD, CARD_ROTATION_FACTOR } from "@/lib/constants";
 
@@ -14,31 +14,58 @@ interface MovieCardProps {
   onLike: () => void;
   onDislike: () => void;
   onExpand: () => void;
-  onRate: () => void;
+  onWatched: () => void;
+  onLove: () => void;
   isTop: boolean;
-  forceSwipe?: "left" | "right" | null;
+  forceSwipe?: "left" | "right" | "down" | null;
 }
 
 const CARD_SPRING = { type: "spring" as const, stiffness: 300, damping: 30 };
+const HOLD_DURATION = 600;
 
 export function MovieCard({
   movie,
   onLike,
   onDislike,
   onExpand,
-  onRate,
+  onWatched,
+  onLove,
   isTop,
   forceSwipe,
 }: MovieCardProps) {
   const [exitX, setExitX] = useState(0);
+  const [exitY, setExitY] = useState(0);
   const [swiped, setSwiped] = useState(false);
+  const [loved, setLoved] = useState(false);
 
-  // Trigger swipe animation from keyboard
+  // Long-press detection
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDraggingRef = useRef(false);
+  const lovedRef = useRef(false);
+
+  const clearHoldTimer = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }, []);
+
+  // Trigger swipe animation from keyboard / force
   useEffect(() => {
     if (!forceSwipe || !isTop) return;
-    setExitX(forceSwipe === "right" ? 500 : -500);
-    setSwiped(true);
+    if (forceSwipe === "down") {
+      setExitY(500);
+      setSwiped(true);
+    } else {
+      setExitX(forceSwipe === "right" ? 500 : -500);
+      setSwiped(true);
+    }
   }, [forceSwipe, isTop]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => clearHoldTimer();
+  }, [clearHoldTimer]);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -50,9 +77,36 @@ export function MovieCard({
   const likeOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
   const dislikeOpacity = useTransform(x, [-SWIPE_THRESHOLD, 0], [1, 0]);
   const detailsOpacity = useTransform(y, [-SWIPE_THRESHOLD, 0], [1, 0]);
-  const rateOpacity = useTransform(y, [0, SWIPE_THRESHOLD], [0, 1]);
+  const watchedOpacity = useTransform(y, [0, SWIPE_THRESHOLD], [0, 1]);
+
+  const handlePointerDown = () => {
+    isDraggingRef.current = false;
+    lovedRef.current = false;
+    holdTimerRef.current = setTimeout(() => {
+      if (!isDraggingRef.current) {
+        lovedRef.current = true;
+        setLoved(true);
+        // After the love animation plays, trigger the callback
+        setTimeout(() => {
+          onLove();
+        }, 500);
+      }
+    }, HOLD_DURATION);
+  };
+
+  const handlePointerUp = () => {
+    clearHoldTimer();
+  };
+
+  const handleDragStart = () => {
+    isDraggingRef.current = true;
+    clearHoldTimer();
+  };
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
+    // If loved was triggered during hold, ignore drag end
+    if (lovedRef.current) return;
+
     const { offset, velocity } = info;
     const absX = Math.abs(offset.x);
     const absY = Math.abs(offset.y);
@@ -71,29 +125,42 @@ export function MovieCard({
       if (offset.y < -SWIPE_THRESHOLD || velocity.y < -500) {
         onExpand();
       } else if (offset.y > SWIPE_THRESHOLD || velocity.y > 500) {
-        onRate();
+        setExitY(500);
+        setSwiped(true);
+        onWatched();
       }
     }
   };
 
   if (!isTop) return null;
 
-  const exitRotation = exitX > 0 ? 20 : -20;
+  const exitRotation = exitX > 0 ? 20 : exitX < 0 ? -20 : 0;
+
+  // Build the animate target
+  const getAnimateState = () => {
+    if (loved) {
+      return { scale: 0.8, opacity: 0 };
+    }
+    if (swiped) {
+      return { x: exitX, y: exitY, opacity: 0, rotate: exitRotation, scale: 1 };
+    }
+    return { scale: 1, opacity: 1 };
+  };
 
   return (
     <motion.div
       className="absolute inset-0 cursor-grab active:cursor-grabbing"
       style={{ x, y, rotate }}
-      drag
+      drag={!loved}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.8}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
       initial={{ scale: 0.92, opacity: 0 }}
-      animate={
-        swiped
-          ? { x: exitX, opacity: 0, rotate: exitRotation, scale: 1 }
-          : { scale: 1, opacity: 1 }
-      }
+      animate={getAnimateState()}
       transition={CARD_SPRING}
     >
       {/* LIKE stamp */}
@@ -122,12 +189,24 @@ export function MovieCard({
         <span className="text-2xl font-bold text-blue-500">INFO</span>
       </motion.div>
 
-      {/* RATE stamp */}
+      {/* WATCHED stamp */}
       <motion.div
-        className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-xl border-4 border-yellow-500 bg-yellow-500/10 px-4 py-2"
-        style={{ opacity: rateOpacity }}
+        className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-xl border-4 border-violet-500 bg-violet-500/10 px-4 py-2"
+        style={forceSwipe === null || forceSwipe === undefined ? { opacity: watchedOpacity } : undefined}
+        animate={forceSwipe ? { opacity: forceSwipe === "down" ? 1 : 0 } : undefined}
       >
-        <span className="text-2xl font-bold text-yellow-500">RATE</span>
+        <span className="text-2xl font-bold text-violet-500">WATCHED</span>
+      </motion.div>
+
+      {/* YOU LOVED IT overlay */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-black/60"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: loved ? 1 : 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Heart className="mb-2 h-16 w-16 fill-pink-500 text-pink-500" />
+        <span className="text-2xl font-bold text-pink-500">YOU LOVED IT</span>
       </motion.div>
 
       {/* Card content */}

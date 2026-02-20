@@ -4,7 +4,6 @@ import { useMovieStore } from "@/stores/movieStore";
 import {
   getMovieQueue,
   registerSwipe,
-  rateMovie,
 } from "@/services/api/movies";
 import type { MovieDetails } from "@/types/movie";
 import { QUEUE_PREFETCH_THRESHOLD, QUEUE_BATCH_SIZE } from "@/lib/constants";
@@ -19,7 +18,6 @@ export function DiscoverPage() {
     nextMovie,
     likeMovie,
     dislikeMovie,
-    rateMovie: storeRateMovie,
     setLoading,
     setError,
   } = useMovieStore();
@@ -71,11 +69,15 @@ export function DiscoverPage() {
     registerSwipe(movie.movie_id, "dislike").catch(console.error);
   };
 
-  const handleRate = async (movie: MovieDetails, rating: number) => {
-    storeRateMovie(movie, rating);
+  const handleWatched = async (movie: MovieDetails) => {
     nextMovie();
-    rateMovie(movie.movie_id, rating).catch(console.error);
-    registerSwipe(movie.movie_id, "like").catch(console.error);
+    registerSwipe(movie.movie_id, "skip").catch(console.error);
+  };
+
+  const handleLove = async (movie: MovieDetails) => {
+    likeMovie(movie);
+    nextMovie();
+    registerSwipe(movie.movie_id, "like", true).catch(console.error);
   };
 
   if (loading && queue.length === 0) {
@@ -114,7 +116,8 @@ export function DiscoverPage() {
         currentIndex={currentIndex}
         onLike={handleLike}
         onDislike={handleDislike}
-        onRate={handleRate}
+        onWatched={handleWatched}
+        onLove={handleLove}
       />
     </div>
   );
