@@ -30,7 +30,7 @@ export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps)
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "fixed left-0 top-0 z-50 hidden h-screen flex-col border-r border-border bg-background transition-[width] duration-300 md:flex",
+        "fixed left-0 top-0 z-50 hidden h-screen flex-col border-r border-border bg-background transition-[width] duration-300 overflow-hidden md:flex",
         collapsed ? "w-[72px]" : "w-[240px]",
       )}
     >
@@ -53,7 +53,14 @@ export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps)
               )}
             >
               <Icon className="h-6 w-6 shrink-0" />
-              {!collapsed && <span>{label}</span>}
+              <span
+                className={cn(
+                  "whitespace-nowrap transition-opacity duration-200",
+                  collapsed ? "w-0 overflow-hidden opacity-0 delay-0" : "opacity-100 delay-150",
+                )}
+              >
+                {label}
+              </span>
 
               {/* Tooltip on hover when collapsed */}
               {collapsed && (
@@ -77,7 +84,14 @@ export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps)
           )}
         >
           <IoLogOutOutline className="h-6 w-6 shrink-0" />
-          {!collapsed && <span>Log out</span>}
+          <span
+            className={cn(
+              "whitespace-nowrap transition-opacity duration-200",
+              collapsed ? "w-0 overflow-hidden opacity-0 delay-0" : "opacity-100 delay-150",
+            )}
+          >
+            Log out
+          </span>
 
           {collapsed && (
             <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background group-hover:block">
