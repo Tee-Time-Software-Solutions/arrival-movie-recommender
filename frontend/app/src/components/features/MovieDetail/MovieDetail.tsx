@@ -84,7 +84,7 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
           <div className="flex gap-4 overflow-x-auto pb-1">
             {streamingProviders.map((provider, idx) => (
               <div
-                key={idx}
+                key={provider.name}
                 className="flex shrink-0 flex-col items-center"
               >
                 <div className="h-12 w-12 overflow-hidden rounded-xl shadow-sm">
