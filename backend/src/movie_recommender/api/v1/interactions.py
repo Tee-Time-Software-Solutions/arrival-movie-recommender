@@ -1,10 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from movie_recommender.dependencies.recommender import get_recommender
 from movie_recommender.schemas.interactions import (
     RegisteredFeedback,
+    SwipeAction,
     SwipeRequest,
 )
 from movie_recommender.services.recommender.main import Recommender
@@ -26,6 +27,13 @@ async def register_movie_feedback(
     Dependencies:
           - Extract current user
     """
+    if (swipe_data.action_type == SwipeAction.SKIP) and (
+        swipe_data.is_supercharged
+    ):
+        raise HTTPException(
+            status_code=400, detail="You cant have 'SKIP' interaction supercharged"
+        )
+
     user_id = "1"  # TODO: replace with authenticated current user ID
 
     recommender.update_user(

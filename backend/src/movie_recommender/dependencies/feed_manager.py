@@ -1,7 +1,6 @@
 import redis
 from fastapi import Depends
 
-from movie_recommender.core.clients.redis import RedisClient
 from movie_recommender.dependencies.recommender import get_recommender
 from movie_recommender.dependencies.redis import get_async_redis
 from movie_recommender.services.feed_manager.main import FeedManager

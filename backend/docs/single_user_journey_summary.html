@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Single User Recommendation Journey</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Single User Recommendation Journey</h1>
+</header>
+<h1 id="single-user-recommendation-journey-test-summary">Single User
+Recommendation Journey — Test Summary</h1>
+<p><strong>Test:</strong>
+<code>TestSingleUserJourney::test_user_recommendation_journey</code>
+<strong>Date:</strong> 2026-02-19 <strong>Status:</strong> PASSED</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>This integration test demonstrates how a single user (User 1) moves
+through the full recommendation pipeline — from cold-start
+recommendations to personalized results shaped by swipe interactions.
+The online updater adjusts the user’s embedding vector in real time, and
+<code>get_top_n()</code> returns updated recommendations after each
+swipe.</p>
+<h3 id="test-configuration">Test Configuration</h3>
+<table>
+<colgroup>
+<col style="width: 61%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Embedding dimensions</td>
+<td>6 (2 per genre)</td>
+</tr>
+<tr>
+<td>Genre mapping</td>
+<td>ACTION → dims [0-1], COMEDY → dims [2-3], HORROR → dims [4-5]</td>
+</tr>
+<tr>
+<td>Learning rate (eta)</td>
+<td>0.3</td>
+</tr>
+<tr>
+<td>Movies</td>
+<td>12 (4 action, 4 comedy, 4 horror)</td>
+</tr>
+<tr>
+<td>Recommendations per step</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="step-by-step-journey">Step-by-Step Journey</h2>
+<h3 id="step-1-cold-start-no-history">Step 1 — Cold Start (no
+history)</h3>
+<p>User opens the app with no swipe history. Recommendations are based
+solely on the initial user vector, which has a slight action lean.</p>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Movie</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Die Hard</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>2</td>
+<td>John Wick</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Mad Max</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Top Gun</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Bridesmaids</td>
+<td>COMEDY</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Initial vector already favors action — 4 of 5 recs are action
+films.</p>
+</blockquote>
+<hr />
+<h3 id="step-2-like-die-hard-action">Step 2 — LIKE “Die Hard”
+(ACTION)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Movie</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>John Wick</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Mad Max</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Top Gun</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Bridesmaids</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Superbad</td>
+<td>COMEDY</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Genre</th>
+<th>Avg Score Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACTION</td>
+<td><strong>+0.2750</strong></td>
+</tr>
+<tr>
+<td>COMEDY</td>
+<td>+0.0075</td>
+</tr>
+<tr>
+<td>HORROR</td>
+<td>+0.0000</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Action scores jump significantly. Die Hard exits recs (already seen).
+Comedy starts appearing as action slots fill up with seen movies.</p>
+</blockquote>
+<hr />
+<h3 id="step-3-like-john-wick-action-double-down">Step 3 — LIKE “John
+Wick” (ACTION, double down)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Movie</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Mad Max</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Top Gun</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Bridesmaids</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Superbad</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>5</td>
+<td>The Hangover</td>
+<td>COMEDY</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Genre</th>
+<th>Avg Score Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACTION</td>
+<td><strong>+0.2550</strong></td>
+</tr>
+<tr>
+<td>HORROR</td>
+<td>+0.0277</td>
+</tr>
+<tr>
+<td>COMEDY</td>
+<td>+0.0075</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Second action like reinforces the action dimensions. More comedy
+fills in as action movies get consumed.</p>
+</blockquote>
+<hr />
+<h3 id="step-4-dislike-the-shining-horror">Step 4 — DISLIKE “The
+Shining” (HORROR)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Movie</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Mad Max</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Top Gun</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Bridesmaids</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Superbad</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>5</td>
+<td>The Hangover</td>
+<td>COMEDY</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Genre</th>
+<th>Avg Score Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACTION</td>
+<td>+0.0000</td>
+</tr>
+<tr>
+<td>COMEDY</td>
+<td>+0.0000</td>
+</tr>
+<tr>
+<td>HORROR</td>
+<td><strong>-0.2750</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Horror scores drop sharply. Action and comedy unaffected — the
+orthogonal embeddings ensure genre independence.</p>
+</blockquote>
+<hr />
+<h3 id="step-5-skip-bridesmaids-comedy">Step 5 — SKIP “Bridesmaids”
+(COMEDY)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Movie</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Mad Max</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Top Gun</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Superbad</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>4</td>
+<td>The Hangover</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Mean Girls</td>
+<td>COMEDY</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Vector unchanged.</strong> Skip sends preference=0, so the
+online updater makes no adjustment. Bridesmaids is removed from
+recommendations (marked as seen) but no learning occurs.</p>
+</blockquote>
+<hr />
+<h3 id="step-6-like-mad-max-action-third-action-like">Step 6 — LIKE “Mad
+Max” (ACTION, third action like)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Movie</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Top Gun</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Superbad</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>3</td>
+<td>The Hangover</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Mean Girls</td>
+<td>COMEDY</td>
+</tr>
+<tr>
+<td>5</td>
+<td>The Conjuring</td>
+<td>HORROR</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Genre</th>
+<th>Avg Score Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACTION</td>
+<td><strong>+0.2340</strong></td>
+</tr>
+<tr>
+<td>COMEDY</td>
+<td>+0.0000</td>
+</tr>
+<tr>
+<td>HORROR</td>
+<td>+0.0000</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Third action like continues boosting action. With most action movies
+seen, comedy and even a horror film appear to fill the top 5.</p>
+</blockquote>
+<hr />
+<h2 id="journey-summary">Journey Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total swipes</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Action LIKES</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Horror DISLIKES</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Comedy SKIPS</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Movies seen</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Recs returned per step</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<h3 id="user-vector-evolution">User Vector Evolution</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Start</th>
+<th>Final</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACTION [dim 0]</td>
+<td>+0.4000</td>
+<td>+1.2700</td>
+<td><strong>+0.8700</strong></td>
+</tr>
+<tr>
+<td>ACTION [dim 1]</td>
+<td>+0.1000</td>
+<td>+0.1900</td>
+<td>+0.0900</td>
+</tr>
+<tr>
+<td>COMEDY [dim 2]</td>
+<td>+0.2000</td>
+<td>+0.2000</td>
+<td>0.0000</td>
+</tr>
+<tr>
+<td>COMEDY [dim 3]</td>
+<td>+0.1000</td>
+<td>+0.1000</td>
+<td>0.0000</td>
+</tr>
+<tr>
+<td>HORROR [dim 4]</td>
+<td>+0.1000</td>
+<td>-0.1700</td>
+<td><strong>-0.2700</strong></td>
+</tr>
+<tr>
+<td>HORROR [dim 5]</td>
+<td>+0.0000</td>
+<td>-0.0300</td>
+<td>-0.0300</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Vector drift (L2 norm):</strong> 0.9159 <strong>Online vector
+stored:</strong> Yes</p>
+<h3 id="key-observations">Key Observations</h3>
+<ol type="1">
+<li><strong>Likes shift the vector toward the liked genre</strong> —
+each action LIKE increased action dimension scores by ~0.25 on
+average</li>
+<li><strong>Dislikes shift away from the disliked genre</strong> — the
+horror DISLIKE dropped horror scores by -0.275</li>
+<li><strong>Skips have zero effect</strong> — preference=0 means no
+vector update</li>
+<li><strong>Genre independence is preserved</strong> — liking action
+does not meaningfully affect comedy or horror scores (orthogonal
+embeddings)</li>
+<li><strong>Seen movies are excluded</strong> — recommendations never
+repeat a swiped movie</li>
+<li><strong>As preferred movies are consumed, other genres fill
+in</strong> — after 3 action movies are seen, comedy and horror appear
+in top 5</li>
+</ol>
+<hr />
+<h2 id="technical-notes">Technical Notes</h2>
+<ul>
+<li>Embeddings are hand-crafted with orthogonal genre dimensions (not
+ALS-trained) to ensure clear, interpretable genre separation in test
+output</li>
+<li>Production uses 64-dim ALS embeddings trained on MovieLens-25M; the
+same <code>update_user_vector()</code> and <code>get_top_n()</code>
+functions are used in both contexts</li>
+<li>The online updater formula:
+<code>user_vector += eta * preference * movie_vector</code>, with norm
+capping to prevent explosion</li>
+</ul>
+</body>
+</html>

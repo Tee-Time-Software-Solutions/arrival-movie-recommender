@@ -80,6 +80,9 @@ class Recommender:
         Def: given a user_id and number of movies to retrieve it returns a list of IDs of movies. These movie IDs must
              may be provided by the recommeder. They must be unique and not clash with existing ones in the db.
             The n returned  movies must respect user preferneces defined in the paremeter 'user_preferences'
+
+        TODO:
+            change user_preferences param to 'list_of_filtered_movies: List[ids:int]'
         """
         del user_preferences
 
@@ -142,4 +145,10 @@ class Recommender:
         )
         self.online_user_vectors[user_id] = updated_user_vector
 
-    # missing update_user() and similar_movies()
+    def get_similar_n_movies(self, movie_id: int, n: int):
+        """
+        Def: Give a movie_id returns its closes movies
+
+        TODO:
+            - Implement after MVP
+        """
