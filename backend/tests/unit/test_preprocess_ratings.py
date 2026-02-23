@@ -1,9 +1,14 @@
+import pandas as pd
 import pytest
+from unittest.mock import patch
 
 from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings import (
     map_rating_to_bucket,
     bucket_to_preference,
+    preprocess_ratings,
 )
+
+_MODULE = "movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings"
 
 
 class TestMapRatingToBucket:
@@ -53,3 +58,36 @@ class TestBucketToPreference:
     def test_invalid_bucket_raises(self):
         with pytest.raises(KeyError):
             bucket_to_preference(5)
+
+
+class TestPreprocessRatingsOrchestration:
+    """Integration-style tests for the preprocess_ratings() orchestration wrapper."""
+
+    def _run(self, tmp_path, csv_content):
+        raw_path = tmp_path / "ratings.csv"
+        raw_path.write_text(csv_content)
+        out_path = tmp_path / "interactions_clean.parquet"
+
+        with patch(f"{_MODULE}.RAW_PATH", raw_path), \
+             patch(f"{_MODULE}.PROCESSED_PATH", out_path):
+            preprocess_ratings()
+        return out_path
+
+    def test_output_created(self, tmp_path):
+        csv = "userId,movieId,rating,timestamp\n1,100,5.0,1000\n"
+        out = self._run(tmp_path, csv)
+        assert out.exists()
+
+    def test_columns_correct(self, tmp_path):
+        csv = "userId,movieId,rating,timestamp\n1,100,5.0,1000\n"
+        out = self._run(tmp_path, csv)
+        df = pd.read_parquet(out)
+        assert list(df.columns) == ["user_id", "movie_id", "preference", "timestamp"]
+
+    def test_preferences_mapped(self, tmp_path):
+        csv = "userId,movieId,rating,timestamp\n1,100,5.0,1000\n2,200,1.0,2000\n"
+        out = self._run(tmp_path, csv)
+        df = pd.read_parquet(out)
+        prefs = dict(zip(df["user_id"], df["preference"]))
+        assert prefs[1] == 2    # rating 5.0 → bucket 4 → preference +2
+        assert prefs[2] == -2   # rating 1.0 → bucket 1 → preference -2

@@ -18,6 +18,7 @@ src/movie_recommender/core/settings/__init__.py
 src/movie_recommender/core/settings/main.py
 src/movie_recommender/core/settings/schemas.py
 src/movie_recommender/dependencies/feed_manager.py
+src/movie_recommender/dependencies/recommender.py
 src/movie_recommender/dependencies/redis.py
 src/movie_recommender/dependencies/settings.py
 src/movie_recommender/schemas/__init__.py
@@ -37,5 +38,9 @@ src/movie_recommender/services/recommender/learning/build_matrix.py
 src/movie_recommender/services/recommender/learning/evaluate.py
 src/movie_recommender/services/recommender/learning/offline_pipeline.py
 src/movie_recommender/services/recommender/learning/train_als.py
+src/movie_recommender/services/recommender/serving/artifact_loader.py
 src/movie_recommender/services/recommender/serving/empty.py
+src/movie_recommender/services/recommender/serving/feedback_mapping.py
+src/movie_recommender/services/recommender/serving/online_updater.py
 src/movie_recommender/services/recommender/tests/inspect_data.py
+src/movie_recommender/services/recommender/tests/test_feedback_mapping.py

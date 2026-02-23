@@ -1,6 +1,7 @@
 import apiClient from "./client";
 import type {
   MovieDetails,
+  RatedMovie,
   SwipeAction,
   RegisteredFeedback,
 } from "@/types/movie";
@@ -38,11 +39,21 @@ export async function registerSwipe(
   return data;
 }
 
-// TODO: Connect to real endpoint — currently mocked
 export async function rateMovie(
-  _movieId: string,
-  _rating: number,
+  movieId: string,
+  rating: number,
 ): Promise<void> {
-  // When a real rating endpoint exists, call it here.
-  // For now, the rating is stored locally in the movieStore.
+  await apiClient.post(`interactions/${movieId}/rate`, { rating });
+}
+
+export async function getTopRatedMovies(): Promise<RatedMovie[]> {
+  const { data } = await apiClient.get<RatedMovie[]>("users/me/top-rated");
+  return data;
+}
+
+export async function getRecommendations(): Promise<MovieDetails[]> {
+  const { data } = await apiClient.get<MovieDetails[]>(
+    "users/me/recommendations",
+  );
+  return data;
 }

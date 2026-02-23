@@ -1,9 +1,14 @@
 import pandas as pd
 import pytest
 
+from unittest.mock import patch
+
 from movie_recommender.services.recommender.data_processing.split import (
     chronological_split,
+    run_split,
 )
+
+_MODULE = "movie_recommender.services.recommender.data_processing.split"
 
 
 def _make_user_df(user_id, n, start_ts=1000):
@@ -67,3 +72,34 @@ class TestChronologicalSplit:
         ])
         train, val, test = chronological_split(df)
         assert len(train) + len(val) + len(test) == 160
+
+
+class TestRunSplitOrchestration:
+    """Integration-style tests for the run_split() orchestration wrapper."""
+
+    def _run(self, tmp_path, df):
+        input_path = tmp_path / "input.parquet"
+        df.to_parquet(input_path, index=False)
+        train_path = tmp_path / "train.parquet"
+        val_path = tmp_path / "val.parquet"
+        test_path = tmp_path / "test.parquet"
+
+        with patch(f"{_MODULE}.INPUT_PATH", input_path), \
+             patch(f"{_MODULE}.TRAIN_PATH", train_path), \
+             patch(f"{_MODULE}.VAL_PATH", val_path), \
+             patch(f"{_MODULE}.TEST_PATH", test_path):
+            run_split()
+        return train_path, val_path, test_path
+
+    def test_three_files_created(self, tmp_path):
+        df = pd.concat([_make_user_df(1, 20), _make_user_df(2, 20)])
+        train_p, val_p, test_p = self._run(tmp_path, df)
+        assert train_p.exists()
+        assert val_p.exists()
+        assert test_p.exists()
+
+    def test_total_rows_preserved(self, tmp_path):
+        df = pd.concat([_make_user_df(1, 30), _make_user_df(2, 50)])
+        train_p, val_p, test_p = self._run(tmp_path, df)
+        total = sum(len(pd.read_parquet(p)) for p in [train_p, val_p, test_p])
+        assert total == 80

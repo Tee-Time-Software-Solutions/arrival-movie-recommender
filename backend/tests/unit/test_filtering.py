@@ -1,9 +1,14 @@
 import pandas as pd
 import pytest
 
+from unittest.mock import patch
+
 from movie_recommender.services.recommender.data_processing.preprocessing.filtering import (
     iterative_core_filter,
+    run_filtering,
 )
+
+_MODULE = "movie_recommender.services.recommender.data_processing.preprocessing.filtering"
 
 
 def _make_df(rows):
@@ -63,3 +68,37 @@ class TestIterativeCoreFilter:
         df = _make_df(rows)
         result = iterative_core_filter(df, min_user=3, min_movie=3)
         assert len(result) == 9
+
+
+class TestRunFilteringOrchestration:
+    """Integration-style tests for the run_filtering() orchestration wrapper."""
+
+    def _run(self, tmp_path, df):
+        input_path = tmp_path / "interactions_clean.parquet"
+        df.to_parquet(input_path, index=False)
+        output_path = tmp_path / "interactions_filtered.parquet"
+
+        with patch(f"{_MODULE}.PROCESSED_INPUT", input_path), \
+             patch(f"{_MODULE}.PROCESSED_OUTPUT", output_path):
+            run_filtering()
+        return output_path
+
+    def test_output_created(self, tmp_path):
+        # 15 users x 25 movies → all above default thresholds (10/20)
+        rows = [(u, m) for u in range(15) for m in range(25)]
+        df = _make_df(rows)
+        out = self._run(tmp_path, df)
+        assert out.exists()
+
+    def test_sparse_data_filtered(self, tmp_path):
+        # Dense core: 15 users x 25 movies (each above MIN_USER=10 and MIN_MOVIE=20)
+        rows = [(u, m) for u in range(15) for m in range(25)]
+        # Sparse user 99 has only 1 interaction
+        rows.append((99, 0))
+        # Sparse movie 999 has only 1 interaction
+        rows.append((0, 999))
+        df = _make_df(rows)
+        out = self._run(tmp_path, df)
+        result = pd.read_parquet(out)
+        assert 99 not in result["user_id"].values
+        assert 999 not in result["movie_id"].values

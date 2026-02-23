@@ -4,6 +4,7 @@ import { useMovieStore } from "@/stores/movieStore";
 import {
   getMovieQueue,
   registerSwipe,
+  rateMovie,
 } from "@/services/api/movies";
 import type { MovieDetails } from "@/types/movie";
 import { QUEUE_PREFETCH_THRESHOLD, QUEUE_BATCH_SIZE } from "@/lib/constants";
@@ -61,6 +62,7 @@ export function DiscoverPage() {
     nextMovie();
     // Optimistic: fire and forget
     registerSwipe(movie.movie_id, "like").catch(console.error);
+    rateMovie(movie.movie_id, 4).catch(console.error);
   };
 
   const handleDislike = async (movie: MovieDetails) => {
@@ -78,6 +80,7 @@ export function DiscoverPage() {
     likeMovie(movie);
     nextMovie();
     registerSwipe(movie.movie_id, "like", true).catch(console.error);
+    rateMovie(movie.movie_id, 5).catch(console.error);
   };
 
   const handleSuperDislike = async (movie: MovieDetails) => {

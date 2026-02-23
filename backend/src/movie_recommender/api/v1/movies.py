@@ -29,7 +29,7 @@ async def fetch_movies_feed(
       - Current user
     """
     logger.debug("Fetching next movie from feed")
-    movie = await feed_manager.get_next_movie(user_id=1, user_preferences=None)
+    movie = await feed_manager.get_next_movie(user_id="demo2", user_preferences=None)
     logger.info(f"Got movie: {movie}")
     if not movie:
         raise HTTPException(status_code=404, detail="No movies found")
