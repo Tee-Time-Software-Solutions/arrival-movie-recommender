@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Star } from "lucide-react";
-import type { MovieDetails, WatchedMovie } from "@/types/movie";
+import type { MovieDetails, RatedMovie } from "@/types/movie";
 import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
 
 interface MovieListProps {
   movies: MovieDetails[];
-  watchedMap?: Map<string, WatchedMovie>;
+  watchedMap?: Map<string, RatedMovie>;
   emptyMessage?: string;
 }
 
@@ -44,7 +44,7 @@ export function MovieList({
               {watched && (
                 <div className="absolute bottom-0 inset-x-0 bg-black/70 px-1 py-0.5 flex items-center justify-center gap-0.5">
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span className="text-[10px] text-white">{watched.rating}</span>
+                  <span className="text-[10px] text-white">{watched.user_rating}</span>
                 </div>
               )}
             </button>

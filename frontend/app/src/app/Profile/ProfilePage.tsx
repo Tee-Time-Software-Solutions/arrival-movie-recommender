@@ -1,29 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Heart, ThumbsDown, Eye, LogOut, Star, Sparkles } from "lucide-react";
-import {
-  MOCK_USER,
-  MOCK_STATS,
-  MOCK_WATCHED_MOVIES,
-  MOCK_SUGGESTED_MOVIES,
-} from "./mock-data";
-import type { MovieDetails } from "@/types/movie";
+import { Heart, ThumbsDown, Eye, Star, Sparkles } from "lucide-react";
+import type { MovieDetails, RatedMovie } from "@/types/movie";
 import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
+import { useMovieStore } from "@/stores/movieStore";
+import { getRecommendations, getTopRatedMovies } from "@/services/api/movies";
 
 export function ProfilePage() {
-  const user = MOCK_USER;
-  const stats = MOCK_STATS;
-  const watchedMovies = MOCK_WATCHED_MOVIES;
-  const suggestedMovies = MOCK_SUGGESTED_MOVIES;
+  const { likedMovies, dislikedMovies } = useMovieStore();
+  const [suggestedMovies, setSuggestedMovies] = useState<MovieDetails[]>([]);
+  const [topRated, setTopRated] = useState<RatedMovie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(null);
 
-  // Sort by rating desc, take max 10
-  const sorted = [...watchedMovies]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 10);
+  useEffect(() => {
+    getRecommendations()
+      .then(setSuggestedMovies)
+      .catch(() => setSuggestedMovies([]));
+    getTopRatedMovies()
+      .then(setTopRated)
+      .catch(() => setTopRated([]));
+  }, []);
 
-  const podium = sorted.slice(0, 3); // top 3
-  const rest = sorted.slice(3); // remaining rows
+  const stats = {
+    liked: likedMovies.length,
+    passed: dislikedMovies.length,
+    rated: topRated.length,
+  };
+
+  const podium = topRated.slice(0, 3); // top 3
+  const rest = topRated.slice(3); // remaining rows
 
   // Podium order: 2nd, 1st, 3rd
   const podiumOrder = [podium[1], podium[0], podium[2]].filter(Boolean);
@@ -33,22 +38,12 @@ export function ProfilePage() {
       {/* Profile header: big pfp + name on left, stats on right */}
       <div className="mb-8 flex items-center justify-start gap-10">
         <div className="flex items-center gap-4">
-          {user.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt="Avatar"
-              className="h-20 w-20 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground">
-              {(user.displayName?.[0] || user.email?.[0] || "U").toUpperCase()}
-            </div>
-          )}
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground">
+            D
+          </div>
           <div>
-            <h1 className="text-2xl font-bold">
-              {user.displayName || "Movie Lover"}
-            </h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            <h1 className="text-2xl font-bold">Demo User</h1>
+            <p className="text-sm text-muted-foreground">demo@example.com</p>
           </div>
         </div>
 
@@ -87,23 +82,23 @@ export function ProfilePage() {
             <h2 className="text-lg font-semibold">Suggested for You</h2>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {suggestedMovies.map((s) => (
+            {suggestedMovies.map((movie) => (
               <button
-                key={s.movie.movie_id}
-                onClick={() => setSelectedMovie(s.movie)}
+                key={movie.movie_id}
+                onClick={() => setSelectedMovie(movie)}
                 className="group flex shrink-0 gap-3 rounded-xl bg-card p-2.5 text-left transition hover:bg-secondary"
               >
                 <div className="relative overflow-hidden rounded-lg">
                   <img
-                    src={s.movie.poster_url}
-                    alt={s.movie.title}
+                    src={movie.poster_url}
+                    alt={movie.title}
                     className="h-36 w-24 object-cover transition group-hover:scale-105"
                   />
                 </div>
                 <div className="flex w-36 flex-col justify-center">
-                  <p className="text-sm font-medium leading-tight">{s.movie.title}</p>
+                  <p className="text-sm font-medium leading-tight">{movie.title}</p>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground line-clamp-3">
-                    {s.reason}
+                    {movie.genres.slice(0, 3).join(", ")}
                   </p>
                 </div>
               </button>
@@ -143,7 +138,7 @@ export function ProfilePage() {
                     />
                     <div className="absolute bottom-0 inset-x-0 bg-black/70 px-1 py-0.5 flex items-center justify-center gap-0.5">
                       <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                      <span className="text-[10px] text-white">{wm.rating}</span>
+                      <span className="text-[10px] text-white">{wm.user_rating}</span>
                     </div>
                   </div>
                   <div
@@ -193,7 +188,7 @@ export function ProfilePage() {
                 </div>
                 <div className="flex items-center gap-0.5">
                   <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                  <span className="text-sm font-semibold">{wm.rating}</span>
+                  <span className="text-sm font-semibold">{wm.user_rating}</span>
                 </div>
               </button>
             ))}
@@ -201,7 +196,7 @@ export function ProfilePage() {
         </div>
       )}
 
-      {watchedMovies.length === 0 && (
+      {topRated.length === 0 && suggestedMovies.length === 0 && (
         <div className="py-12 text-center">
           <p className="text-muted-foreground">
             Start swiping to build your movie collection!

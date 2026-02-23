@@ -1,10 +1,15 @@
+import pandas as pd
 import pytest
+from unittest.mock import patch
 
 from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies import (
     extract_year,
     clean_title,
     split_genres,
+    preprocess_movies,
 )
+
+_MODULE = "movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies"
 
 
 class TestExtractYear:
@@ -52,3 +57,37 @@ class TestSplitGenres:
         assert len(result) == 6
         assert result[0] == "Action"
         assert result[-1] == "Fantasy"
+
+
+class TestPreprocessMoviesOrchestration:
+    """Integration-style tests for the preprocess_movies() orchestration wrapper."""
+
+    def _run(self, tmp_path, csv_content):
+        raw_path = tmp_path / "movies.csv"
+        raw_path.write_text(csv_content)
+        out_path = tmp_path / "movies_clean.parquet"
+
+        with patch(f"{_MODULE}.RAW_PATH", raw_path), \
+             patch(f"{_MODULE}.PROCESSED_PATH", out_path):
+            preprocess_movies()
+        return out_path
+
+    def test_output_created(self, tmp_path):
+        csv = "movieId,title,genres\n1,Toy Story (1995),Animation|Comedy\n"
+        out = self._run(tmp_path, csv)
+        assert out.exists()
+
+    def test_columns_correct(self, tmp_path):
+        csv = "movieId,title,genres\n1,Toy Story (1995),Animation|Comedy\n"
+        out = self._run(tmp_path, csv)
+        df = pd.read_parquet(out)
+        assert list(df.columns) == ["movie_id", "title", "release_year", "genres"]
+
+    def test_transforms_applied(self, tmp_path):
+        csv = "movieId,title,genres\n1,Toy Story (1995),Animation|Comedy\n"
+        out = self._run(tmp_path, csv)
+        df = pd.read_parquet(out)
+        row = df.iloc[0]
+        assert row["release_year"] == 1995
+        assert row["title"] == "Toy Story"
+        assert list(row["genres"]) == ["Animation", "Comedy"]
