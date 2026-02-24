@@ -8,7 +8,8 @@ interface MovieDetailContentProps {
   movie: MovieDetails;
 }
 
-function getYoutubeVideoId(url: string): string | null {
+function getYoutubeVideoId(url: string | null | undefined): string | null {
+  if (!url) return null;
   const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
   return match ? match[1] : null;
 }
@@ -38,10 +39,10 @@ function ProviderLogo({ name }: { name: string }) {
 export function MovieDetailContent({ movie }: MovieDetailContentProps) {
   const videoId = getYoutubeVideoId(movie.trailer_url);
 
-  const streamingProviders = movie.movie_providers.filter(
+  const streamingProviders = (movie.movie_providers ?? []).filter(
     (p) => p.provider_type === "flatrate",
   );
-  const paidProviders = movie.movie_providers.filter(
+  const paidProviders = (movie.movie_providers ?? []).filter(
     (p) => p.provider_type === "rent" || p.provider_type === "buy",
   );
 
@@ -52,14 +53,14 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
         <span>{movie.release_year}</span>
         <span className="flex items-center gap-1">
           <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-          {movie.rating.toFixed(1)}
+          {(movie.rating ?? 0).toFixed(1)}
         </span>
         <span>{movie.runtime} min</span>
       </div>
 
       {/* Genres */}
       <div className="flex flex-wrap gap-2">
-        {movie.genres.map((genre) => (
+        {(movie.genres ?? []).map((genre) => (
           <span
             key={genre}
             className="rounded-full bg-secondary px-3 py-1 text-xs"
@@ -84,7 +85,7 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
           <div className="flex gap-4 overflow-x-auto pb-1">
             {streamingProviders.map((provider, idx) => (
               <div
-                key={provider.name}
+                key={`${provider.name}-${provider.provider_type}-${idx}`}
                 className="flex shrink-0 flex-col items-center"
               >
                 <div className="h-12 w-12 overflow-hidden rounded-xl shadow-sm">
@@ -105,7 +106,7 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
           <div className="flex gap-3 overflow-x-auto pb-1">
             {paidProviders.map((provider, idx) => (
               <div
-                key={provider.name}
+                key={`${provider.name}-${provider.provider_type}-${idx}`}
                 className="flex shrink-0 flex-col items-center opacity-70"
               >
                 <div className="h-10 w-10 overflow-hidden rounded-xl shadow-sm">
@@ -137,11 +138,11 @@ export function MovieDetailContent({ movie }: MovieDetailContentProps) {
       )}
 
       {/* Cast — horizontal scroll */}
-      {movie.cast.length > 0 && (
+      {(movie.cast ?? []).length > 0 && (
         <div>
           <h3 className="mb-2 font-semibold">Cast</h3>
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {movie.cast.map((member) => (
+            {(movie.cast ?? []).map((member) => (
               <div
                 key={member.name}
                 className="flex shrink-0 flex-col items-center"

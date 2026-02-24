@@ -1,7 +1,9 @@
 """Generate PDF summary of the Single User Recommendation Journey test."""
+from pathlib import Path
+
 from fpdf import FPDF
 
-OUTPUT = "/Users/alex/arrival-movie-recommender/backend/docs/single_user_journey_summary.pdf"
+OUTPUT = Path(__file__).parent / "single_user_journey_summary.pdf"
 
 
 class PDF(FPDF):

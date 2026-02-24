@@ -172,7 +172,7 @@ export function SwipeDeck({
                 <span>{currentMovie.release_year}</span>
                 <span className="flex items-center gap-0.5">
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  {currentMovie.rating.toFixed(1)}
+                  {(currentMovie.rating ?? 0).toFixed(1)}
                 </span>
                 <span>{currentMovie.runtime} min</span>
               </div>
