@@ -1,23 +1,20 @@
-import uuid
-
 from fastapi import APIRouter, Depends, HTTPException
 
-from movie_recommender.dependencies.rating_store import RatingStore, get_rating_store
+from movie_recommender.dependencies.feed_manager import get_feed_manager
 from movie_recommender.dependencies.recommender import get_recommender
 from movie_recommender.schemas.interactions import (
-    RateRequest,
     RegisteredFeedback,
     SwipeAction,
     SwipeRequest,
 )
-from movie_recommender.services.hydrator.main import MovieHydrator
+from movie_recommender.services.feed_manager.main import FeedManager
 from movie_recommender.services.recommender.main import Recommender
 
 router = APIRouter(prefix="/interactions")
 
 
 @router.post(path="/{movie_id}/swipe")
-async def register_movie_feedback(
+async def register_movie_interaction(
     movie_id: int,
     swipe_data: SwipeRequest,
     recommender: Recommender = Depends(get_recommender),
@@ -30,48 +27,34 @@ async def register_movie_feedback(
     Dependencies:
           - Extract current user
     """
-    if (swipe_data.action_type == SwipeAction.SKIP) and (
+
+    # 0) Validate input
+    if (swipe_data.action_type == SwipeAction.SKIP.value) and (
         swipe_data.is_supercharged
     ):
-        raise HTTPException(
+        return HTTPException(
             status_code=400, detail="You cant have 'SKIP' interaction supercharged"
         )
 
-    user_id = "demo2"  # TODO: replace with authenticated current user ID
+    # 1) Database layer
+    # TODO: validate movie_id exists in db, raise 404 if not
+    # TODO: store interaction in db, get back interaction_id
 
-    recommender.update_user(
+    user_id = "demo2"  # TODO: replace with authenticated user ID from request context (e.g. auth dependency)
+    interaction_id = str(movie_id)  # TODO: replace with actual interaction ID returned from DB after storing the swipe
+
+    # 2) Provide info to the recommender
+    recommender.set_user_feedback(
         user_id=user_id,
         movie_id=movie_id,
-        action_type=swipe_data.action_type,
+        interaction_type=swipe_data.action_type,
         is_supercharged=swipe_data.is_supercharged,
     )
 
     return RegisteredFeedback(
-        interaction_id=str(uuid.uuid4()),
+        interaction_id=interaction_id,
         movie_id=movie_id,
         action_type=swipe_data.action_type,
         is_supercharged=swipe_data.is_supercharged,
         registered=True,
     )
-
-
-@router.post(path="/{movie_id}/rate")
-async def rate_movie(
-    movie_id: int,
-    rate_data: RateRequest,
-    recommender: Recommender = Depends(get_recommender),
-    rating_store: RatingStore = Depends(get_rating_store),
-) -> dict:
-    title = recommender.artifacts.movie_id_to_title.get(movie_id)
-    if title is None:
-        raise HTTPException(status_code=404, detail="Movie not found")
-
-    hydrator = MovieHydrator(db_session=None)
-    movie_details = await hydrator.get_or_fetch_movie(movie_id, title)
-    if movie_details is None:
-        raise HTTPException(status_code=404, detail="Could not hydrate movie from TMDB")
-
-    user_id = "demo2"  # TODO: replace with authenticated current user ID
-    rating_store.add_rating(user_id, str(movie_id), rate_data.rating, movie_details)
-
-    return {"status": "ok", "movie_id": movie_id, "rating": rate_data.rating}

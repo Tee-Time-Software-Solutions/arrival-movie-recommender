@@ -12,7 +12,6 @@ def get_feed_manager(
     redis_client: redis.Redis = Depends(get_async_redis),
     recommender: Recommender = Depends(get_recommender),
 ) -> FeedManager:
-    """Create FeedManager with injected Redis client."""
     hydrator = MovieHydrator(db_session=None)  # TODO: inject when DB is ready
     return FeedManager(
         recommender=recommender, hydrator=hydrator, redis_client=redis_client
