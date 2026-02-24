@@ -47,13 +47,16 @@ export async function rateMovie(
 }
 
 export async function getTopRatedMovies(): Promise<RatedMovie[]> {
+  // TODO: Ensure backend endpoint is implemented and returns correct data
   const { data } = await apiClient.get<RatedMovie[]>("users/me/top-rated");
   return data;
 }
 
 export async function getRecommendations(): Promise<MovieDetails[]> {
+  // TODO: Ensure backend endpoint is implemented and returns correct data
   const { data } = await apiClient.get<MovieDetails[]>(
     "users/me/recommendations",
   );
   return data;
+}
 }
