@@ -35,7 +35,5 @@ src/movie_recommender/services/recommender/data_processing/preprocessing/preproc
 src/movie_recommender/services/recommender/data_processing/preprocessing/prune_movies.py
 src/movie_recommender/services/recommender/learning/build_matrix.py
 src/movie_recommender/services/recommender/learning/evaluate.py
-src/movie_recommender/services/recommender/learning/offline_pipeline.py
 src/movie_recommender/services/recommender/learning/train_als.py
-src/movie_recommender/services/recommender/serving/empty.py
 src/movie_recommender/services/recommender/tests/inspect_data.py

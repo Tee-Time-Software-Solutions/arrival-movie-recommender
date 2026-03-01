@@ -26,3 +26,6 @@ dependencies = [
 dev = [
     "watchfiles>=1.1.1",
 ]
+tests = [
+    "pytest>=8.0",
+]

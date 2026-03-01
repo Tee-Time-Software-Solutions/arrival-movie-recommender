@@ -252,12 +252,12 @@ export function MovieCard({
             <span>{movie.release_year}</span>
             <span className="flex items-center gap-1">
               <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-              {movie.rating.toFixed(1)}
+              {(movie.rating ?? 0).toFixed(1)}
             </span>
             <span>{movie.runtime} min</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {movie.genres.slice(0, 4).map((genre) => (
+            {(movie.genres ?? []).slice(0, 4).map((genre) => (
               <span
                 key={genre}
                 className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary"

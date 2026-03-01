@@ -1,4 +1,4 @@
-import type { MovieDetails, WatchedMovie } from "@/types/movie";
+import type { MovieDetails, RatedMovie } from "@/types/movie";
 
 export const MOCK_USER = {
   displayName: "Bruce Wayne",
@@ -19,7 +19,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "The Dark Knight",
     poster_url: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911BTUgMe1nNaD3.jpg",
     release_year: 2008,
-    rating: 9.0,
+    user_rating: 9.0,
     genres: ["Action", "Crime", "Drama"],
     is_adult: false,
     synopsis: "When the menace known as the Joker wreaks havoc on Gotham City, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
@@ -34,7 +34,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "Fight Club",
     poster_url: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
     release_year: 1999,
-    rating: 8.8,
+    user_rating: 8.8,
     genres: ["Drama"],
     is_adult: false,
     synopsis: "An insomniac office worker and a devil-may-care soap maker form an underground fight club.",
@@ -49,7 +49,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "Pulp Fiction",
     poster_url: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
     release_year: 1994,
-    rating: 8.9,
+    user_rating: 8.9,
     genres: ["Thriller", "Crime"],
     is_adult: false,
     synopsis: "The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine.",
@@ -64,7 +64,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "Inception",
     poster_url: "https://image.tmdb.org/t/p/w500/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
     release_year: 2010,
-    rating: 8.8,
+    user_rating: 8.8,
     genres: ["Action", "Sci-Fi", "Adventure"],
     is_adult: false,
     synopsis: "A thief who steals corporate secrets through dream-sharing technology is given the task of planting an idea.",
@@ -79,7 +79,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "Arrival",
     poster_url: "https://image.tmdb.org/t/p/w500/x2FJsf1ElAgr63Y3PNPtJrcmpoe.jpg",
     release_year: 2016,
-    rating: 7.9,
+    user_rating: 7.9,
     genres: ["Drama", "Sci-Fi"],
     is_adult: false,
     synopsis: "A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear around the world.",
@@ -94,7 +94,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "Whiplash",
     poster_url: "https://image.tmdb.org/t/p/w500/7fn624j5lj3xTme2SgiLCeuedos.jpg",
     release_year: 2014,
-    rating: 8.5,
+    user_rating: 8.5,
     genres: ["Drama", "Music"],
     is_adult: false,
     synopsis: "A promising young drummer enrolls at a cut-throat music conservatory where his dreams of greatness are mentored by an instructor who will stop at nothing to realize a student's potential.",
@@ -109,7 +109,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "The Godfather",
     poster_url: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
     release_year: 1972,
-    rating: 9.2,
+    user_rating: 9.2,
     genres: ["Drama", "Crime"],
     is_adult: false,
     synopsis: "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant youngest son.",
@@ -124,7 +124,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "Interstellar",
     poster_url: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
     release_year: 2014,
-    rating: 8.7,
+    user_rating: 8.7,
     genres: ["Adventure", "Drama", "Sci-Fi"],
     is_adult: false,
     synopsis: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
@@ -139,7 +139,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "The Lord of the Rings: The Fellowship of the Ring",
     poster_url: "https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg",
     release_year: 2001,
-    rating: 8.8,
+    user_rating: 8.8,
     genres: ["Adventure", "Fantasy", "Action"],
     is_adult: false,
     synopsis: "A meek Hobbit from the Shire and eight companions set out on a journey to destroy the powerful One Ring.",
@@ -154,7 +154,7 @@ const ALL_MOVIES: MovieDetails[] = [
     title: "The Shawshank Redemption",
     poster_url: "https://image.tmdb.org/t/p/w500/9cjIGRQL0ElAgHMvQ3XL0XSBPHr.jpg",
     release_year: 1994,
-    rating: 9.3,
+    user_rating: 9.3,
     genres: ["Drama", "Crime"],
     is_adult: false,
     synopsis: "Over the course of several years, two convicts form a friendship, seeking consolation and eventual redemption through basic compassion.",
@@ -166,17 +166,17 @@ const ALL_MOVIES: MovieDetails[] = [
 ];
 
 // Rated movies sorted by rating desc (top 3 will be podium)
-export const MOCK_WATCHED_MOVIES: WatchedMovie[] = [
-  { movie: ALL_MOVIES[0], rating: 5, watchedAt: "2025-01-15T00:00:00Z" },  // The Dark Knight
-  { movie: ALL_MOVIES[4], rating: 5, watchedAt: "2025-02-01T00:00:00Z" },  // Arrival
-  { movie: ALL_MOVIES[1], rating: 4, watchedAt: "2025-01-20T00:00:00Z" },  // Fight Club
-  { movie: ALL_MOVIES[6], rating: 5, watchedAt: "2025-02-10T00:00:00Z" },  // The Godfather
-  { movie: ALL_MOVIES[2], rating: 4, watchedAt: "2025-01-25T00:00:00Z" },  // Pulp Fiction
-  { movie: ALL_MOVIES[3], rating: 4, watchedAt: "2025-02-05T00:00:00Z" },  // Inception
-  { movie: ALL_MOVIES[5], rating: 3, watchedAt: "2025-01-18T00:00:00Z" },  // Whiplash
-  { movie: ALL_MOVIES[7], rating: 4, watchedAt: "2025-02-08T00:00:00Z" },  // Interstellar
-  { movie: ALL_MOVIES[8], rating: 5, watchedAt: "2025-02-12T00:00:00Z" },  // LOTR
-  { movie: ALL_MOVIES[9], rating: 5, watchedAt: "2025-02-15T00:00:00Z" },  // Shawshank
+export const MOCK_RATED_MOVIES: RatedMovie[] = [
+  { movie: ALL_MOVIES[0], user_rating: 5, rated_at: "2025-01-15T00:00:00Z" },  // The Dark Knight
+  { movie: ALL_MOVIES[4], user_rating: 5, rated_at: "2025-02-01T00:00:00Z" },  // Arrival
+  { movie: ALL_MOVIES[1], user_rating: 4, rated_at: "2025-01-20T00:00:00Z" },  // Fight Club
+  { movie: ALL_MOVIES[6], user_rating: 5, rated_at: "2025-02-10T00:00:00Z" },  // The Godfather
+  { movie: ALL_MOVIES[2], user_rating: 4, rated_at: "2025-01-25T00:00:00Z" },  // Pulp Fiction
+  { movie: ALL_MOVIES[3], user_rating: 4, rated_at: "2025-02-05T00:00:00Z" },  // Inception
+  { movie: ALL_MOVIES[5], user_rating: 3, rated_at: "2025-01-18T00:00:00Z" },  // Whiplash
+  { movie: ALL_MOVIES[7], user_rating: 4, rated_at: "2025-02-08T00:00:00Z" },  // Interstellar
+  { movie: ALL_MOVIES[8], user_rating: 5, rated_at: "2025-02-12T00:00:00Z" },  // LOTR
+  { movie: ALL_MOVIES[9], user_rating: 5, rated_at: "2025-02-15T00:00:00Z" },  // Shawshank
 ];
 
 export interface SuggestedMovie {
@@ -192,7 +192,7 @@ export const MOCK_SUGGESTED_MOVIES: SuggestedMovie[] = [
       title: "The Matrix",
       poster_url: "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
       release_year: 1999,
-      rating: 8.7,
+      user_rating: 8.7,
       genres: ["Action", "Sci-Fi"],
       is_adult: false,
       synopsis: "A computer programmer discovers that reality as he knows it is a simulation created by machines.",
@@ -210,7 +210,7 @@ export const MOCK_SUGGESTED_MOVIES: SuggestedMovie[] = [
       title: "The Green Mile",
       poster_url: "https://image.tmdb.org/t/p/w500/8VG8fDNiy50H4FedGwdSVUPoaJe.jpg",
       release_year: 1999,
-      rating: 8.5,
+      user_rating: 8.5,
       genres: ["Fantasy", "Drama", "Crime"],
       is_adult: false,
       synopsis: "A tale set on death row where gentle giant John possesses the mysterious power to heal people's ailments.",
@@ -228,7 +228,7 @@ export const MOCK_SUGGESTED_MOVIES: SuggestedMovie[] = [
       title: "12 Angry Men",
       poster_url: "https://image.tmdb.org/t/p/w500/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
       release_year: 1957,
-      rating: 9.0,
+      user_rating: 9.0,
       genres: ["Drama"],
       is_adult: false,
       synopsis: "The jury in a New York City murder trial is frustrated by a single member whose skeptical caution forces them to more carefully consider the evidence.",
