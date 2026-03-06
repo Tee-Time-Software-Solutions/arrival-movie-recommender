@@ -39,9 +39,7 @@ async def register_movie_interaction(
     # 1) Database layer
     # TODO: validate movie_id exists in db, raise 404 if not
     # TODO: store interaction in db, get back interaction_id
-
-    user_id = "demo2"  # TODO: replace with authenticated user ID from request context (e.g. auth dependency)
-    interaction_id = str(movie_id)  # TODO: replace with actual interaction ID returned from DB after storing the swipe
+    # TODO: extract user_id
 
     # 2) Provide info to the recommender
     recommender.set_user_feedback(
@@ -52,9 +50,9 @@ async def register_movie_interaction(
     )
 
     return RegisteredFeedback(
-        interaction_id=interaction_id,
+        interaction_id=db.interaction_id,
         movie_id=movie_id,
         action_type=swipe_data.action_type,
         is_supercharged=swipe_data.is_supercharged,
-        registered=True,
+        registered=error.detected,
     )
