@@ -19,8 +19,6 @@ class MovieHydrator:
     async def get_or_fetch_movie(self, movie_database_id: int, movie_title: str):
         """
         Get movie from DB or fetch from TMDB and store if not found.
-
-        Movie databse id will be used in the DB. It was originally created by the recomemnder service.
         """
         logger.info(f"Hydrating movie: id={movie_database_id}, title={movie_title}")
         # 1) Check db
