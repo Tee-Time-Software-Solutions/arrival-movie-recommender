@@ -45,8 +45,8 @@ export interface RegisteredFeedback {
   registered: boolean;
 }
 
-export interface RatedMovie {
+export interface WatchedMovie {
   movie: MovieDetails;
-  user_rating: number;
-  rated_at: string;
+  rating: number;
+  watchedAt: string;
 }
