@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import type { MovieDetails } from "@/types/movie";
+import type { MovieDetails, WatchedMovie } from "@/types/movie";
 
 interface MovieState {
   queue: MovieDetails[];
   currentIndex: number;
   likedMovies: MovieDetails[];
   dislikedMovies: MovieDetails[];
+  watchedMovies: WatchedMovie[];
   loading: boolean;
   error: string | null;
 
@@ -13,6 +14,7 @@ interface MovieState {
   nextMovie: () => void;
   likeMovie: (movie: MovieDetails) => void;
   dislikeMovie: (movie: MovieDetails) => void;
+  rateMovie: (movie: MovieDetails, rating: number) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   getCurrentMovie: () => MovieDetails | undefined;
@@ -23,6 +25,7 @@ export const useMovieStore = create<MovieState>((set, get) => ({
   currentIndex: 0,
   likedMovies: [],
   dislikedMovies: [],
+  watchedMovies: [],
   loading: false,
   error: null,
 
@@ -44,6 +47,14 @@ export const useMovieStore = create<MovieState>((set, get) => ({
   dislikeMovie: (movie) =>
     set((state) => ({
       dislikedMovies: [...state.dislikedMovies, movie],
+    })),
+
+  rateMovie: (movie, rating) =>
+    set((state) => ({
+      watchedMovies: [
+        ...state.watchedMovies,
+        { movie, rating, watchedAt: new Date().toISOString() },
+      ],
     })),
 
   setLoading: (loading) => set({ loading }),
