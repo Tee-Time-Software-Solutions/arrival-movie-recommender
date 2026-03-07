@@ -10,12 +10,12 @@
 - [X] Augment info data with TMDB api
 
 #### STATEFUL APP (MySQL + firebase auth)
-- [ ] Stateful sessions (adding auth)
+- [X] Stateful sessions (adding auth)
 - [ ] CRUD for movie display
 - [ ] Adding user profile info accessible
-- [ ] Adding user preferences
 
 ### 2) NON-MVP
+- [ ] Adding user preferences
 - [ ] Onboarding with 10 chatbot selected movies in order to manage cold-start
 - [ ] Talk with chatbot (natural language conversation influences reco algorithm, user preferences and act as a search engine)
 - [ ] DB indexing strategy
