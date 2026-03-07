@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, HttpUrl
 from typing import List, Optional
 
-from movie_recommender.schemas.movies import MovieProvider
+from movie_recommender.schemas.requests.movies import MovieProvider
 
 
 class UserAnalytics(BaseModel):

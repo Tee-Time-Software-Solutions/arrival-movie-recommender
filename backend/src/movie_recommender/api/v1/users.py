@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from movie_recommender.dependencies.firebase import verify_user
-from movie_recommender.schemas.users import (
+from movie_recommender.schemas.requests.users import (
     UserPreferences,
     UserProfileSummary,
 )

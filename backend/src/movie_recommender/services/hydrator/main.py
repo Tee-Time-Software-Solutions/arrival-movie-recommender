@@ -3,7 +3,11 @@ import os
 from movie_recommender.core.settings.main import AppSettings
 import requests
 
-from movie_recommender.schemas.movies import CastMember, MovieDetails, MovieProvider
+from movie_recommender.schemas.requests.movies import (
+    CastMember,
+    MovieDetails,
+    MovieProvider,
+)
 
 logger = logging.getLogger(__name__)
 
