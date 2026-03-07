@@ -16,6 +16,11 @@ dependencies = [
       "dotenv>=0.9.9",
       "python-json-logger>=4.0.0",
       "firebase-admin"
+      "pandas",
+      "pyarrow",
+      "scipy",
+      "implicit",
+      "tqdm",
 ]
 
 [dependency-groups]

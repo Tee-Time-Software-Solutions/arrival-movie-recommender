@@ -15,3 +15,8 @@ Requires-Dist: requests>=2.32.5
 Requires-Dist: dotenv>=0.9.9
 Requires-Dist: python-json-logger>=4.0.0
 Requires-Dist: firebase-admin
+Requires-Dist: pandas
+Requires-Dist: pyarrow
+Requires-Dist: scipy
+Requires-Dist: implicit
+Requires-Dist: tqdm
