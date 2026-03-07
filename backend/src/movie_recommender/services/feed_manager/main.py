@@ -62,7 +62,7 @@ class FeedManager:
     ):
         logger.info(f"Refilling queue for user {user_id}")
         # 1) Get recommendations (returns list of tuples)
-        movies = self.recommender.get_top_n(
+        movies = self.recommender.get_top_n_recommendations(
             user_id=user_id,
             n=self.settings.app_logic.batch_size,
             user_preferences=user_preferences,

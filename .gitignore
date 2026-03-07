@@ -1,5 +1,6 @@
 *.env*
 !.env.dev.example
+.dev_token
 
 # Node
 node_modules/
