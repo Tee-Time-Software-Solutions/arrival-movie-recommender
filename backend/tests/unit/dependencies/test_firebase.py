@@ -89,7 +89,7 @@ class TestVerifyUserFailureCases:
             verify_user()(request=_make_request(), token=FAKE_TOKEN)
 
         assert exc.value.status_code == 401
-        assert "Token expired" in exc.value.detail
+        assert "Authentication failed" == exc.value.detail
 
     def test_unverified_email_raises_403_when_required(self, mock_verify, mock_get_user):
         mock_verify.return_value = DECODED_TOKEN

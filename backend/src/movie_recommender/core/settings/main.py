@@ -4,7 +4,7 @@ from typing import List
 
 from movie_recommender.core.settings.schemas import (
     AppLogicSettings,
-    FirebaSettings,
+    FirebaseSettings,
     RedisSettings,
     DatabaseSettings,
     StorageSettings,
@@ -134,7 +134,7 @@ class AppSettings:
                 f"Unsupported CLOUD_PROVIDER: {provider}. Use 'aws' or 'azure'"
             )
 
-    def _load_firebase_settings(self) -> FirebaSettings:
+    def _load_firebase_settings(self) -> FirebaseSettings:
         check_required(
             [
                 "FIREBASE_PROJECT_ID",
@@ -145,7 +145,7 @@ class AppSettings:
             ]
         )
 
-        return FirebaSettings(
+        return FirebaseSettings(
             firebase_project_id=os.getenv("FIREBASE_PROJECT_ID"),
             firebase_private_key_id=os.getenv("FIREBASE_PRIVATE_KEY_ID"),
             firebase_private_key=os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
