@@ -15,6 +15,10 @@
 - [ ] Adding user profile info accessible
 
 ### 2) NON-MVP
+- [ ] Fixing Service Layer
+- [ ] Expand Service Layer
+
+### 3) NON-MVP NON-CRUTIAL
 - [ ] Adding user preferences
 - [ ] Onboarding with 10 chatbot selected movies in order to manage cold-start
 - [ ] Talk with chatbot (natural language conversation influences reco algorithm, user preferences and act as a search engine)

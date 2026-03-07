@@ -10,5 +10,15 @@ services:
       interval: 1s
       timeout: 3s
       retries: 5
+
+  db-migration:
+    command: ["python", "scripts/migrate.py"]
+    working_dir: /app
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT}
+    restart: "no"
+
 volumes:
   redis-data:

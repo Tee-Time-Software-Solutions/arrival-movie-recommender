@@ -28,7 +28,41 @@ dev: ## Start backend in dev
 
 
 
-# 2) CI
+# 2) DATABASE
+db-create-migration: ## Generate migration files. Usage: make db-create-migration MESSAGE="your description"
+	@if [ -z "$(MESSAGE)" ]; then \
+		echo "$(RED)❌ Please provide MESSAGE='your description'$(RESET)"; exit 1; \
+	fi
+	$(VENV_ACTIVATE) && DB_HOST=localhost alembic revision --autogenerate -m "$(MESSAGE)"
+
+db-migrate: ## Apply all pending migrations (dev)
+	$(VENV_ACTIVATE) && alembic upgrade head
+	@echo "$(GREEN)✅ Migrations applied$(RESET)"
+
+db-migrate-safe: ## Pre-flight checks then migrate (use for prod/staging)
+	@echo "$(YELLOW)🔍 Pre-deployment checks...$(RESET)"
+	$(VENV_ACTIVATE) && alembic check || (echo "$(RED)❌ Validation failed$(RESET)"; exit 1)
+	@echo "Current revision:"
+	$(VENV_ACTIVATE) && alembic current
+	@echo "Pending migrations:"
+	$(VENV_ACTIVATE) && alembic history --verbose | head -10
+	$(VENV_ACTIVATE) && alembic upgrade head
+	@echo "$(GREEN)✅ Migration complete$(RESET)"
+
+db-downgrade: ## Roll back one migration
+	$(VENV_ACTIVATE) && alembic downgrade -1
+
+db-downgrade-to: ## Roll back to specific revision. Usage: make db-downgrade-to MIGRATION_ID=abc123
+	@if [ -z "$(MIGRATION_ID)" ]; then \
+		echo "$(RED)❌ Please provide MIGRATION_ID=<revision>$(RESET)"; exit 1; \
+	fi
+	$(VENV_ACTIVATE) && alembic downgrade $(MIGRATION_ID)
+
+db-status: ## Show current migration revision and history
+	$(VENV_ACTIVATE) && alembic current && alembic history --verbose
+
+
+# 3) CI
 format-check: ## Formats
 	@echo "$(YELLOW)Running CI formatting$(RESET)"
 	@echo "$(BLUE)Checking code formatting with ruff...$(RESET)"

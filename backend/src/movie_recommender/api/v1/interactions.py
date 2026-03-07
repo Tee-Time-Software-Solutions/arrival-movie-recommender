@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from movie_recommender.dependencies.feed_manager import get_feed_manager
 from movie_recommender.dependencies.recommender import get_recommender
-from movie_recommender.schemas.interactions import (
+from movie_recommender.schemas.requests.interactions import (
     RegisteredFeedback,
     SwipeAction,
     SwipeRequest,

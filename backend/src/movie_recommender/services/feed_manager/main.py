@@ -4,8 +4,8 @@ import redis
 import asyncio
 import json
 
-from movie_recommender.schemas.movies import MovieDetails
-from movie_recommender.schemas.users import UserPreferences
+from movie_recommender.schemas.requests.movies import MovieDetails
+from movie_recommender.schemas.requests.users import UserPreferences
 from movie_recommender.services.hydrator.main import MovieHydrator
 from movie_recommender.services.recommender.main import Recommender
 

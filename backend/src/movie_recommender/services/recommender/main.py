@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import List, Tuple
 
-from movie_recommender.schemas.interactions import SwipeAction
-from movie_recommender.schemas.users import UserPreferences
+from movie_recommender.schemas.requests.interactions import SwipeAction
+from movie_recommender.schemas.requests.users import UserPreferences
 
 
 class Recommender:
