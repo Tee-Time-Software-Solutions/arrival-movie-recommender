@@ -47,7 +47,7 @@ def build_sparse_matrix():
     R_train = csr_matrix(
         (preferences, (user_indices, movie_indices)),
         shape=(num_users, num_movies),
-        dtype=np.float32
+        dtype=np.float32,
     )
 
     print("Matrix built.")
@@ -61,6 +61,7 @@ def build_sparse_matrix():
     save_npz(MATRIX_PATH, R_train)
 
     print("Saving mappings...")
+
     # Convert numpy int keys/values to native Python int for JSON serialization
     def _to_native(d):
         return {int(k): int(v) for k, v in d.items()}

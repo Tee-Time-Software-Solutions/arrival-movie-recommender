@@ -7,6 +7,7 @@ MOVIES_INPUT = DATA_PROCESSED / "movies_clean.parquet"
 MOVIES_OUTPUT = DATA_PROCESSED / "movies_filtered.parquet"
 INTERACTIONS_INPUT = DATA_PROCESSED / "interactions_filtered.parquet"
 
+
 def prune_movies():
     interactions = pd.read_parquet(INTERACTIONS_INPUT)
     movies = pd.read_parquet(MOVIES_INPUT)
