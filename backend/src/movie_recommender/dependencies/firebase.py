@@ -17,7 +17,9 @@ def verify_user(
             decoded_token = auth.verify_id_token(token)
             user_record = auth.get_user(decoded_token["uid"])
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
+            )
 
         if email_needs_verification and not user_record.email_verified:
             raise HTTPException(

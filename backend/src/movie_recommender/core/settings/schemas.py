@@ -47,7 +47,7 @@ class StorageSettings(BaseModel):
     azure_account_key: str | None = None
 
 
-class FirebaSettings(BaseModel):
+class FirebaseSettings(BaseModel):
     firebase_project_id: str
     firebase_private_key_id: str
     firebase_private_key: str

@@ -14,17 +14,16 @@ Find your Web API Key at:
 import argparse
 import sys
 from pathlib import Path
-
 import httpx
 from dotenv import load_dotenv
-
-ROOT = Path(__file__).parent.parent
-load_dotenv(ROOT / "env_config/synced/.env.dev")
 
 import os
 
 import firebase_admin
 from firebase_admin import auth, credentials
+
+ROOT = Path(__file__).parent.parent
+load_dotenv(ROOT / "env_config/synced/.env.dev")
 
 DEV_TOKEN_PATH = ROOT / "./scripts/.dev_token"
 EXCHANGE_URL = (

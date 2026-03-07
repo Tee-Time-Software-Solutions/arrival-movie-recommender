@@ -13,6 +13,7 @@ TRAIN_RATIO = 0.8
 VAL_RATIO = 0.1
 # Remaining 0.1 automatically test
 
+
 def chronological_split(df):
     """
     Perform per-user chronological split.

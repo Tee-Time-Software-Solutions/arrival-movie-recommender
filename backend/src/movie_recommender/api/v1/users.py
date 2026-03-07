@@ -25,7 +25,9 @@ async def get_full_profile_view(
 
 @router.patch(path="/{user_id}/preferences")
 async def update_preferences(
-    user_id: str, updated_preferences: UserPreferences
+    user_id: str,
+    updated_preferences: UserPreferences,
+    auth_user=Depends(verify_user(user_private_route=True)),
 ) -> UserPreferences:
     """
     1. Fetch from db the user stats
