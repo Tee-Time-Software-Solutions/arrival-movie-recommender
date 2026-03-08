@@ -32,6 +32,11 @@ dev-rebuild: ## Rebuild images then start dev (use when deps change)
 	$(MAKE) check-enviroment-variables
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build -V
 
+dev-stop: ## Stop development environment
+	$(MAKE) check-enviroment-variables
+	@echo "$(YELLOW)Stopping development environment...$(RESET)"
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) down -v || true
+
 backend-tests: ## Run unit tests
 	$(MAKE) -C backend unit-test
 

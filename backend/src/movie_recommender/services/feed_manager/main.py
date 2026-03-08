@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 import logging
-from typing import TYPE_CHECKING, List
+from typing import List
 
 from movie_recommender.core.settings.main import AppSettings
 import redis
@@ -11,9 +9,6 @@ import json
 from movie_recommender.schemas.requests.movies import MovieDetails
 from movie_recommender.services.hydrator.main import MovieHydrator
 from movie_recommender.services.recommender.main import Recommender
-
-if TYPE_CHECKING:
-    from movie_recommender.schemas.requests.users import UserPreferences
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +38,7 @@ class FeedManager:
         self.settings = AppSettings()
 
     async def get_next_movie(
-        self, user_id: int, user_preferences: UserPreferences | None = None
+        self, user_id: int, user_preferences: None = None
     ) -> MovieDetails:
         """
         1. Extract from queue
@@ -54,13 +49,13 @@ class FeedManager:
 
         movie_data = await self.redis_client.lpop(queue_key)
 
-        queue_len = await self.redis_client.llen(queue_key)
-        if queue_len < self.settings.app_logic.queue_min_capacity:
-            asyncio.create_task(self.refill_queue(user_id, queue_key))
-
         if not movie_data:
             await self.refill_queue(user_id, queue_key)
             movie_data = await self.redis_client.lpop(queue_key)
+        else:
+            queue_len = await self.redis_client.llen(queue_key)
+            if queue_len < self.settings.app_logic.queue_min_capacity:
+                asyncio.create_task(self.refill_queue(user_id, queue_key))
 
         logger.info(f"Movie data from Redis: {movie_data}")
         movie_id, movie_title = json.loads(movie_data)
