@@ -13,10 +13,13 @@ class UserAnalytics(BaseModel):
 
 
 class UserPreferences(BaseModel):
-    preferred_genres: List[str]
-    min_release_year: int
-    include_adult: bool
-    movie_providers: List[MovieProvider]
+    included_genres: List[str] = Field(default_factory=list)
+    excluded_genres: List[str] = Field(default_factory=list)
+    min_release_year: Optional[int] = None
+    max_release_year: Optional[int] = None
+    min_rating: Optional[float] = None
+    include_adult: bool = False
+    movie_providers: List[MovieProvider] = Field(default_factory=list)
 
 
 class UserDisplayInfo(BaseModel):

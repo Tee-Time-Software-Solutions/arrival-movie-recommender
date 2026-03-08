@@ -30,8 +30,8 @@ dev-rebuild: ## Rebuild images then start dev (use when deps change)
 	$(MAKE) check-enviroment-variables
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build -V
 
-test-unit: ## Run unit tests
-	cd backend && uv run python -m pytest tests/unit/ -v
+backend-tests: ## Run unit tests
+	$(MAKE) -C backend unit-test
 
 gen-dev-token: ## Generate a Firebase ID token for local testing (writes to backend/.dev_token)
 	cd backend && uv run scripts/gen_dev_token.py $(if $(UID),--uid $(UID),)

@@ -4,7 +4,7 @@ from pathlib import Path
 from alembic import context
 from dotenv import load_dotenv
 from movie_recommender.core.settings.main import AppSettings
-from movie_recommender.database.models import Base
+from movie_recommender.database.models import metadata
 from sqlalchemy import create_engine, pool
 
 # Load env vars for local runs; no-op in Docker where they're already set
@@ -15,7 +15,7 @@ alembic_config = context.config
 if alembic_config.config_file_name is not None:
     fileConfig(alembic_config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = metadata
 
 
 def _get_url() -> str:

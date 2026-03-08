@@ -10,9 +10,19 @@ from contextlib import contextmanager
 from pythonjsonlogger import jsonlogger
 
 from .colorfulFormatter import ColoredJSONFormatter
-import logging
 
 logger = logging.getLogger(__name__)
+
+
+class SafeStreamHandler(logging.StreamHandler):
+    """StreamHandler that ignores I/O errors when the stream is closed (e.g. during test teardown)."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            super().emit(record)
+        except (ValueError, OSError):
+            # Stream was closed (e.g. pytest/TestClient teardown). Suppress to avoid log spam.
+            pass
 
 
 class FileUploadFilter(logging.Filter):
@@ -98,7 +108,7 @@ class Logger:
         return queue_handler
 
     def __bind_handlers(self) -> logging.Handler:
-        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler = SafeStreamHandler(stream=sys.stdout)
         formatter = self.__bind_formatter()
         stream_handler.setFormatter(formatter)
         log_filter = FileUploadFilter()
@@ -121,14 +131,17 @@ class Logger:
             return formatter
 
     def shutdown(self):
-        """Stops the QueueListener and flushes any remaining logs."""
-        if self.listener:
-            logging.info("Shutting down logging listener...")
-            self.listener.stop()
-            logging.info("Logging listener stopped.")
-        # Remove the queue handler from the root logger to prevent further logging attempts
-        if self.queue_handler in self.root_logger.handlers:
-            self.root_logger.removeHandler(self.queue_handler)
+        """Stops the QueueListener and flushes any remaining logs.
+        Order: remove queue handler first (so no new records are enqueued), then stop
+        the listener. Do not log here — the stream may already be closed during teardown.
+        """
+        if not getattr(self, "_shutdown_done", False):
+            self._shutdown_done = True
+            if self.queue_handler in self.root_logger.handlers:
+                self.root_logger.removeHandler(self.queue_handler)
+            if self.listener:
+                self.listener.stop()
+                self.listener = None
 
 
 LOG_CONTEXT = contextvars.ContextVar("log_context", default={})
