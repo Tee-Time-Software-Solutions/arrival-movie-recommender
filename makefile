@@ -1,5 +1,7 @@
 
 .DEFAULT_GOAL := help
+SHELL := /bin/bash
+
 
 # VARIABLES
 RED = \033[31m
@@ -42,3 +44,5 @@ check-enviroment-variables:
 		exit 1; \
 	fi
 	echo "Environment is: $(ENVIRONMENT)"
+
+format-check:
