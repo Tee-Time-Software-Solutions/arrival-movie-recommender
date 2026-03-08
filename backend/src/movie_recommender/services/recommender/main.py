@@ -35,7 +35,7 @@ class Recommender:
         """Belongs to online learning."""
         ...
 
-    async def write_movie(self, db: AsyncSession, title: str) -> int:
+    async def _write_movie(self, db: AsyncSession, title: str) -> int:
         """Write a movie stub (title only) to DB and return its auto-generated ID."""
         movie = await create_movie_stub(db, title)
         return movie.id
@@ -44,9 +44,9 @@ class Recommender:
         """
         Reads the CSV, filters for unique movie IDs,
         creates pairs of [(movie_id, movie_title)] then writes them to db.
+
+        # TODO:
+            1. Create object for ingest csv
+            2. Processing CSV and write stub object
         """
-        # df = pd.read_csv(csv_path)
-        # unique_movies = df[['movieId', 'title']].drop_duplicates()
-        # for _, row in unique_movies.iterrows():
-        #     movie_db_id = await self.write_movie(db, row['title'])
         pass

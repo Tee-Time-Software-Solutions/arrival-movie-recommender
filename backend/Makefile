@@ -63,6 +63,9 @@ db-status: ## Show current migration revision and history
 
 
 # 3) CI
+unit-test: ## Run unit tests
+	$(VENV_ACTIVATE) && python -m pytest tests/unit/ -v
+
 format-check: ## Formats
 	@echo "$(YELLOW)Running CI formatting$(RESET)"
 	@echo "$(BLUE)Checking code formatting with ruff...$(RESET)"

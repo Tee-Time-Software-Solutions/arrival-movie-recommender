@@ -4,6 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from movie_recommender.database.CRUD.users import (
     create_user,
     get_user_by_firebase_uid,
+    get_user_analytics,
+    get_user_preferences,
+    get_user_included_genres,
+    get_user_excluded_genres,
     update_user_preferences,
 )
 from movie_recommender.dependencies.database import get_db
@@ -31,23 +35,27 @@ async def get_full_profile_view(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    analytics = await get_user_analytics(db, user.id)
+    prefs = await get_user_preferences(db, user.id)
+    inc = await get_user_included_genres(db, user.id)
+    exc = await get_user_excluded_genres(db, user.id)
+
     return UserProfileSummary(
         profile=UserDisplayInfo(
             username=user.email.split("@")[0],
             avatar_url=user.profile_image_url or "https://placeholder.com/avatar.png",
             joined_at=str(user.created_at),
         ),
-        stats=UserAnalytics(
-            total_swipes=0,
-            total_likes=0,
-            total_dislikes=0,
-            top_genres=[],
-        ),
+        stats=UserAnalytics(**analytics),
         preferences=UserPreferences(
-            preferred_genres=[],
-            min_release_year=1900,
-            include_adult=False,
-            movie_providers=[],
+            included_genres=inc,
+            excluded_genres=exc,
+            min_release_year=prefs.min_year if prefs else None,
+            max_release_year=prefs.max_year if prefs else None,
+            min_rating=prefs.min_rating if prefs else None,
+            include_adult=prefs.include_adult
+            if prefs and prefs.include_adult is not None
+            else False,
         ),
     )
 
@@ -59,7 +67,7 @@ async def update_preferences(
     db: AsyncSession = Depends(get_db),
     auth_user=Depends(verify_user(user_private_route=True)),
 ) -> UserPreferences:
-    """Update user preferences (year range, rating threshold, genres)."""
+    """Update user preferences (year range, rating threshold, adult content, genres)."""
     user = await get_user_by_firebase_uid(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -68,6 +76,11 @@ async def update_preferences(
         db,
         user_id=user.id,
         min_year=updated_preferences.min_release_year,
+        max_year=updated_preferences.max_release_year,
+        min_rating=updated_preferences.min_rating,
+        include_adult=updated_preferences.include_adult,
+        included_genre_names=updated_preferences.included_genres,
+        excluded_genre_names=updated_preferences.excluded_genres,
     )
     return updated_preferences
 

@@ -1,0 +1,8 @@
+# Backend (all of it)
+/backend/ @javidsegura
+
+# Frontend
+/frontend/ @aallendez
+
+# Recommender service
+/backend/src/movie_recommender/services/recommender/ @LAIN-21 @SnileMB @Diechi09

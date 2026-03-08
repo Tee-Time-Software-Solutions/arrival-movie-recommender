@@ -15,8 +15,15 @@ class MovieCard(BaseModel):
 
 
 class CastMember(BaseModel):
-    name: str = Field(..., example="Christopher Nolan")
-    role_type: Optional[str] = Field(None, example="Director or Lead Actor")
+    name: str = Field(..., example="Amy Adams")
+    role_type: str = Field(
+        ..., example="Actor", description="Actor, Director, or Producer"
+    )
+    character_name: Optional[str] = Field(
+        None,
+        example="Louise Banks",
+        description="Character played (only for actors, null for directors/producers)",
+    )
     profile_path: Optional[str] = Field(
         None, description="Image url for the cast member"
     )
