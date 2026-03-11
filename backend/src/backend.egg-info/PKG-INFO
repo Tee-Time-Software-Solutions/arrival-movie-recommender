@@ -18,4 +18,6 @@ Requires-Dist: pandas
 Requires-Dist: pyarrow
 Requires-Dist: scipy
 Requires-Dist: implicit
+Requires-Dist: cython
+Requires-Dist: lightfm @ git+https://github.com/lyst/lightfm.git
 Requires-Dist: tqdm

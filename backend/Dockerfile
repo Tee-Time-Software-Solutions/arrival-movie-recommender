@@ -2,8 +2,13 @@ FROM python:3.11-slim
 
 # 1. Install curl (for healthcheck)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    build-essential \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # 2. Install uv using pip
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
