@@ -12,4 +12,6 @@ pandas
 pyarrow
 scipy
 implicit
+cython
+lightfm @ git+https://github.com/lyst/lightfm.git
 tqdm

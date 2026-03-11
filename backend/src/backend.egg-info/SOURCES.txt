@@ -34,6 +34,15 @@ src/movie_recommender/services/recommender/data_processing/preprocessing/preproc
 src/movie_recommender/services/recommender/data_processing/preprocessing/preprocess_ratings.py
 src/movie_recommender/services/recommender/data_processing/preprocessing/prune_movies.py
 src/movie_recommender/services/recommender/learning/build_matrix.py
+src/movie_recommender/services/recommender/learning/compare_als_vs_fm.py
 src/movie_recommender/services/recommender/learning/evaluate.py
 src/movie_recommender/services/recommender/learning/train_als.py
+src/movie_recommender/services/recommender/learning/fm/__init__.py
+src/movie_recommender/services/recommender/learning/fm/data.py
+src/movie_recommender/services/recommender/learning/fm/evaluation.py
+src/movie_recommender/services/recommender/learning/fm/inference.py
+src/movie_recommender/services/recommender/learning/fm/trainer.py
+src/movie_recommender/services/recommender/learning/offline_pipelines/factorization_machines.py
+src/movie_recommender/services/recommender/learning/offline_pipelines/implicit_als.py
+src/movie_recommender/services/recommender/serving/empty.py
 src/movie_recommender/services/recommender/tests/inspect_data.py
