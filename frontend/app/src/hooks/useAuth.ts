@@ -83,5 +83,6 @@ async function tryRegisterUser(
       return;
     }
     console.error("Failed to register user in backend:", err);
+    throw err;
   }
 }
