@@ -1,8 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/movie_recommender"]
+
 [project]
-name = "backend"
+name = "movie-recommender"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
       "fastapi",
@@ -13,7 +18,6 @@ dependencies = [
       "ruff>=0.15.1",
       "redis>=7.1.1",
       "requests>=2.32.5",
-      "dotenv>=0.9.9",
       "python-json-logger>=4.0.0",
       "firebase-admin",
       "pandas",
@@ -21,6 +25,12 @@ dependencies = [
       "scipy",
       "implicit",
       "tqdm",
+      "alembic", # db
+      "asyncpg", #db --  async postgres driver (used by the app)
+      "psycopg2-binary", # db -- sync postgres driver (for migrations)
+      "python-dotenv"
+
+
 ]
 
 [dependency-groups]

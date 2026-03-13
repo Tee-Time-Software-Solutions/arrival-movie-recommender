@@ -14,7 +14,7 @@ class SwipeRequest(BaseModel):
 
 
 class RegisteredFeedback(BaseModel):
-    interaction_id: str
+    interaction_id: int
     movie_id: int
     action_type: SwipeAction
     is_supercharged: bool = False

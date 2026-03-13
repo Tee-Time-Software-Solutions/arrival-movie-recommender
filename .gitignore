@@ -11,7 +11,7 @@ node_modules/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 
 # C extensions
@@ -234,5 +234,3 @@ e2e-backend.pid
 e2e-frontend.pid
 
 .DS_Store
-
-backend/src/backend.egg-info/
