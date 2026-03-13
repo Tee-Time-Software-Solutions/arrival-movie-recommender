@@ -15,7 +15,7 @@ export function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      navigate("/discover", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [user, navigate]);
 

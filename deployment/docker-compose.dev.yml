@@ -1,20 +1,20 @@
 services:
-  # frontend:
-  #   build:
-  #     context: ../frontend
-  #     dockerfile: Dockerfile
-  #   image: movie_recommender_frontend:dev
-  #   ports:
-  #     - "5173:5173"
-  #   volumes:
-  #     - ../frontend/app:/app
-  #     - /app/node_modules
-  #   healthcheck:
-  #     test: ["CMD", "curl", "--fail", "http://localhost:5173"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 30s
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: movie_recommender_frontend:dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend/app:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5173"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   database:
     image: postgres:16-alpine

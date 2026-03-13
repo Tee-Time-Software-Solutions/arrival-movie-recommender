@@ -1,19 +1,37 @@
-import type { UserPreferences } from "@/types/user";
-import { MOCK_PROFILE_SUMMARY, MOCK_WATCHED_MOVIES } from "@/mock-data";
+import apiClient from "./client";
+import type {
+  UserPreferences,
+  UserProfileSummary,
+  UserCreate,
+  UserCreatedResponse,
+} from "@/types/user";
 
-// TODO: Connect to real endpoint — currently mocked
-export async function getProfileSummary() {
-  return MOCK_PROFILE_SUMMARY;
+export async function registerUser(
+  userData: UserCreate,
+): Promise<UserCreatedResponse> {
+  const { data } = await apiClient.post<UserCreatedResponse>(
+    "users/register",
+    userData,
+  );
+  return data;
 }
 
-// TODO: Connect to real endpoint — currently mocked
-export async function getWatchedMovies() {
-  return MOCK_WATCHED_MOVIES;
+export async function getProfileSummary(
+  userId: string,
+): Promise<UserProfileSummary> {
+  const { data } = await apiClient.get<UserProfileSummary>(
+    `users/${userId}/summary`,
+  );
+  return data;
 }
 
-// TODO: Connect to real endpoint — currently mocked
 export async function updatePreferences(
+  userId: string,
   prefs: UserPreferences,
 ): Promise<UserPreferences> {
-  return prefs;
+  const { data } = await apiClient.patch<UserPreferences>(
+    `users/${userId}/preferences`,
+    prefs,
+  );
+  return data;
 }
