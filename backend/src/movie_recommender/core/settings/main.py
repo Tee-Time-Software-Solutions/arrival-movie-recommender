@@ -38,7 +38,7 @@ class AppSettings:
         self.tmdb = self._load_tmdb_settings()
         self.redis = self._load_redis_settings()
         self.firebase = self._load_firebase_settings()
-        # self.database = self._load_database_settings() # TODO: implement db
+        self.database = self._load_database_settings()
         # self.storage = self._load_storage_settings() # TODO: implement storage
 
         logger.info(f"Settings initialized for environment: {self.environment}")
@@ -79,24 +79,24 @@ class AppSettings:
         """Load database settings."""
         check_required(
             [
-                "MYSQL_USER",
-                "MYSQL_PASSWORD",
-                "MYSQL_HOST",
-                "MYSQL_PORT",
-                "MYSQL_DATABASE",
-                "MYSQL_SYNC_DRIVER",
-                "MYSQL_ASYNC_DRIVER",
+                "DB_HOST",
+                "DB_PORT",
+                "DB_NAME",
+                "DB_USER",
+                "DB_PASSWORD",
+                "DB_SYNC_DRIVER",
+                "DB_ASYNC_DRIVER",
             ]
         )
 
         return DatabaseSettings(
-            user=os.getenv("MYSQL_USER"),
-            password=os.getenv("MYSQL_PASSWORD"),
-            host=os.getenv("MYSQL_HOST"),
-            port=os.getenv("MYSQL_PORT"),
-            database=os.getenv("MYSQL_DATABASE"),
-            sync_driver=os.getenv("MYSQL_SYNC_DRIVER"),
-            async_driver=os.getenv("MYSQL_ASYNC_DRIVER"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            database=os.getenv("DB_NAME"),
+            sync_driver=os.getenv("DB_SYNC_DRIVER"),
+            async_driver=os.getenv("DB_ASYNC_DRIVER"),
         )
 
     def _load_storage_settings(self) -> StorageSettings:

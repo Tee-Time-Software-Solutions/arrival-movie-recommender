@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import List, Tuple
 
-from movie_recommender.schemas.interactions import SwipeAction
-from movie_recommender.schemas.users import UserPreferences
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from movie_recommender.database.CRUD.movies import create_movie_stub
+from movie_recommender.schemas.requests.interactions import SwipeAction
 
 
 class Recommender:
@@ -10,47 +12,41 @@ class Recommender:
         pass
 
     def get_top_n_recommendations(
-        self, user_id: str, n: int, list_of_filtered_movies: List[int]
+        self, user_id: int, n: int, list_of_filtered_movies: List[int]
     ) -> List[Tuple[int, str]]:
         """
-        Def: given a user_id and number of movies to retrieve it returns a list of IDs of movies. These movie IDs must
-             may be provided by the recommeder. They must be unique and not clash with existing ones in the db.
-            The n returned  movies must respect user preferneces defined in the paremeter 'user_preferences'
-
-        TODO:
-            change user_preferences param to 'list_of_filtered_movies: List[ids:int]'
+        Given a user_id and number of movies to retrieve, returns a list of (movie_db_id, title) tuples.
+        The returned movies respect filter list (movies to exclude).
         """
         # Mock data
         return [(1, "Arrival"), (2, "Interstellar"), (3, "The Matrix")]
 
     def get_similar_n_movies(self, movie_id: int, n: int):
-        """
-        Def: Give a movie_id returns its closes movies
-
-        TODO:
-            - Implement after MVP
-        """
+        """Give a movie_id returns its closest movies. TODO: implement after MVP."""
+        ...
 
     def set_user_feedback(
         self,
-        user_id: str,
+        user_id: int,
         movie_id: int,
         interaction_type: SwipeAction,
         is_supercharged: bool,
     ) -> None:
-        """
-        Belongs to:
-            - Online learning
-        """
+        """Belongs to online learning."""
         ...
+
+    async def _write_movie(self, db: AsyncSession, title: str) -> int:
+        """Write a movie stub (title only) to DB and return its auto-generated ID."""
+        movie = await create_movie_stub(db, title)
+        return movie.id
 
     def _ingest_csv_dataset(self, csv_path: Path):
         """
-        De:
-            Reads the CSV, filters for unique movie IDs, createes pairs of [(movie_id, movie_title)] then writes them to db
-        Belongs to:
-            - Offline learning
+        Reads the CSV, filters for unique movie IDs,
+        creates pairs of [(movie_id, movie_title)] then writes them to db.
+
+        # TODO:
+            1. Create object for ingest csv
+            2. Processing CSV and write stub object
         """
-
-
-# Add new function that id, movie_name out of ingested csv
+        pass
