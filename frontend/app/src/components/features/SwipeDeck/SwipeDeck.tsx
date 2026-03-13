@@ -120,7 +120,7 @@ export function SwipeDeck({
           style={{ pointerEvents: mode === "card" ? "auto" : "none" }}
         >
           <MovieCard
-            key={currentMovie.movie_id}
+            key={currentMovie.movie_db_id}
             movie={currentMovie}
             isTop={true}
             onLike={() => onLike(currentMovie)}

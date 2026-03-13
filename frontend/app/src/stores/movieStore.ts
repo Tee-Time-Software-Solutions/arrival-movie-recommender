@@ -31,8 +31,8 @@ export const useMovieStore = create<MovieState>((set, get) => ({
 
   addToQueue: (movies) =>
     set((state) => {
-      const existingIds = new Set(state.queue.map((m) => m.movie_id));
-      const newMovies = movies.filter((m) => !existingIds.has(m.movie_id));
+      const existingIds = new Set(state.queue.map((m) => m.movie_db_id));
+      const newMovies = movies.filter((m) => !existingIds.has(m.movie_db_id));
       return { queue: [...state.queue, ...newMovies] };
     }),
 

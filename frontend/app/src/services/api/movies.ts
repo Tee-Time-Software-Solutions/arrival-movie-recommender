@@ -24,7 +24,7 @@ export async function getMovieQueue(
 }
 
 export async function registerSwipe(
-  movieId: string,
+  movieId: number,
   actionType: SwipeAction,
   isSupercharged: boolean = false,
 ): Promise<RegisteredFeedback> {
@@ -36,13 +36,4 @@ export async function registerSwipe(
     },
   );
   return data;
-}
-
-// TODO: Connect to real endpoint — currently mocked
-export async function rateMovie(
-  _movieId: string,
-  _rating: number,
-): Promise<void> {
-  // When a real rating endpoint exists, call it here.
-  // For now, the rating is stored locally in the movieStore.
 }

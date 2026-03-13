@@ -6,7 +6,7 @@ import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
 
 interface MovieListProps {
   movies: MovieDetails[];
-  watchedMap?: Map<string, WatchedMovie>;
+  watchedMap?: Map<number, WatchedMovie>;
   emptyMessage?: string;
 }
 
@@ -29,10 +29,10 @@ export function MovieList({
     <>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {movies.map((movie) => {
-          const watched = watchedMap?.get(movie.movie_id);
+          const watched = watchedMap?.get(movie.movie_db_id);
           return (
             <button
-              key={movie.movie_id}
+              key={movie.movie_db_id}
               onClick={() => setSelectedMovie(movie)}
               className="group relative overflow-hidden rounded-lg"
             >
