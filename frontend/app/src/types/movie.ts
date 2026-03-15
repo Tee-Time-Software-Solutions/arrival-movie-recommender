@@ -31,6 +31,13 @@ export interface MovieDetails extends MovieCard {
   movie_providers: MovieProvider[];
 }
 
+export interface PaginatedMovieDetails {
+  items: MovieDetails[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export type SwipeAction = "like" | "dislike" | "skip";
 
 export interface SwipeRequest {

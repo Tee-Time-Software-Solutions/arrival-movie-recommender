@@ -10,8 +10,11 @@ from movie_recommender.database.CRUD.users import (
     get_user_excluded_genres,
     update_user_preferences,
 )
+from movie_recommender.database.CRUD.interactions import get_user_liked_movies
+from movie_recommender.database.CRUD.movies import movie_to_details
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
+from movie_recommender.schemas.requests.movies import PaginatedMovieDetails
 from movie_recommender.schemas.requests.users import (
     UserAnalytics,
     UserCreatedResponse,
@@ -58,6 +61,25 @@ async def get_full_profile_view(
             else False,
         ),
     )
+
+
+@router.get(path="/{user_id}/liked-movies")
+async def get_liked_movies(
+    user_id: str,
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    auth_user=Depends(verify_user(user_private_route=True)),
+) -> PaginatedMovieDetails:
+    """Return the user's liked movies, most recent first."""
+    user = await get_user_by_firebase_uid(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    movie_ids, total = await get_user_liked_movies(db, user.id, limit, offset)
+    items = [await movie_to_details(db, mid) for mid in movie_ids]
+
+    return PaginatedMovieDetails(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.patch(path="/{user_id}/preferences")
