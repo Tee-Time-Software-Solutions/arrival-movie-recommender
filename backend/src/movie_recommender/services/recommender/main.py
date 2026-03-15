@@ -6,7 +6,6 @@ import numpy as np
 from movie_recommender.schemas.interactions import SwipeAction
 
 logger = logging.getLogger(__name__)
-from movie_recommender.schemas.users import UserPreferences
 from movie_recommender.services.recommender.serving.artifact_loader import (
     RecommenderArtifacts,
     load_recommender_artifacts,
@@ -76,72 +75,50 @@ class Recommender:
             return self.online_user_vectors[user_id]
         return self._base_user_vector(user_id)
 
-    def get_top_n(
-        self, user_id: str, n: int, user_preferences: UserPreferences
-    ) -> List[Tuple[int, str]]:
+    def get_top_n_recommendations(
+        self, user_id: str, list_of_movie_ids: List[int]
+    ) -> List[int]:
         """
-        Def: given a user_id and number of movies to retrieve it returns a list of IDs of movies. These movie IDs must
-             may be provided by the recommeder. They must be unique and not clash with existing ones in the db.
-            The n returned  movies must respect user preferneces defined in the paremeter 'user_preferences'
-
-        TODO:
-            change user_preferences param to 'list_of_filtered_movies: List[ids:int]'
+        Receives a user id and a list of movie ids.
+        Returns the movie ids ranked by predicted preference for the user.
         """
-        del user_preferences
-
         artifacts = self._require_artifacts()
         user_vector = self._current_user_vector(user_id)
-        vector_norm = float(np.linalg.norm(user_vector))
-        is_online = user_id in self.online_user_vectors
+
+        scored_movies: List[Tuple[int, float]] = []
+        for movie_id in list_of_movie_ids:
+            movie_index = artifacts.movie_id_to_index.get(int(movie_id))
+            if movie_index is not None:
+                score = float(artifacts.movie_embeddings[movie_index] @ user_vector)
+                scored_movies.append((movie_id, score))
+            else:
+                scored_movies.append((movie_id, float("-inf")))
+
+        scored_movies.sort(key=lambda x: x[1], reverse=True)
+
+        ranked_ids = [movie_id for movie_id, _ in scored_movies]
 
         logger.info(
-            f"\n{'='*60}\n"
-            f"  RECOMMENDER | get_top_n(user={user_id}, n={n})\n"
-            f"  Vector source: {'ONLINE (updated by swipes)' if is_online else 'COLD START (mean of all users)'}\n"
-            f"  Vector L2 norm: {vector_norm:.4f}\n"
-            f"  Movies seen: {len(self.user_seen_movie_ids.get(user_id, set()))}\n"
-            f"{'='*60}"
+            f"get_top_n_recommendations(user={user_id}, candidates={len(list_of_movie_ids)}) "
+            f"-> top: {ranked_ids[:5]}"
         )
 
-        scores = artifacts.movie_embeddings @ user_vector
-        seen_movies = self.user_seen_movie_ids.get(user_id, set())
-        seen_indices = [
-            artifacts.movie_id_to_index[movie_id]
-            for movie_id in seen_movies
-            if movie_id in artifacts.movie_id_to_index
+        return ranked_ids
+
+    def get_top_n(
+        self, user_id: str, n: int, user_preferences=None
+    ) -> List[Tuple[int, str]]:
+        """Backward-compatible wrapper used by feed_manager."""
+        artifacts = self._require_artifacts()
+        all_movie_ids = list(artifacts.movie_id_to_index.keys())
+        ranked_ids = self.get_top_n_recommendations(user_id, all_movie_ids)
+        top_ids = ranked_ids[:n]
+        return [
+            (mid, artifacts.movie_id_to_title.get(mid, f"movie_{mid}"))
+            for mid in top_ids
         ]
 
-        if seen_indices:
-            scores = scores.copy()
-            scores[seen_indices] = -np.inf
-
-        candidate_indices = np.where(np.isfinite(scores))[0]
-        if len(candidate_indices) == 0:
-            return []
-
-        candidate_scores = scores[candidate_indices]
-        top_local_indices = _top_n_indices(candidate_scores, n)
-        top_indices = candidate_indices[top_local_indices].tolist()
-
-        recommendations: List[Tuple[int, str]] = []
-        for movie_index in top_indices:
-            movie_id = artifacts.index_to_movie_id[int(movie_index)]
-            movie_title = artifacts.movie_id_to_title.get(
-                movie_id, f"movie_{movie_id}"
-            )
-            recommendations.append((movie_id, movie_title))
-
-        logger.info(
-            f"  TOP {n} RECOMMENDATIONS:\n"
-            + "\n".join(
-                f"    {i+1}. [{mid}] {title} (score: {float(scores[artifacts.movie_id_to_index[mid]]):.4f})"
-                for i, (mid, title) in enumerate(recommendations)
-            )
-        )
-
-        return recommendations
-
-    def update_user(
+    def _update_user(
         self,
         user_id: str,
         movie_id: int,
@@ -272,8 +249,11 @@ class Recommender:
         interaction_type: SwipeAction,
         is_supercharged: bool = False,
     ) -> None:
-        """Adapter for the endpoint layer — delegates to update_user()."""
-        self.update_user(
+        """
+        Receives a user id, movie id, interaction type, and supercharged flag.
+        Updates the user vector based on the feedback. Returns nothing.
+        """
+        self._update_user(
             user_id=user_id,
             movie_id=movie_id,
             action_type=interaction_type,
