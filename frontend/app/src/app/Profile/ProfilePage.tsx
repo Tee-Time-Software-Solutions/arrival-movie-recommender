@@ -6,11 +6,11 @@ import type { UserProfileSummary } from "@/types/user";
 import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
 import { useAuthStore } from "@/stores/authStore";
 import { useMovieStore } from "@/stores/movieStore";
-import { getProfileSummary } from "@/services/api/user";
+import { getProfileSummary, getLikedMovies } from "@/services/api/user";
 
 export function ProfilePage() {
   const { user, firebaseUid } = useAuthStore();
-  const { likedMovies } = useMovieStore();
+  const { likedMovies, setLikedMovies } = useMovieStore();
   const [profile, setProfile] = useState<UserProfileSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,8 +22,11 @@ export function ProfilePage() {
       return;
     }
     setLoading(true);
-    getProfileSummary(firebaseUid)
-      .then(setProfile)
+    Promise.all([getProfileSummary(firebaseUid), getLikedMovies(firebaseUid)])
+      .then(([profileData, likedData]) => {
+        setProfile(profileData);
+        setLikedMovies(likedData.items);
+      })
       .catch(() => setError("Failed to load profile"))
       .finally(() => setLoading(false));
   }, [firebaseUid]);

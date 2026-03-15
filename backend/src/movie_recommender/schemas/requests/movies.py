@@ -51,3 +51,10 @@ class MovieDetails(MovieCard):
         default_factory=list,
         description="Providers offering this movie for streaming, rent, or buy.",
     )
+
+
+class PaginatedMovieDetails(BaseModel):
+    items: List[MovieDetails] = Field(..., description="Page of movie details.")
+    total: int = Field(..., description="Total number of liked movies.")
+    limit: int
+    offset: int

@@ -15,6 +15,7 @@ interface MovieState {
   likeMovie: (movie: MovieDetails) => void;
   dislikeMovie: (movie: MovieDetails) => void;
   rateMovie: (movie: MovieDetails, rating: number) => void;
+  setLikedMovies: (movies: MovieDetails[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   getCurrentMovie: () => MovieDetails | undefined;
@@ -57,6 +58,7 @@ export const useMovieStore = create<MovieState>((set, get) => ({
       ],
     })),
 
+  setLikedMovies: (movies) => set({ likedMovies: movies }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   getCurrentMovie: () => {

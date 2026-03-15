@@ -5,6 +5,7 @@ import type {
   UserCreate,
   UserCreatedResponse,
 } from "@/types/user";
+import type { PaginatedMovieDetails } from "@/types/movie";
 
 export async function registerUser(
   userData: UserCreate,
@@ -21,6 +22,18 @@ export async function getProfileSummary(
 ): Promise<UserProfileSummary> {
   const { data } = await apiClient.get<UserProfileSummary>(
     `users/${userId}/summary`,
+  );
+  return data;
+}
+
+export async function getLikedMovies(
+  userId: string,
+  limit: number = 20,
+  offset: number = 0,
+): Promise<PaginatedMovieDetails> {
+  const { data } = await apiClient.get<PaginatedMovieDetails>(
+    `users/${userId}/liked-movies`,
+    { params: { limit, offset } },
   );
   return data;
 }
