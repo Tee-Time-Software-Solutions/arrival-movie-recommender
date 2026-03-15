@@ -3,6 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from movie_recommender.database.models import swipes
 
+SUPERCHARGED_SCORE = 2
+LIKE_SCORE = 1
+DISLIKE_SCORE = -1
+
 
 async def create_swipe(
     db: AsyncSession,
@@ -38,17 +42,17 @@ async def get_user_liked_movies(
                 swipes.c.action_type == "like",
                 swipes.c.is_supercharged.is_(True),
             ),
-            2,
+            SUPERCHARGED_SCORE,
         ),
-        (swipes.c.action_type == "like", 1),
+        (swipes.c.action_type == "like", LIKE_SCORE),
         (
             and_(
                 swipes.c.action_type == "dislike",
                 swipes.c.is_supercharged.is_(True),
             ),
-            -2,
+            SUPERCHARGED_SCORE * -1,
         ),
-        (swipes.c.action_type == "dislike", -1),
+        (swipes.c.action_type == "dislike", DISLIKE_SCORE),
         else_=0,
     )
 
@@ -61,9 +65,7 @@ async def get_user_liked_movies(
         .having(func.sum(weight) > 0)
     )
 
-    count_result = await db.execute(
-        select(func.count()).select_from(base.subquery())
-    )
+    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
     total = count_result.scalar_one()
 
     result = await db.execute(

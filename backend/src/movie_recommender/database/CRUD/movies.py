@@ -1,9 +1,10 @@
+from collections import defaultdict
+
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from movie_recommender.database.models import (
     MovieRow,
-    SwipeRow,
     movies,
     genres,
     movies_genres,
@@ -155,6 +156,77 @@ async def movie_to_details(db: AsyncSession, movie_id: int) -> MovieDetails:
             for row in provider_rows
         ],
     )
+
+
+async def movies_to_details_bulk(
+    db: AsyncSession, movie_ids: list[int]
+) -> list[MovieDetails]:
+    """Fetch multiple movies with all relations in bulk (avoids N+1 queries)."""
+    if not movie_ids:
+        return []
+
+    movie_rows = await db.execute(select(movies).where(movies.c.id.in_(movie_ids)))
+    movies_by_id = {row.id: row for row in movie_rows}
+
+    genre_rows = await db.execute(
+        select(movies_genres.c.movie_id, genres.c.name)
+        .join(genres, genres.c.id == movies_genres.c.genre_id)
+        .where(movies_genres.c.movie_id.in_(movie_ids))
+    )
+    genres_by_movie: dict[int, list[str]] = defaultdict(list)
+    for row in genre_rows:
+        genres_by_movie[row.movie_id].append(row.name)
+
+    cast_rows = await db.execute(
+        select(movies_cast_crew.c.movie_id, crew_person)
+        .join(crew_person, crew_person.c.id == movies_cast_crew.c.crew_person_id)
+        .where(movies_cast_crew.c.movie_id.in_(movie_ids))
+    )
+    cast_by_movie: dict[int, list[CastMember]] = defaultdict(list)
+    for row in cast_rows:
+        cast_by_movie[row.movie_id].append(
+            CastMember(
+                name=row.name,
+                role_type=row.role_type,
+                character_name=row.character_name,
+                profile_path=row.image_url,
+            )
+        )
+
+    provider_rows = await db.execute(
+        select(movies_providers.c.movie_id, providers)
+        .join(providers, providers.c.id == movies_providers.c.provider_id)
+        .where(movies_providers.c.movie_id.in_(movie_ids))
+    )
+    providers_by_movie: dict[int, list[MovieProviderSchema]] = defaultdict(list)
+    for row in provider_rows:
+        providers_by_movie[row.movie_id].append(
+            MovieProviderSchema(name=row.name, provider_type=row.provider_type)
+        )
+
+    results = []
+    for mid in movie_ids:
+        m = movies_by_id.get(mid)
+        if not m:
+            continue
+        results.append(
+            MovieDetails(
+                movie_db_id=m.id,
+                tmdb_id=m.tmdb_id,
+                title=m.title,
+                poster_url=m.poster_url or "",
+                release_year=m.release_year or 0,
+                rating=m.tmdb_rating or 0.0,
+                genres=genres_by_movie.get(mid, []),
+                is_adult=m.is_adult or False,
+                synopsis=m.synopsis or "",
+                runtime=m.runtime or 0,
+                trailer_url=m.trailer_url,
+                cast=cast_by_movie.get(mid, []),
+                movie_providers=providers_by_movie.get(mid, []),
+            )
+        )
+    return results
 
 
 async def _get_or_create_genre(db: AsyncSession, name: str) -> int:
