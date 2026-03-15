@@ -11,7 +11,7 @@ from movie_recommender.database.CRUD.users import (
     update_user_preferences,
 )
 from movie_recommender.database.CRUD.interactions import get_user_liked_movies
-from movie_recommender.database.CRUD.movies import movie_to_details
+from movie_recommender.database.CRUD.movies import movies_to_details_bulk
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
 from movie_recommender.schemas.requests.movies import PaginatedMovieDetails
@@ -77,7 +77,7 @@ async def get_liked_movies(
         raise HTTPException(status_code=404, detail="User not found")
 
     movie_ids, total = await get_user_liked_movies(db, user.id, limit, offset)
-    items = [await movie_to_details(db, mid) for mid in movie_ids]
+    items = await movies_to_details_bulk(db, movie_ids)
 
     return PaginatedMovieDetails(items=items, total=total, limit=limit, offset=offset)
 
