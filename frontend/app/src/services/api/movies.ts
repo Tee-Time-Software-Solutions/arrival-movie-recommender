@@ -59,4 +59,3 @@ export async function getRecommendations(): Promise<MovieDetails[]> {
   );
   return data;
 }
-}
