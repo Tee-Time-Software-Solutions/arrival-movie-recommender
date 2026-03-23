@@ -61,13 +61,25 @@ class FeedManager:
         self, user_id: str, queue_key: str, user_preferences: UserPreferences
     ):
         logger.info(f"Refilling queue for user {user_id}")
-        # 1) Get recommendations (returns list of tuples)
-        movies = self.recommender.get_top_n(
+        ranked_movie_ids = self.recommender.get_top_n_recommendations(
             user_id=user_id,
-            n=self.settings.app_logic.batch_size,
-            user_preferences=user_preferences,
+            list_of_movie_ids=list(
+                self.recommender.artifacts.movie_id_to_index.keys()
+            ),
         )
-        logger.info(f"Got {len(movies)} recommendations from recommender")
+        movies = [
+            (
+                movie_id,
+                self.recommender.artifacts.movie_id_to_title.get(
+                    movie_id, f"movie_{movie_id}"
+                ),
+            )
+            for movie_id in ranked_movie_ids[: self.settings.app_logic.batch_size]
+        ]
+        logger.info(
+            "Got %s recommendations from recommender",
+            len(movies),
+        )
 
         # 2) Ensure movies are in DB, then push to Redis
         for movie_id, movie_title in movies:

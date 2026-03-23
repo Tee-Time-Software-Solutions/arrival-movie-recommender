@@ -49,6 +49,18 @@ def _real_movie_id(artifacts: RecommenderArtifacts, index: int = 0) -> int:
     return list(artifacts.movie_id_to_index.keys())[index]
 
 
+def _top_n(rec: Recommender, user_id: str, n: int) -> list[tuple[int, str]]:
+    artifacts = rec.artifacts
+    ranked_ids = rec.get_top_n_recommendations(
+        user_id=user_id,
+        list_of_movie_ids=list(artifacts.movie_id_to_index.keys()),
+    )
+    return [
+        (movie_id, artifacts.movie_id_to_title.get(movie_id, f"movie_{movie_id}"))
+        for movie_id in ranked_ids[:n]
+    ]
+
+
 COLD_START_USER = "99999999"
 UNKNOWN_MOVIE_ID = 99999999
 
@@ -97,9 +109,7 @@ class TestKnownUserRecommendations:
         loaded_artifacts: RecommenderArtifacts,
     ):
         uid = _real_user_id(loaded_artifacts)
-        recs = pipeline_recommender.get_top_n(
-            user_id=uid, n=5, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, uid, 5)
         assert len(recs) == 5
 
     def test_different_users_get_different_recs(
@@ -111,12 +121,8 @@ class TestKnownUserRecommendations:
         different top recommendations (personalisation)."""
         uid_a = _real_user_id(loaded_artifacts, 0)
         uid_b = _real_user_id(loaded_artifacts, 1)
-        recs_a = pipeline_recommender.get_top_n(
-            user_id=uid_a, n=5, user_preferences=None
-        )
-        recs_b = pipeline_recommender.get_top_n(
-            user_id=uid_b, n=5, user_preferences=None
-        )
+        recs_a = _top_n(pipeline_recommender, uid_a, 5)
+        recs_b = _top_n(pipeline_recommender, uid_b, 5)
         ids_a = [mid for mid, _ in recs_a]
         ids_b = [mid for mid, _ in recs_b]
         assert ids_a != ids_b, "Two different users got identical top-5"
@@ -127,9 +133,7 @@ class TestKnownUserRecommendations:
         loaded_artifacts: RecommenderArtifacts,
     ):
         uid = _real_user_id(loaded_artifacts)
-        recs = pipeline_recommender.get_top_n(
-            user_id=uid, n=3, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, uid, 3)
         assert len(recs) == 3
 
     def test_returns_movie_id_and_title_tuples(
@@ -138,9 +142,7 @@ class TestKnownUserRecommendations:
         loaded_artifacts: RecommenderArtifacts,
     ):
         uid = _real_user_id(loaded_artifacts)
-        recs = pipeline_recommender.get_top_n(
-            user_id=uid, n=1, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, uid, 1)
         movie_id, title = recs[0]
         assert isinstance(movie_id, int)
         assert isinstance(title, str)
@@ -153,9 +155,7 @@ class TestKnownUserRecommendations:
     ):
         uid = _real_user_id(loaded_artifacts)
         n_movies = len(loaded_artifacts.movie_id_to_index)
-        recs = pipeline_recommender.get_top_n(
-            user_id=uid, n=n_movies + 100, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, uid, n_movies + 100)
         assert len(recs) == n_movies
 
 
@@ -168,9 +168,7 @@ class TestColdStartUser:
     def test_unknown_user_gets_recommendations(
         self, pipeline_recommender: Recommender
     ):
-        recs = pipeline_recommender.get_top_n(
-            user_id=COLD_START_USER, n=5, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, COLD_START_USER, 5)
         assert len(recs) == 5
 
     def test_cold_start_uses_mean_vector(
@@ -187,9 +185,7 @@ class TestColdStartUser:
         self,
         pipeline_recommender: Recommender,
     ):
-        recs = pipeline_recommender.get_top_n(
-            user_id="alice", n=5, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, "alice", 5)
         assert len(recs) == 5
         # Should use the same mean vector as any other unknown user
         vec_alice = pipeline_recommender._current_user_vector("alice")
@@ -209,17 +205,13 @@ class TestSeenMovieExclusion:
         loaded_artifacts: RecommenderArtifacts,
     ):
         uid = _real_user_id(loaded_artifacts)
-        recs = pipeline_recommender.get_top_n(
-            user_id=uid, n=5, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, uid, 5)
         top_movie_id = recs[0][0]
 
         pipeline_recommender.update_user(
             user_id=uid, movie_id=top_movie_id, action_type=SwipeAction.LIKE
         )
-        recs_after = pipeline_recommender.get_top_n(
-            user_id=uid, n=5, user_preferences=None
-        )
+        recs_after = _top_n(pipeline_recommender, uid, 5)
         rec_ids = [mid for mid, _ in recs_after]
         assert top_movie_id not in rec_ids
 
@@ -232,7 +224,7 @@ class TestSeenMovieExclusion:
             rec.update_user(
                 user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE
             )
-        recs = rec.get_top_n(user_id=uid, n=5, user_preferences=None)
+        recs = _top_n(rec, uid, 5)
         assert recs == []
 
 
@@ -253,7 +245,7 @@ class TestLikeShiftsRecommendations:
         exceed the cap (~12–15 for ALS-trained users), masking the nudge."""
         rec = _fresh_rec(loaded_artifacts)
         uid = _real_user_id(loaded_artifacts)
-        recs = rec.get_top_n(user_id=uid, n=10, user_preferences=None)
+        recs = _top_n(rec, uid, 10)
         movie_id, title = recs[5]
         movie_idx = loaded_artifacts.movie_id_to_index[movie_id]
         movie_vec = loaded_artifacts.movie_embeddings[movie_idx]
@@ -282,7 +274,7 @@ class TestLikeShiftsRecommendations:
         """After liking a movie, the online user vector should differ from base."""
         rec = _fresh_rec(loaded_artifacts)
         uid = _real_user_id(loaded_artifacts)
-        recs = rec.get_top_n(user_id=uid, n=1, user_preferences=None)
+        recs = _top_n(rec, uid, 1)
         movie_id = recs[0][0]
 
         vec_before = rec._current_user_vector(uid).copy()
@@ -307,7 +299,7 @@ class TestDislikeShiftsRecommendations:
         """Disliking a movie should decrease its score."""
         rec = _fresh_rec(loaded_artifacts)
         uid = _real_user_id(loaded_artifacts, 2)
-        recs = rec.get_top_n(user_id=uid, n=5, user_preferences=None)
+        recs = _top_n(rec, uid, 5)
         movie_id, title = recs[0]
         movie_idx = loaded_artifacts.movie_id_to_index[movie_id]
         movie_vec = loaded_artifacts.movie_embeddings[movie_idx]
@@ -430,14 +422,14 @@ class TestMultipleSwipesAccumulate:
         swiped = []
 
         for _ in range(3):
-            recs = rec.get_top_n(user_id=uid, n=1, user_preferences=None)
+            recs = _top_n(rec, uid, 1)
             movie_id = recs[0][0]
             swiped.append(movie_id)
             rec.update_user(
                 user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE
             )
 
-        recs_after = rec.get_top_n(user_id=uid, n=10, user_preferences=None)
+        recs_after = _top_n(rec, uid, 10)
         rec_ids = {mid for mid, _ in recs_after}
         for mid in swiped:
             assert mid not in rec_ids, f"Swiped movie {mid} still in recs"
@@ -557,5 +549,5 @@ class TestUnknownMovieSwipe:
             movie_id=UNKNOWN_MOVIE_ID,
             action_type=SwipeAction.LIKE,
         )
-        recs = rec.get_top_n(user_id=uid, n=10, user_preferences=None)
+        recs = _top_n(rec, uid, 10)
         assert len(recs) == 10

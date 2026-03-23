@@ -24,6 +24,18 @@ from movie_recommender.services.recommender.serving.artifact_loader import (
     RecommenderArtifacts,
 )
 
+
+def _top_n(rec: Recommender, user_id: str, n: int) -> list[tuple[int, str]]:
+    artifacts = rec.artifacts
+    ranked_ids = rec.get_top_n_recommendations(
+        user_id=user_id,
+        list_of_movie_ids=list(artifacts.movie_id_to_index.keys()),
+    )
+    return [
+        (movie_id, artifacts.movie_id_to_title.get(movie_id, f"movie_{movie_id}"))
+        for movie_id in ranked_ids[:n]
+    ]
+
 # ---------------------------------------------------------------------------
 # Vector visualization helpers
 # ---------------------------------------------------------------------------
@@ -350,7 +362,7 @@ class TestOnlineWithRealArtifacts:
         """A user that exists in training data gets results."""
         # Pick a real user from the mappings
         first_user_id = str(next(iter(loaded_artifacts.user_id_to_index)))
-        recs = pipeline_recommender.get_top_n(user_id=first_user_id, n=5, user_preferences=None)
+        recs = _top_n(pipeline_recommender, first_user_id, 5)
         print(f"\n--- KNOWN USER RECOMMENDATIONS ---")
         print(f"  User: {first_user_id} (in training data)")
         print(f"  Requested: 5, Returned: {len(recs)}")
@@ -363,9 +375,7 @@ class TestOnlineWithRealArtifacts:
         self, pipeline_recommender: Recommender
     ):
         """An unknown user falls back to mean embedding and still gets results."""
-        recs = pipeline_recommender.get_top_n(
-            user_id="99999999", n=5, user_preferences=None
-        )
+        recs = _top_n(pipeline_recommender, "99999999", 5)
         print(f"\n--- COLD-START USER RECOMMENDATIONS ---")
         print(f"  User: 99999999 (NOT in training data)")
         print(f"  Fallback: mean of all user embeddings")
@@ -378,7 +388,7 @@ class TestOnlineWithRealArtifacts:
         self, pipeline_recommender: Recommender, loaded_artifacts: RecommenderArtifacts
     ):
         first_user_id = str(next(iter(loaded_artifacts.user_id_to_index)))
-        recs = pipeline_recommender.get_top_n(user_id=first_user_id, n=5, user_preferences=None)
+        recs = _top_n(pipeline_recommender, first_user_id, 5)
         print(f"\n--- REC ID VALIDITY ---")
         all_valid = True
         for mid, title in recs:
@@ -402,9 +412,7 @@ class TestOnlineWithRealArtifacts:
         user_ids = list(loaded_artifacts.user_id_to_index.keys())[:20]
         top_picks = {}
         for uid in user_ids:
-            recs = pipeline_recommender.get_top_n(
-                user_id=str(uid), n=1, user_preferences=None
-            )
+            recs = _top_n(pipeline_recommender, str(uid), 1)
             if recs:
                 mid, title = recs[0]
                 top_picks[uid] = (mid, title)
@@ -431,7 +439,7 @@ class TestFullLoop:
         user_id = self._get_real_user_id(loaded_artifacts, 0)
         vec_before = pipeline_recommender._current_user_vector(user_id).copy()
 
-        recs = pipeline_recommender.get_top_n(user_id=user_id, n=5, user_preferences=None)
+        recs = _top_n(pipeline_recommender, user_id, 5)
         top_movie_id, top_title = recs[0]
         ids_before = [mid for mid, _ in recs]
         movie_idx = loaded_artifacts.movie_id_to_index[top_movie_id]
@@ -442,9 +450,7 @@ class TestFullLoop:
         )
         vec_after = pipeline_recommender._current_user_vector(user_id)
 
-        recs_after = pipeline_recommender.get_top_n(
-            user_id=user_id, n=5, user_preferences=None
-        )
+        recs_after = _top_n(pipeline_recommender, user_id, 5)
         ids_after = [mid for mid, _ in recs_after]
 
         print(f"\n--- SEEN-MOVIE EXCLUSION (User {user_id}) ---")
@@ -466,9 +472,7 @@ class TestFullLoop:
         user_id = self._get_real_user_id(loaded_artifacts, 1)
         vec_before = pipeline_recommender._current_user_vector(user_id).copy()
 
-        first_rec = pipeline_recommender.get_top_n(
-            user_id=user_id, n=1, user_preferences=None
-        )
+        first_rec = _top_n(pipeline_recommender, user_id, 1)
         movie_id, title = first_rec[0]
         movie_idx = loaded_artifacts.movie_id_to_index[movie_id]
         movie_vec = loaded_artifacts.movie_embeddings[movie_idx]
@@ -495,7 +499,7 @@ class TestFullLoop:
         """Disliking a movie should decrease its score for the user."""
         user_id = self._get_real_user_id(loaded_artifacts, 2)
         artifacts = pipeline_recommender.artifacts
-        recs = pipeline_recommender.get_top_n(user_id=user_id, n=5, user_preferences=None)
+        recs = _top_n(pipeline_recommender, user_id, 5)
         movie_id, title = recs[-1]  # pick last (lowest-scored)
         movie_idx = artifacts.movie_id_to_index[movie_id]
         movie_vec = artifacts.movie_embeddings[movie_idx]
@@ -544,9 +548,7 @@ class TestFullLoop:
         print()
 
         for step in range(5):
-            recs = pipeline_recommender.get_top_n(
-                user_id=user_id, n=3, user_preferences=None
-            )
+            recs = _top_n(pipeline_recommender, user_id, 3)
             if not recs:
                 print(f"  Step {step+1}: No more recommendations!")
                 break
@@ -584,9 +586,7 @@ class TestFullLoop:
             print(f"  {d:5d}   {vec_start[d]:+8.4f}   {vec_end[d]:+8.4f}   {total_drift[d]:+8.4f}")
 
         seen = pipeline_recommender.user_seen_movie_ids.get(user_id, set())
-        remaining = pipeline_recommender.get_top_n(
-            user_id=user_id, n=10, user_preferences=None
-        )
+        remaining = _top_n(pipeline_recommender, user_id, 10)
 
         print(f"\n  Total seen: {len(seen)}, Remaining recs: {len(remaining)}, Online vector stored: {user_id in pipeline_recommender.online_user_vectors}")
 
