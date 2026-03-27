@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from movie_recommender.api.v1 import routers
 from movie_recommender.core.clients.redis import RedisClient
+from movie_recommender.core.clients.firebase import initialize_firebase
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     # Startup
     initialize_logger()
     logger.info("Starting up application...")
+    initialize_firebase(AppSettings())
     yield
     # Shutdown
     logger.info("Shutting down application...")

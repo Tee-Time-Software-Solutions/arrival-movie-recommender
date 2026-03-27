@@ -4,22 +4,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from movie_recommender.schemas.interactions import SwipeAction
-from movie_recommender.services.recommender.serving.artifact_loader import (
-    RecommenderArtifacts,
-    load_recommender_artifacts,
-)
-from movie_recommender.services.recommender.serving.feedback_service import (
-    apply_feedback_update,
-)
-from movie_recommender.services.recommender.serving.ranker import rank_movie_ids
-from movie_recommender.services.recommender.serving.user_vectors import (
-    current_user_vector,
-)
-from movie_recommender.services.recommender.serving.validation import (
-    require_artifacts,
-)
-
-logger = logging.getLogger(__name__)
+from movie_recommender.schemas.users import UserPreferences
 
 
 class Recommender:
@@ -37,7 +22,7 @@ class Recommender:
             self._artifact_load_error = str(exc)
 
     def get_top_n_recommendations(
-        self, user_id: str, list_of_movie_ids: List[int]
+        self, user_id: int, list_of_movie_ids: List[int]
     ) -> List[int]:
         """
         Receives a user id and a list of movie ids.
@@ -60,7 +45,7 @@ class Recommender:
 
     def set_user_feedback(
         self,
-        user_id: str,
+        user_id: int,
         movie_id: int,
         interaction_type: SwipeAction,
         is_supercharged: bool,
