@@ -35,23 +35,14 @@ async def register_movie_interaction(
             status_code=400, detail="Cannot have 'SKIP' interaction supercharged"
         )
 
-    user = await get_user_by_firebase_uid(db, auth_user["uid"])
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found in database")
-    user_db_id = user.id
+    # 1) Database layer
+    # TODO: validate movie_id exists in db, raise 404 if not
+    # TODO: store interaction in db, get back interaction_id
 
-    movie = await get_movie_by_id(db, movie_id)
-    if not movie:
-        raise HTTPException(status_code=404, detail="Movie not found")
+    user_id = "demo2"  # TODO: replace with authenticated user ID from request context (e.g. auth dependency)
+    interaction_id = str(movie_id)  # TODO: replace with actual interaction ID returned from DB after storing the swipe
 
-    swipe = await create_swipe(
-        db,
-        user_id=user_db_id,
-        movie_id=movie_id,
-        action_type=swipe_data.action_type.value,
-        is_supercharged=swipe_data.is_supercharged,
-    )
-
+    # 2) Provide info to the recommender
     recommender.set_user_feedback(
         user_id=user_db_id,
         movie_id=movie_id,
@@ -60,7 +51,7 @@ async def register_movie_interaction(
     )
 
     return RegisteredFeedback(
-        interaction_id=swipe.id,
+        interaction_id=db.interaction_id,
         movie_id=movie_id,
         action_type=swipe_data.action_type,
         is_supercharged=swipe_data.is_supercharged,
