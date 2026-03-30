@@ -69,8 +69,11 @@ export const MOCK_PROFILE_SUMMARY: UserProfileSummary = {
     top_genres: [],
   },
   preferences: {
-    preferred_genres: [],
-    min_release_year: 2000,
+    included_genres: [],
+    excluded_genres: [],
+    min_release_year: null,
+    max_release_year: null,
+    min_rating: null,
     include_adult: false,
     movie_providers: [],
   },

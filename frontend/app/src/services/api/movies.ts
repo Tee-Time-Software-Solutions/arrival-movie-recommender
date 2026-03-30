@@ -25,7 +25,7 @@ export async function getMovieQueue(
 }
 
 export async function registerSwipe(
-  movieId: string,
+  movieId: number,
   actionType: SwipeAction,
   isSupercharged: boolean = false,
 ): Promise<RegisteredFeedback> {
@@ -35,27 +35,6 @@ export async function registerSwipe(
       action_type: actionType,
       is_supercharged: isSupercharged,
     },
-  );
-  return data;
-}
-
-export async function rateMovie(
-  movieId: string,
-  rating: number,
-): Promise<void> {
-  await apiClient.post(`interactions/${movieId}/rate`, { rating });
-}
-
-export async function getTopRatedMovies(): Promise<RatedMovie[]> {
-  // TODO: Ensure backend endpoint is implemented and returns correct data
-  const { data } = await apiClient.get<RatedMovie[]>("users/me/top-rated");
-  return data;
-}
-
-export async function getRecommendations(): Promise<MovieDetails[]> {
-  // TODO: Ensure backend endpoint is implemented and returns correct data
-  const { data } = await apiClient.get<MovieDetails[]>(
-    "users/me/recommendations",
   );
   return data;
 }

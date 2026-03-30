@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { IoHome, IoChatbubble, IoLogOutOutline, IoPersonCircleOutline } from "react-icons/io5";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
 
 const tabs = [
@@ -12,10 +13,11 @@ const tabs = [
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const clear = useAuthStore((s) => s.clear);
+  const { signOut } = useAuth();
+  const { user } = useAuthStore();
 
-  const handleLogout = () => {
-    clear();
+  const handleLogout = async () => {
+    await signOut();
     navigate("/landing");
   };
 
@@ -35,7 +37,11 @@ export function BottomNav() {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Icon className="h-5 w-5" />
+              {label === "Profile" && user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="h-5 w-5 rounded-full object-cover" />
+              ) : (
+                <Icon className="h-5 w-5" />
+              )}
               <span className="text-xs">{label}</span>
             </button>
           );

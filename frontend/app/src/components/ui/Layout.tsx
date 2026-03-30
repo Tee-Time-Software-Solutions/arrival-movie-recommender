@@ -3,7 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 
-const HIDE_SHELL_ROUTES = ["/landing", "/auth"];
+const HIDE_SHELL_ROUTES = ["/landing"];
 
 export function Layout() {
   const location = useLocation();
