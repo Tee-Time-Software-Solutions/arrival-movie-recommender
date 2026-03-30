@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/ui/Layout";
+import { ProtectedRoute } from "./components/ui/ProtectedRoute";
 import { DiscoverPage } from "./app/Discover/DiscoverPage";
 import { ChatPage } from "./app/Chat/ChatPage";
 import { ProfilePage } from "./app/Profile/ProfilePage";
@@ -11,9 +12,9 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/landing" element={<LandingPage />} />
-          <Route path="/" element={<DiscoverPage />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
+          <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

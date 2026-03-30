@@ -1,11 +1,8 @@
 import logging
-from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.dependencies.redis import get_async_redis
-from movie_recommender.dependencies.settings import get_app_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/health")

@@ -1,4 +1,3 @@
-from pathlib import Path
 import json
 import numpy as np
 from scipy.sparse import load_npz

@@ -10,7 +10,7 @@ from movie_recommender.database.CRUD.users import (
     get_user_excluded_genres,
     update_user_preferences,
 )
-from movie_recommender.database.CRUD.interactions import get_user_liked_movies
+from movie_recommender.database.CRUD.interactions import get_user_liked_movies, get_all_rated_movies
 from movie_recommender.database.CRUD.movies import movies_to_details_bulk
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
@@ -77,6 +77,25 @@ async def get_liked_movies(
         raise HTTPException(status_code=404, detail="User not found")
 
     movie_ids, total = await get_user_liked_movies(db, user.id, limit, offset)
+    items = await movies_to_details_bulk(db, movie_ids)
+
+    return PaginatedMovieDetails(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.get(path="/{user_id}/rated-movies")
+async def get_rated_movies(
+    user_id: str,
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    auth_user=Depends(verify_user(user_private_route=True)),
+) -> PaginatedMovieDetails:
+    """Return all rated movies (likes + dislikes), ranked by preference score."""
+    user = await get_user_by_firebase_uid(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    movie_ids, total = await get_all_rated_movies(db, user.id, limit, offset)
     items = await movies_to_details_bulk(db, movie_ids)
 
     return PaginatedMovieDetails(items=items, total=total, limit=limit, offset=offset)

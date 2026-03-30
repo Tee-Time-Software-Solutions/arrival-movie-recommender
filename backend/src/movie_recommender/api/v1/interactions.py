@@ -1,18 +1,20 @@
+import redis
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from movie_recommender.database.CRUD.interactions import create_swipe
 from movie_recommender.database.CRUD.movies import get_movie_by_id
 from movie_recommender.database.CRUD.users import get_user_by_firebase_uid
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
 from movie_recommender.dependencies.recommender import get_recommender
+from movie_recommender.dependencies.redis import get_async_redis
 from movie_recommender.schemas.requests.interactions import (
     RegisteredFeedback,
     SwipeAction,
     SwipeRequest,
 )
 from movie_recommender.services.recommender.main import Recommender
+from movie_recommender.services.swipe_worker.main import enqueue_swipe
 
 router = APIRouter(prefix="/interactions")
 
@@ -23,11 +25,12 @@ async def register_movie_interaction(
     swipe_data: SwipeRequest,
     db: AsyncSession = Depends(get_db),
     recommender: Recommender = Depends(get_recommender),
+    redis_client: redis.Redis = Depends(get_async_redis),
     auth_user=Depends(verify_user()),
 ) -> RegisteredFeedback:
     """
     1. Validate movie exists in DB
-    2. Register swipe interaction for the user (using DB user id)
+    2. Enqueue swipe event to Redis (background worker persists to DB)
     3. Trigger recommender update
     """
     if swipe_data.action_type == SwipeAction.SKIP and swipe_data.is_supercharged:
@@ -35,23 +38,31 @@ async def register_movie_interaction(
             status_code=400, detail="Cannot have 'SKIP' interaction supercharged"
         )
 
-    # 1) Database layer
-    # TODO: validate movie_id exists in db, raise 404 if not
-    # TODO: store interaction in db, get back interaction_id
+    user_row = await get_user_by_firebase_uid(db, auth_user["uid"])
+    if user_row is None:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    user_id = "demo2"  # TODO: replace with authenticated user ID from request context (e.g. auth dependency)
-    interaction_id = str(movie_id)  # TODO: replace with actual interaction ID returned from DB after storing the swipe
+    movie_row = await get_movie_by_id(db, movie_id)
+    if movie_row is None:
+        raise HTTPException(status_code=404, detail="Movie not found")
 
-    # 2) Provide info to the recommender
-    recommender.set_user_feedback(
-        user_id=user_db_id,
+    await enqueue_swipe(
+        redis_client=redis_client,
+        user_id=user_row.id,
+        movie_id=movie_id,
+        action_type=swipe_data.action_type.value,
+        is_supercharged=swipe_data.is_supercharged,
+    )
+
+    await recommender.set_user_feedback(
+        user_id=user_row.id,
         movie_id=movie_id,
         interaction_type=swipe_data.action_type,
         is_supercharged=swipe_data.is_supercharged,
     )
 
     return RegisteredFeedback(
-        interaction_id=db.interaction_id,
+        interaction_id=0,
         movie_id=movie_id,
         action_type=swipe_data.action_type,
         is_supercharged=swipe_data.is_supercharged,

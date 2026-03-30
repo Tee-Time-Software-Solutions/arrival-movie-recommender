@@ -1,4 +1,4 @@
-from movie_recommender.schemas.interactions import SwipeAction
+from movie_recommender.schemas.requests.interactions import SwipeAction
 from movie_recommender.services.recommender.serving.feedback_mapping import (
     swipe_to_preference,
 )

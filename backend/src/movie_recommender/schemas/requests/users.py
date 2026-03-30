@@ -9,6 +9,7 @@ class UserAnalytics(BaseModel):
     total_swipes: int
     total_likes: int
     total_dislikes: int
+    total_seen: int
     top_genres: List[str]
 
 

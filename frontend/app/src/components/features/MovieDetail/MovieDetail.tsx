@@ -183,29 +183,31 @@ interface MovieDetailProps {
 export function MovieDetail({ movie, onClose }: MovieDetailProps) {
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className="fixed inset-0 left-[72px] z-40 flex items-center justify-center md:left-[72px] max-md:left-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <motion.div
-        className="relative z-10 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-card"
+        className="relative z-10 h-full w-full overflow-y-auto bg-card"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card p-4">
-          <h2 className="text-lg font-bold">{movie.title}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 hover:bg-secondary"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className="mx-auto max-w-2xl">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card p-4">
+            <h2 className="text-lg font-bold">{movie.title}</h2>
+            <button
+              onClick={onClose}
+              className="rounded-full p-1 hover:bg-secondary"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <MovieDetailContent movie={movie} />
         </div>
-        <MovieDetailContent movie={movie} />
       </motion.div>
     </motion.div>
   );

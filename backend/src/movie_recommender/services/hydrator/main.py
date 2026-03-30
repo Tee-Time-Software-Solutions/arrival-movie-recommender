@@ -7,8 +7,6 @@ from movie_recommender.schemas.requests.movies import (
     MovieDetails,
     MovieProvider,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from movie_recommender.database.CRUD.movies import (
     get_movie_by_id,
     save_hydrated_movie,
@@ -70,7 +68,7 @@ class TMDBFetcher:
         release_date = detail_res.get("release_date", "")
 
         return MovieDetails(
-            movie_db_id=movie_db_id,
+            movie_db_id=movie_database_id,
             tmdb_id=detail_res["id"],
             title=detail_res["original_title"],
             poster_url=f"{self.IMG_URL}{poster_path}" if poster_path else "",
@@ -156,8 +154,8 @@ class TMDBFetcher:
 
 
 class MovieHydrator:
-    def __init__(self, db_session: AsyncSession) -> None:
-        self.db = db_session
+    def __init__(self, db_session_factory) -> None:
+        self.db_session_factory = db_session_factory
         self.tmdb = TMDBFetcher()
 
     async def get_or_fetch_movie(
@@ -165,16 +163,21 @@ class MovieHydrator:
     ) -> MovieDetails | None:
         logger.info(f"Hydrating movie: id={movie_db_id}, title={movie_title}")
 
-        movie = await get_movie_by_id(self.db, movie_db_id)
-        if movie and movie.tmdb_id:
-            logger.info(f"Movie found in DB: {movie.title}")
-            return await movie_to_details(self.db, movie_db_id)
+        async with self.db_session_factory() as db:
+            movie = await get_movie_by_id(db, movie_db_id)
+            if movie and movie.tmdb_id:
+                logger.info(f"Movie found in DB: {movie.title}")
+                return await movie_to_details(db, movie_db_id)
 
-        movie_details = self.tmdb.fetch_tmdb_metadata(movie_db_id, movie_title)
+        movie_details = self.tmdb._fetch_tmdb_metadata(movie_db_id, movie_title)
         if not movie_details:
             logger.warning(f"Could not find movie on TMDB: {movie_title}")
             return None
 
         logger.info(f"Fetched movie from TMDB: {movie_details.title}")
-        await save_hydrated_movie(self.db, movie_db_id, movie_details)
+        async with self.db_session_factory() as db:
+            try:
+                await save_hydrated_movie(db, movie_db_id, movie_details)
+            except Exception:
+                logger.debug(f"Movie {movie_db_id} already saved by another task, skipping")
         return movie_details

@@ -633,6 +633,7 @@ class TestSingleUserJourney:
         rec.user_seen_movie_ids = {}
         rec.eta = 3.0
         rec.norm_cap = 20.0
+        rec._redis = None
 
         USER = "999999"  # cold-start user (will use mean embedding)
 

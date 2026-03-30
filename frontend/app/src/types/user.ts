@@ -4,6 +4,7 @@ export interface UserAnalytics {
   total_swipes: number;
   total_likes: number;
   total_dislikes: number;
+  total_seen: number;
   top_genres: string[];
 }
 

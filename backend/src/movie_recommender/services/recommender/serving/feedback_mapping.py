@@ -1,4 +1,4 @@
-from movie_recommender.schemas.interactions import SwipeAction
+from movie_recommender.schemas.requests.interactions import SwipeAction
 
 
 def swipe_to_preference(action_type: SwipeAction, is_supercharged: bool) -> int:

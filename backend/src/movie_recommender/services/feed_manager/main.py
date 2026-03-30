@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from movie_recommender.core.settings.main import AppSettings
 import redis
@@ -66,7 +65,11 @@ class FeedManager:
 
     async def refill_queue(self, user_id: int, queue_key: str):
         logger.info(f"Refilling queue for user {user_id}")
-        ranked_movie_ids = self.recommender.get_top_n_recommendations(
+
+        # Flush stale entries so the user gets fresh recommendations
+        await self.redis_client.delete(queue_key)
+
+        ranked_movie_ids = await self.recommender.get_top_n_recommendations(
             user_id=user_id,
             list_of_movie_ids=list(
                 self.recommender.artifacts.movie_id_to_index.keys()
@@ -86,8 +89,11 @@ class FeedManager:
             len(movies),
         )
 
-        for movie_id, movie_title in movies:
-            await self.hydrator.get_or_fetch_movie(movie_id, movie_title)
-            await self.redis_client.rpush(
-                queue_key, json.dumps([movie_id, movie_title])
-            )
+        hydrated = await asyncio.gather(
+            *(self.hydrator.get_or_fetch_movie(mid, title) for mid, title in movies)
+        )
+        for (movie_id, movie_title), result in zip(movies, hydrated):
+            if result is not None:
+                await self.redis_client.rpush(
+                    queue_key, json.dumps([movie_id, movie_title])
+                )
