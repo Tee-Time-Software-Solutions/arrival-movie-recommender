@@ -25,9 +25,25 @@ class TMDBFetcher:
         self.BASE_URL = settings.tmdb.base_url
         self.IMG_URL = settings.tmdb.img_url
 
-    def fetch_tmdb_metadata(
-        self, movie_db_id: int, movie_title: str
-    ) -> MovieDetails | None:
+    async def get_or_fetch_movie(self, movie_database_id: int, movie_title: str):
+        """
+        Get movie from DB or fetch from TMDB and store if not found.
+        """
+        logger.info(f"Hydrating movie: id={movie_database_id}, title={movie_title}")
+        # 1) Check db
+        # movie = await self.db.movies.find_unique(where={"id": movie_id})
+        # if movie:
+        #       return movie
+
+        # 2) Fetch from TMDB and store
+        movie = self._fetch_tmdb_metadata(movie_database_id, movie_title)
+        logger.info(f"Fetched movie from TMDB: {movie.title if movie else None}")
+        # movie = await self.db.movie.create(movie)
+        return movie
+
+    def _fetch_tmdb_metadata(
+        self, movie_database_id: int, movie_title: str
+    ) -> MovieDetails:
         logger.info(f"Searching TMDB for: {movie_title}")
         search_res = requests.get(
             f"{self.BASE_URL}/search/movie",

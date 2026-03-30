@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
+
 import { Heart, ThumbsDown, Star, MousePointerClick } from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
 import type { UserProfileSummary } from "@/types/user";
