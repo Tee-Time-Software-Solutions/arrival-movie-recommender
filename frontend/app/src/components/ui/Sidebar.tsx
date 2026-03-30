@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { IoHome, IoChatbubble, IoLogOutOutline, IoPersonCircleOutline } from "react-icons/io5";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
 
 const tabs = [
@@ -18,10 +19,11 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const clear = useAuthStore((s) => s.clear);
+  const { signOut } = useAuth();
+  const { user } = useAuthStore();
 
-  const handleLogout = () => {
-    clear();
+  const handleLogout = async () => {
+    await signOut();
     navigate("/landing");
   };
 
@@ -52,7 +54,11 @@ export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps)
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
               )}
             >
-              <Icon className="h-6 w-6 shrink-0" />
+              {label === "Profile" && user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+              ) : (
+                <Icon className="h-6 w-6 shrink-0" />
+              )}
               <span
                 className={cn(
                   "whitespace-nowrap transition-opacity duration-200",

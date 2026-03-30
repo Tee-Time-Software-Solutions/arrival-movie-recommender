@@ -1,5 +1,12 @@
-// Firebase is disabled for local development.
-// Re-enable by restoring initializeApp + getAuth calls when auth is needed.
+import { initializeApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
-export const auth = null;
-export const googleProvider = null;
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();

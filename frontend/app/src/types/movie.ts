@@ -2,7 +2,8 @@ export type ProviderType = "flatrate" | "rent" | "buy";
 
 export interface CastMember {
   name: string;
-  role_type: string | null;
+  role_type: string;
+  character_name: string | null;
   profile_path: string | null;
 }
 
@@ -12,8 +13,8 @@ export interface MovieProvider {
 }
 
 export interface MovieCard {
-  movie_id: string;
-  tmdb_id: string;
+  movie_db_id: number;
+  tmdb_id: number;
   title: string;
   poster_url: string;
   release_year: number;
@@ -25,9 +26,16 @@ export interface MovieCard {
 export interface MovieDetails extends MovieCard {
   synopsis: string;
   cast: CastMember[];
-  trailer_url: string;
+  trailer_url: string | null;
   runtime: number;
   movie_providers: MovieProvider[];
+}
+
+export interface PaginatedMovieDetails {
+  items: MovieDetails[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export type SwipeAction = "like" | "dislike" | "skip";
@@ -38,7 +46,7 @@ export interface SwipeRequest {
 }
 
 export interface RegisteredFeedback {
-  interaction_id: string;
+  interaction_id: number;
   movie_id: number;
   action_type: SwipeAction;
   is_supercharged: boolean;

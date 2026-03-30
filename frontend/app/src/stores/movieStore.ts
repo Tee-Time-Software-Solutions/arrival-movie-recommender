@@ -13,6 +13,8 @@ interface MovieState {
   nextMovie: () => void;
   likeMovie: (movie: MovieDetails) => void;
   dislikeMovie: (movie: MovieDetails) => void;
+  rateMovie: (movie: MovieDetails, rating: number) => void;
+  setLikedMovies: (movies: MovieDetails[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   getCurrentMovie: () => MovieDetails | undefined;
@@ -28,8 +30,8 @@ export const useMovieStore = create<MovieState>((set, get) => ({
 
   addToQueue: (movies) =>
     set((state) => {
-      const existingIds = new Set(state.queue.map((m) => m.movie_id));
-      const newMovies = movies.filter((m) => !existingIds.has(m.movie_id));
+      const existingIds = new Set(state.queue.map((m) => m.movie_db_id));
+      const newMovies = movies.filter((m) => !existingIds.has(m.movie_db_id));
       return { queue: [...state.queue, ...newMovies] };
     }),
 
@@ -46,6 +48,15 @@ export const useMovieStore = create<MovieState>((set, get) => ({
       dislikedMovies: [...state.dislikedMovies, movie],
     })),
 
+  rateMovie: (movie, rating) =>
+    set((state) => ({
+      watchedMovies: [
+        ...state.watchedMovies,
+        { movie, rating, watchedAt: new Date().toISOString() },
+      ],
+    })),
+
+  setLikedMovies: (movies) => set({ likedMovies: movies }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   getCurrentMovie: () => {

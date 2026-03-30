@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { SwipeDeck } from "@/components/features/SwipeDeck/SwipeDeck";
 import { useMovieStore } from "@/stores/movieStore";
+import { useAuthStore } from "@/stores/authStore";
 import {
   getMovieQueue,
   registerSwipe,
@@ -22,6 +23,7 @@ export function DiscoverPage() {
     setError,
   } = useMovieStore();
 
+  const { user, loading: authLoading } = useAuthStore();
   const fetchingRef = useRef(false);
 
   const fetchMovies = useCallback(async () => {
@@ -41,12 +43,12 @@ export function DiscoverPage() {
     }
   }, [addToQueue, setLoading, setError]);
 
-  // Initial load
+  // Initial load — wait for auth to resolve first
   useEffect(() => {
-    if (queue.length === 0) {
+    if (!authLoading && user && queue.length === 0) {
       fetchMovies();
     }
-  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Prefetch when running low
   useEffect(() => {
@@ -60,30 +62,30 @@ export function DiscoverPage() {
     likeMovie(movie);
     nextMovie();
     // Optimistic: fire and forget
-    registerSwipe(movie.movie_id, "like").catch(console.error);
+    registerSwipe(movie.movie_db_id, "like").catch(console.error);
   };
 
   const handleDislike = async (movie: MovieDetails) => {
     dislikeMovie(movie);
     nextMovie();
-    registerSwipe(movie.movie_id, "dislike").catch(console.error);
+    registerSwipe(movie.movie_db_id, "dislike").catch(console.error);
   };
 
   const handleWatched = async (movie: MovieDetails) => {
     nextMovie();
-    registerSwipe(movie.movie_id, "skip").catch(console.error);
+    registerSwipe(movie.movie_db_id, "skip").catch(console.error);
   };
 
   const handleSuperLike = async (movie: MovieDetails) => {
     likeMovie(movie);
     nextMovie();
-    registerSwipe(movie.movie_id, "like", true).catch(console.error);
+    registerSwipe(movie.movie_db_id, "like", true).catch(console.error);
   };
 
   const handleSuperDislike = async (movie: MovieDetails) => {
     dislikeMovie(movie);
     nextMovie();
-    registerSwipe(movie.movie_id, "dislike", true).catch(console.error);
+    registerSwipe(movie.movie_db_id, "dislike", true).catch(console.error);
   };
 
   if (loading && queue.length === 0) {
