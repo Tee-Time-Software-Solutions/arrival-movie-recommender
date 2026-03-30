@@ -91,6 +91,7 @@ async def get_user_analytics(db: AsyncSession, user_id: int) -> dict:
         "total_swipes": row.total_swipes,
         "total_likes": row.total_likes,
         "total_dislikes": row.total_dislikes,
+        "total_seen": row.total_likes + row.total_dislikes,
         "top_genres": [r.name for r in top],
     }
 

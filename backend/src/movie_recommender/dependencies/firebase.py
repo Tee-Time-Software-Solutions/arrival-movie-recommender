@@ -16,7 +16,7 @@ def verify_user(
         try:
             decoded_token = auth.verify_id_token(token)
             user_record = auth.get_user(decoded_token["uid"])
-        except Exception as e:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
             )

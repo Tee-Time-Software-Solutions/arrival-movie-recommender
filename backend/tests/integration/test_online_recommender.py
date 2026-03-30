@@ -36,6 +36,7 @@ def _fresh_rec(
     rec.user_seen_movie_ids = {}
     rec.eta = eta
     rec.norm_cap = norm_cap
+    rec._redis = None
     return rec
 
 

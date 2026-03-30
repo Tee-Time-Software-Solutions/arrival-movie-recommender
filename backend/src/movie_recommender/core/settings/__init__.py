@@ -1,6 +1,6 @@
 from .main import (
-    AppSettings,
-    RedisSettings,
-    DatabaseSettings,
-    StorageSettings,
+    AppSettings as AppSettings,
+    DatabaseSettings as DatabaseSettings,
+    RedisSettings as RedisSettings,
+    StorageSettings as StorageSettings,
 )

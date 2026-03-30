@@ -116,4 +116,5 @@ def pipeline_recommender(loaded_artifacts: RecommenderArtifacts) -> Recommender:
     rec.user_seen_movie_ids = {}
     rec.eta = 0.05
     rec.norm_cap = 10.0
+    rec._redis = None
     return rec

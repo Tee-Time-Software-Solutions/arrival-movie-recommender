@@ -38,6 +38,18 @@ export async function getLikedMovies(
   return data;
 }
 
+export async function getRatedMovies(
+  userId: string,
+  limit: number = 20,
+  offset: number = 0,
+): Promise<PaginatedMovieDetails> {
+  const { data } = await apiClient.get<PaginatedMovieDetails>(
+    `users/${userId}/rated-movies`,
+    { params: { limit, offset } },
+  );
+  return data;
+}
+
 export async function updatePreferences(
   userId: string,
   prefs: UserPreferences,

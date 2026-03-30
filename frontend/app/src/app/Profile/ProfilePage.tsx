@@ -1,21 +1,24 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
-import { Heart, ThumbsDown, Star, MousePointerClick } from "lucide-react";
+import { Heart, ThumbsDown, Star, MousePointerClick, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
 import type { UserProfileSummary } from "@/types/user";
 import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
 import { useAuthStore } from "@/stores/authStore";
-import { useMovieStore } from "@/stores/movieStore";
-import { getProfileSummary, getLikedMovies } from "@/services/api/user";
+import { getProfileSummary, getLikedMovies, getRatedMovies } from "@/services/api/user";
 
 export function ProfilePage() {
   const { user, firebaseUid } = useAuthStore();
-  const { likedMovies, setLikedMovies } = useMovieStore();
+  const [likedMovies, setLikedMovies] = useState<MovieDetails[]>([]);
   const [profile, setProfile] = useState<UserProfileSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(null);
+  const [showRatedMovies, setShowRatedMovies] = useState(false);
+  const [ratedMovies, setRatedMovies] = useState<MovieDetails[]>([]);
+  const [ratedMoviesTotal, setRatedMoviesTotal] = useState(0);
+  const [loadingRated, setLoadingRated] = useState(false);
 
   useEffect(() => {
     if (!firebaseUid) {
@@ -52,6 +55,26 @@ export function ProfilePage() {
 
   const { profile: displayInfo, stats } = profile;
   const avatarUrl = displayInfo.avatar_url || user?.photoURL;
+
+  const handleToggleRated = async () => {
+    if (showRatedMovies) {
+      setShowRatedMovies(false);
+      return;
+    }
+    setShowRatedMovies(true);
+    if (ratedMovies.length > 0) return;
+    if (!firebaseUid) return;
+    setLoadingRated(true);
+    try {
+      const data = await getRatedMovies(firebaseUid, 50);
+      setRatedMovies(data.items);
+      setRatedMoviesTotal(data.total);
+    } catch {
+      // fail silently — the section just stays empty
+    } finally {
+      setLoadingRated(false);
+    }
+  };
 
   return (
     <div className="min-h-screen px-4 pb-20 pt-10 md:pb-4">
@@ -100,6 +123,20 @@ export function ProfilePage() {
               </div>
               <p className="text-[10px] text-muted-foreground">Swipes</p>
             </div>
+            <button onClick={handleToggleRated} className="text-center transition hover:opacity-80">
+              <div className="flex items-center justify-center gap-1">
+                <Eye className="h-4 w-4 text-purple-500" />
+                <span className="text-xl font-bold">{stats.total_seen}</span>
+              </div>
+              <div className="flex items-center justify-center gap-0.5">
+                <p className="text-[10px] text-muted-foreground">Films Seen</p>
+                {showRatedMovies ? (
+                  <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                )}
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -121,12 +158,61 @@ export function ProfilePage() {
         </div>
       )}
 
+      {/* All rated movies (expandable) */}
+      <AnimatePresence>
+        {showRatedMovies && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8 overflow-hidden"
+          >
+            <h2 className="mb-4 text-lg font-semibold">
+              All Films Seen ({ratedMoviesTotal})
+            </h2>
+            {loadingRated ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : ratedMovies.length > 0 ? (
+              <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                {ratedMovies.map((movie) => (
+                  <button
+                    key={movie.movie_db_id}
+                    onClick={() => setSelectedMovie(movie)}
+                    className="group flex flex-col items-center"
+                  >
+                    <div className="relative overflow-hidden rounded-lg">
+                      <img
+                        src={movie.poster_url}
+                        alt={movie.title}
+                        className="h-36 w-24 object-cover transition group-hover:scale-105"
+                      />
+                      <div className="absolute bottom-0 inset-x-0 bg-black/70 px-1 py-0.5 flex items-center justify-center gap-0.5">
+                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                        <span className="text-[10px] text-white">{movie.rating.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <p className="mt-1 w-24 truncate text-center text-[11px] text-muted-foreground">
+                      {movie.title}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No rated movies yet.</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Recently liked movies from local store */}
       {likedMovies.length > 0 && (
         <div className="mb-8">
           <h2 className="mb-4 text-lg font-semibold">Recently Liked</h2>
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {likedMovies.slice(-10).reverse().map((movie) => (
+            {likedMovies.slice(-15).reverse().map((movie) => (
               <button
                 key={movie.movie_db_id}
                 onClick={() => setSelectedMovie(movie)}

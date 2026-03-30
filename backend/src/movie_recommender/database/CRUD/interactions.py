@@ -75,3 +75,53 @@ async def get_user_liked_movies(
     )
     movie_ids = [row.movie_id for row in result]
     return movie_ids, total
+
+
+async def get_all_rated_movies(
+    db: AsyncSession,
+    user_id: int,
+    limit: int = 20,
+    offset: int = 0,
+) -> tuple[list[int], int]:
+    """Return (movie_ids, total_count) for all rated movies (likes + dislikes), ranked by score."""
+    weight = case(
+        (
+            and_(
+                swipes.c.action_type == "like",
+                swipes.c.is_supercharged.is_(True),
+            ),
+            SUPERCHARGED_SCORE,
+        ),
+        (swipes.c.action_type == "like", LIKE_SCORE),
+        (
+            and_(
+                swipes.c.action_type == "dislike",
+                swipes.c.is_supercharged.is_(True),
+            ),
+            SUPERCHARGED_SCORE * -1,
+        ),
+        (swipes.c.action_type == "dislike", DISLIKE_SCORE),
+        else_=0,
+    )
+
+    score = func.sum(weight).label("score")
+
+    base = (
+        select(swipes.c.movie_id, score)
+        .where(
+            swipes.c.user_id == user_id,
+            swipes.c.action_type.in_(["like", "dislike"]),
+        )
+        .group_by(swipes.c.movie_id)
+    )
+
+    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
+    total = count_result.scalar_one()
+
+    result = await db.execute(
+        base.order_by(score.desc(), func.max(swipes.c.created_at).desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    movie_ids = [row.movie_id for row in result]
+    return movie_ids, total
