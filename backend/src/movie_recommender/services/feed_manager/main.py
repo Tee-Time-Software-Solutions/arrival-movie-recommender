@@ -66,14 +66,25 @@ class FeedManager:
 
     async def refill_queue(self, user_id: int, queue_key: str):
         logger.info(f"Refilling queue for user {user_id}")
-
-        # TODO: replace [] with get_filtered_movies_for_user(db, user_id) when preferences are implemented
-        movies = self.recommender.get_top_n_recommendations(
+        ranked_movie_ids = self.recommender.get_top_n_recommendations(
             user_id=user_id,
-            n=self.settings.app_logic.batch_size,
-            list_of_filtered_movies=[],
+            list_of_movie_ids=list(
+                self.recommender.artifacts.movie_id_to_index.keys()
+            ),
         )
-        logger.info(f"Got {len(movies)} recommendations from recommender")
+        movies = [
+            (
+                movie_id,
+                self.recommender.artifacts.movie_id_to_title.get(
+                    movie_id, f"movie_{movie_id}"
+                ),
+            )
+            for movie_id in ranked_movie_ids[: self.settings.app_logic.batch_size]
+        ]
+        logger.info(
+            "Got %s recommendations from recommender",
+            len(movies),
+        )
 
         for movie_id, movie_title in movies:
             await self.hydrator.get_or_fetch_movie(movie_id, movie_title)

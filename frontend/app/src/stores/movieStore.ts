@@ -1,12 +1,11 @@
 import { create } from "zustand";
-import type { MovieDetails, WatchedMovie } from "@/types/movie";
+import type { MovieDetails } from "@/types/movie";
 
 interface MovieState {
   queue: MovieDetails[];
   currentIndex: number;
   likedMovies: MovieDetails[];
   dislikedMovies: MovieDetails[];
-  watchedMovies: WatchedMovie[];
   loading: boolean;
   error: string | null;
 
@@ -26,7 +25,6 @@ export const useMovieStore = create<MovieState>((set, get) => ({
   currentIndex: 0,
   likedMovies: [],
   dislikedMovies: [],
-  watchedMovies: [],
   loading: false,
   error: null,
 

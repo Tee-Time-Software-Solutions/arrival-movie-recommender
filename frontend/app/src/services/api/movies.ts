@@ -1,6 +1,7 @@
 import apiClient from "./client";
 import type {
   MovieDetails,
+  RatedMovie,
   SwipeAction,
   RegisteredFeedback,
 } from "@/types/movie";
