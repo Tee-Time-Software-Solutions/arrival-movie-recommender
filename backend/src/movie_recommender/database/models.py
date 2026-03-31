@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    UniqueConstraint,
     text,
 )
 
@@ -132,6 +133,16 @@ swipes = Table(
     Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
 )
 
+watchlist = Table(
+    "watchlist",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("movie_id", Integer, ForeignKey("movies.id"), nullable=False),
+    Column("added_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    UniqueConstraint("user_id", "movie_id", name="uq_watchlist_user_movie"),
+)
+
 
 # ── Row types (for IDE autocompletion on CRUD returns) ──────────────
 
@@ -177,3 +188,10 @@ class SwipeRow(TypedDict):
     action_type: str
     is_supercharged: bool
     created_at: datetime
+
+
+class WatchlistRow(TypedDict):
+    id: int
+    user_id: int
+    movie_id: int
+    added_at: datetime

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Star, ChevronDown } from "lucide-react";
+import { Star, ChevronDown, Bookmark, Check } from "lucide-react";
 import { MovieCard } from "@/components/features/MovieCard/MovieCard";
 import { MovieDetailContent } from "@/components/features/MovieDetail/MovieDetail";
+import { addToWatchlist } from "@/services/api/watchlist";
 import type { MovieDetails } from "@/types/movie";
 
 type DeckMode = "card" | "details";
@@ -30,6 +31,8 @@ export function SwipeDeck({
 }: SwipeDeckProps) {
   const [mode, setMode] = useState<DeckMode>("card");
   const [forceSwipe, setForceSwipe] = useState<"left" | "right" | "down" | null>(null);
+  const [savedToWatchlist, setSavedToWatchlist] = useState(false);
+  const [savingToWatchlist, setSavingToWatchlist] = useState(false);
 
   const currentMovie = movies[currentIndex];
 
@@ -37,7 +40,22 @@ export function SwipeDeck({
   useEffect(() => {
     setMode("card");
     setForceSwipe(null);
+    setSavedToWatchlist(false);
+    setSavingToWatchlist(false);
   }, [currentIndex]);
+
+  const handleSaveToWatchlist = async () => {
+    if (savedToWatchlist || savingToWatchlist || !currentMovie) return;
+    setSavingToWatchlist(true);
+    try {
+      await addToWatchlist(currentMovie.movie_db_id);
+      setSavedToWatchlist(true);
+    } catch {
+      setSavedToWatchlist(true);
+    } finally {
+      setSavingToWatchlist(false);
+    }
+  };
 
   // Trigger like/dislike/watched after swipe animation plays
   const triggerSwipe = useCallback(
@@ -177,6 +195,25 @@ export function SwipeDeck({
                 <span>{currentMovie.runtime} min</span>
               </div>
             </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveToWatchlist();
+              }}
+              disabled={savingToWatchlist}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                savedToWatchlist
+                  ? "bg-primary/15 text-primary"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              {savedToWatchlist ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Bookmark className="h-4 w-4" />
+              )}
+              {savedToWatchlist ? "Saved" : "Watchlist"}
+            </button>
             <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" />
           </div>
 
