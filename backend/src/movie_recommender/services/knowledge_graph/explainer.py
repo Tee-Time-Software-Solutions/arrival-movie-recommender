@@ -9,7 +9,6 @@ import logging
 from neo4j import AsyncDriver
 
 from movie_recommender.services.knowledge_graph.beacon import (
-    BeaconMap,
     build_beacon_map,
     load_beacon_map,
     save_beacon_map,
