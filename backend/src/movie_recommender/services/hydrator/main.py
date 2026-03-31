@@ -140,9 +140,7 @@ class TMDBFetcher:
         for c in credits.get("crew", []):
             job = c.get("job", "")
             profile = (
-                f"{self.IMG_URL}{c['profile_path']}"
-                if c.get("profile_path")
-                else None
+                f"{self.IMG_URL}{c['profile_path']}" if c.get("profile_path") else None
             )
             person_id = c.get("id")
 
@@ -183,9 +181,7 @@ class TMDBFetcher:
 
     def _extract_keywords(self, detail_res: dict) -> list[TMDBKeyword]:
         keywords_data = detail_res.get("keywords", {}).get("keywords", [])
-        return [
-            TMDBKeyword(tmdb_id=kw["id"], name=kw["name"]) for kw in keywords_data
-        ]
+        return [TMDBKeyword(tmdb_id=kw["id"], name=kw["name"]) for kw in keywords_data]
 
     def _extract_collection(self, detail_res: dict) -> TMDBCollection | None:
         coll = detail_res.get("belongs_to_collection")
@@ -234,7 +230,9 @@ class MovieHydrator:
             try:
                 await save_hydrated_movie(db, movie_db_id, movie_details)
             except Exception:
-                logger.debug(f"Movie {movie_db_id} already saved by another task, skipping")
+                logger.debug(
+                    f"Movie {movie_db_id} already saved by another task, skipping"
+                )
 
         if self.neo4j_driver:
             asyncio.create_task(self._enrich_kg(movie_details))

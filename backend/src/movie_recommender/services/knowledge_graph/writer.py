@@ -97,8 +97,12 @@ async def upsert_movie_to_kg(driver: AsyncDriver, details: MovieDetails) -> None
                 )
 
         # Genre relationships
-        if details.genre_tmdb_ids and len(details.genre_tmdb_ids) == len(details.genres):
-            for genre_name, genre_tmdb_id in zip(details.genres, details.genre_tmdb_ids):
+        if details.genre_tmdb_ids and len(details.genre_tmdb_ids) == len(
+            details.genres
+        ):
+            for genre_name, genre_tmdb_id in zip(
+                details.genres, details.genre_tmdb_ids
+            ):
                 await session.run(
                     """
                     MERGE (g:Genre {tmdb_id: $genre_id})
