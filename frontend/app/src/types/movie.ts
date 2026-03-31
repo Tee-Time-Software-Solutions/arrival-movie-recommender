@@ -58,3 +58,13 @@ export interface RatedMovie {
   user_rating: number;
   rated_at: string;
 }
+
+export interface WatchlistAddResponse {
+  movie_id: number;
+  added: boolean;
+}
+
+export interface WatchlistRemoveResponse {
+  movie_id: number;
+  removed: boolean;
+}

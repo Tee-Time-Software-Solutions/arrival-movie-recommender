@@ -1,4 +1,9 @@
 from .interactions import create_swipe as create_swipe
+from .watchlist import (
+    add_to_watchlist as add_to_watchlist,
+    get_user_watchlist as get_user_watchlist,
+    remove_from_watchlist as remove_from_watchlist,
+)
 from .movies import (
     create_movie_stub as create_movie_stub,
     get_movie_by_id as get_movie_by_id,
