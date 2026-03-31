@@ -3,7 +3,6 @@ import json
 import logging
 
 import redis.asyncio as aioredis
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from movie_recommender.database.CRUD.interactions import create_swipe
 
