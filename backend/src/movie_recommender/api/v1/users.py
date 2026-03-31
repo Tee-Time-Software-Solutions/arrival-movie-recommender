@@ -10,7 +10,10 @@ from movie_recommender.database.CRUD.users import (
     get_user_excluded_genres,
     update_user_preferences,
 )
-from movie_recommender.database.CRUD.interactions import get_user_liked_movies, get_all_rated_movies
+from movie_recommender.database.CRUD.interactions import (
+    get_user_liked_movies,
+    get_all_rated_movies,
+)
 from movie_recommender.database.CRUD.movies import movies_to_details_bulk
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user

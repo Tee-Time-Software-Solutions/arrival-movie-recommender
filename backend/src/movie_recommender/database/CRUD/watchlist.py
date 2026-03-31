@@ -47,9 +47,7 @@ async def get_user_watchlist(
     """Return (movie_ids, total_count) for the user's watchlist, newest first."""
     base = select(watchlist.c.movie_id).where(watchlist.c.user_id == user_id)
 
-    count_result = await db.execute(
-        select(func.count()).select_from(base.subquery())
-    )
+    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
     total = count_result.scalar_one()
 
     result = await db.execute(

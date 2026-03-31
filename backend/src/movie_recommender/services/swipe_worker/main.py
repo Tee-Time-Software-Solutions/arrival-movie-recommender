@@ -18,12 +18,14 @@ async def enqueue_swipe(
     action_type: str,
     is_supercharged: bool,
 ) -> None:
-    payload = json.dumps({
-        "user_id": user_id,
-        "movie_id": movie_id,
-        "action_type": action_type,
-        "is_supercharged": is_supercharged,
-    })
+    payload = json.dumps(
+        {
+            "user_id": user_id,
+            "movie_id": movie_id,
+            "action_type": action_type,
+            "is_supercharged": is_supercharged,
+        }
+    )
     await redis_client.rpush(SWIPE_QUEUE_KEY, payload)
 
 

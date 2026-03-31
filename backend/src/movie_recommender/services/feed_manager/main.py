@@ -122,9 +122,7 @@ class FeedManager:
 
         ranked_movie_ids = await self.recommender.get_top_n_recommendations(
             user_id=user_id,
-            list_of_movie_ids=list(
-                self.recommender.artifacts.movie_id_to_index.keys()
-            ),
+            list_of_movie_ids=list(self.recommender.artifacts.movie_id_to_index.keys()),
         )
         movies = [
             (

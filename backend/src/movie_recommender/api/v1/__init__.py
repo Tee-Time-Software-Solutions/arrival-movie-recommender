@@ -4,4 +4,10 @@ from .movies import router as movies_router
 from .users import router as users_router
 from .watchlist import router as watchlist_router
 
-routers = [health_router, interactions_router, movies_router, users_router, watchlist_router]
+routers = [
+    health_router,
+    interactions_router,
+    movies_router,
+    users_router,
+    watchlist_router,
+]

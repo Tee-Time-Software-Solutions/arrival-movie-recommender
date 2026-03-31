@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from movie_recommender.database.CRUD.movies import get_movie_by_id, movies_to_details_bulk
+from movie_recommender.database.CRUD.movies import (
+    get_movie_by_id,
+    movies_to_details_bulk,
+)
 from movie_recommender.database.CRUD.users import get_user_by_firebase_uid
 from movie_recommender.database.CRUD.watchlist import (
     add_to_watchlist,
@@ -71,6 +74,4 @@ async def get_watchlist_movies(
     movie_ids, total = await get_user_watchlist(db, user.id, limit, offset)
     items = await movies_to_details_bulk(db, movie_ids)
 
-    return PaginatedMovieDetails(
-        items=items, total=total, limit=limit, offset=offset
-    )
+    return PaginatedMovieDetails(items=items, total=total, limit=limit, offset=offset)

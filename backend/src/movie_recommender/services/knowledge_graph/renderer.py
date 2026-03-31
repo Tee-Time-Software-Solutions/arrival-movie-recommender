@@ -44,7 +44,9 @@ def render_explanation(scored_path: ScoredPath) -> ExplanationResult:
 
     if path.hop_count == 1:
         if path.edge_type == "DIRECTED_BY":
-            text = f"Directed by @{path.entity_name}, who also directed movies you loved"
+            text = (
+                f"Directed by @{path.entity_name}, who also directed movies you loved"
+            )
         elif path.edge_type == "ACTED_IN":
             text = f"Stars @{path.entity_name}, who you've enjoyed in other films"
         elif path.edge_type == "WRITTEN_BY":
@@ -74,10 +76,7 @@ def render_explanation(scored_path: ScoredPath) -> ExplanationResult:
                     f"from @{path.via_movie_title} which you liked"
                 )
             else:
-                text = (
-                    f"Connected to @{path.entity_name} "
-                    f"via @{path.via_movie_title}"
-                )
+                text = f"Connected to @{path.entity_name} via @{path.via_movie_title}"
         else:
             if path.edge_type == "DIRECTED_BY":
                 text = f"Directed by @{path.entity_name}, who also directed movies you loved"
