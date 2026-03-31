@@ -108,7 +108,9 @@ class TestMovieDetails:
             runtime=116,
             trailer_url="https://www.youtube.com/watch?v=abc123",
             cast=[
-                CastMember(name="Amy Adams", role_type="Actor", character_name="Louise Banks"),
+                CastMember(
+                    name="Amy Adams", role_type="Actor", character_name="Louise Banks"
+                ),
                 CastMember(name="Denis Villeneuve", role_type="Director"),
             ],
             movie_providers=[

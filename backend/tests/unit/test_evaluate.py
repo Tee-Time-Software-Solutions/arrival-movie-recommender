@@ -13,7 +13,7 @@ class TestDcgAtK:
     def test_all_relevant(self):
         relevance = [1, 1, 1]
         result = dcg_at_k(relevance)
-        expected = 1/np.log2(2) + 1/np.log2(3) + 1/np.log2(4)
+        expected = 1 / np.log2(2) + 1 / np.log2(3) + 1 / np.log2(4)
         assert result == pytest.approx(expected)
 
     def test_no_relevant_items(self):
@@ -68,12 +68,14 @@ class TestEvaluateOrchestration:
         val_df.to_parquet(tmp_path / "val.parquet", index=False)
 
     def _run(self, tmp_path):
-        with patch(f"{_MODULE}.USER_EMB_PATH", tmp_path / "user_embeddings.npy"), \
-             patch(f"{_MODULE}.MOVIE_EMB_PATH", tmp_path / "movie_embeddings.npy"), \
-             patch(f"{_MODULE}.MAPPINGS_PATH", tmp_path / "mappings.json"), \
-             patch(f"{_MODULE}.TRAIN_PATH", tmp_path / "train.parquet"), \
-             patch(f"{_MODULE}.VAL_PATH", tmp_path / "val.parquet"), \
-             patch(f"{_MODULE}.K", 3):
+        with (
+            patch(f"{_MODULE}.USER_EMB_PATH", tmp_path / "user_embeddings.npy"),
+            patch(f"{_MODULE}.MOVIE_EMB_PATH", tmp_path / "movie_embeddings.npy"),
+            patch(f"{_MODULE}.MAPPINGS_PATH", tmp_path / "mappings.json"),
+            patch(f"{_MODULE}.TRAIN_PATH", tmp_path / "train.parquet"),
+            patch(f"{_MODULE}.VAL_PATH", tmp_path / "val.parquet"),
+            patch(f"{_MODULE}.K", 3),
+        ):
             evaluate()
 
     def test_runs_without_error(self, tmp_path):

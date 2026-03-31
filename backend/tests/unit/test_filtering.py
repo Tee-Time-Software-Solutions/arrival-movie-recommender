@@ -8,7 +8,9 @@ from movie_recommender.services.recommender.data_processing.preprocessing.filter
     run_filtering,
 )
 
-_MODULE = "movie_recommender.services.recommender.data_processing.preprocessing.filtering"
+_MODULE = (
+    "movie_recommender.services.recommender.data_processing.preprocessing.filtering"
+)
 
 
 def _make_df(rows):
@@ -19,8 +21,12 @@ class TestIterativeCoreFilter:
     def test_all_data_survives_above_thresholds(self):
         # 2 users, 2 movies, each with 3 interactions → above min thresholds of 2
         rows = [
-            (1, 10), (1, 20), (1, 10),
-            (2, 10), (2, 20), (2, 20),
+            (1, 10),
+            (1, 20),
+            (1, 10),
+            (2, 10),
+            (2, 20),
+            (2, 20),
         ]
         df = _make_df(rows)
         result = iterative_core_filter(df, min_user=2, min_movie=2)
@@ -29,7 +35,9 @@ class TestIterativeCoreFilter:
     def test_sparse_user_removed(self):
         # user 2 has only 1 interaction → removed
         rows = [
-            (1, 10), (1, 20), (1, 10),
+            (1, 10),
+            (1, 20),
+            (1, 10),
             (2, 10),
         ]
         df = _make_df(rows)
@@ -39,8 +47,11 @@ class TestIterativeCoreFilter:
     def test_sparse_movie_removed(self):
         # movie 20 has only 1 interaction → removed
         rows = [
-            (1, 10), (1, 10), (1, 20),
-            (2, 10), (2, 10),
+            (1, 10),
+            (1, 10),
+            (1, 20),
+            (2, 10),
+            (2, 10),
         ]
         df = _make_df(rows)
         result = iterative_core_filter(df, min_user=1, min_movie=2)
@@ -49,7 +60,8 @@ class TestIterativeCoreFilter:
     def test_cascade_removal(self):
         # movie 20 has 1 interaction → removed → user 2 drops to 0 → removed
         rows = [
-            (1, 10), (1, 10),
+            (1, 10),
+            (1, 10),
             (2, 20),
         ]
         df = _make_df(rows)
@@ -78,8 +90,10 @@ class TestRunFilteringOrchestration:
         df.to_parquet(input_path, index=False)
         output_path = tmp_path / "interactions_filtered.parquet"
 
-        with patch(f"{_MODULE}.PROCESSED_INPUT", input_path), \
-             patch(f"{_MODULE}.PROCESSED_OUTPUT", output_path):
+        with (
+            patch(f"{_MODULE}.PROCESSED_INPUT", input_path),
+            patch(f"{_MODULE}.PROCESSED_OUTPUT", output_path),
+        ):
             run_filtering()
         return output_path
 
