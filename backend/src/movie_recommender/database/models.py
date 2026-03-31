@@ -94,6 +94,7 @@ crew_person = Table(
     "crew_person",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("tmdb_person_id", Integer, unique=True, nullable=True),
     Column("name", String(256), nullable=False),
     Column("role_type", String(64), nullable=True),
     Column("character_name", String(256), nullable=True),

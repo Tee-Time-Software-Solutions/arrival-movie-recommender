@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import requests
 
@@ -6,6 +7,9 @@ from movie_recommender.schemas.requests.movies import (
     CastMember,
     MovieDetails,
     MovieProvider,
+    TMDBKeyword,
+    TMDBCollection,
+    TMDBProductionCompany,
 )
 from movie_recommender.database.CRUD.movies import (
     get_movie_by_id,
@@ -56,13 +60,16 @@ class TMDBFetcher:
             f"{self.BASE_URL}/movie/{tmdb_id}",
             params={
                 "api_key": self.TMDB_API_KEY,
-                "append_to_response": "credits,videos,watch/providers",
+                "append_to_response": "credits,videos,watch/providers,keywords",
             },
         ).json()
 
         trailer_url = self._extract_trailer_url(detail_res)
         providers = self._extract_providers(detail_res)
         cast_members = self._extract_cast_and_crew(detail_res)
+        keywords = self._extract_keywords(detail_res)
+        collection = self._extract_collection(detail_res)
+        production_companies = self._extract_production_companies(detail_res)
 
         poster_path = detail_res.get("poster_path")
         release_date = detail_res.get("release_date", "")
@@ -81,6 +88,10 @@ class TMDBFetcher:
             trailer_url=trailer_url,
             cast=cast_members,
             movie_providers=providers,
+            keywords=keywords,
+            collection=collection,
+            production_companies=production_companies,
+            genre_tmdb_ids=[g["id"] for g in detail_res.get("genres", [])],
         )
 
     def _extract_trailer_url(self, detail_res: dict) -> str | None:
@@ -111,7 +122,7 @@ class TMDBFetcher:
         credits = detail_res.get("credits", {})
         members: list[CastMember] = []
 
-        for c in credits.get("cast", [])[:5]:
+        for i, c in enumerate(credits.get("cast", [])[:5]):
             members.append(
                 CastMember(
                     name=c["name"],
@@ -120,21 +131,29 @@ class TMDBFetcher:
                     profile_path=f"{self.IMG_URL}{c['profile_path']}"
                     if c.get("profile_path")
                     else None,
+                    tmdb_person_id=c.get("id"),
                 )
             )
 
         producer_count = 0
+        writer_count = 0
         for c in credits.get("crew", []):
             job = c.get("job", "")
+            profile = (
+                f"{self.IMG_URL}{c['profile_path']}"
+                if c.get("profile_path")
+                else None
+            )
+            person_id = c.get("id")
+
             if job == "Director":
                 members.append(
                     CastMember(
                         name=c["name"],
                         role_type="Director",
                         character_name=None,
-                        profile_path=f"{self.IMG_URL}{c['profile_path']}"
-                        if c.get("profile_path")
-                        else None,
+                        profile_path=profile,
+                        tmdb_person_id=person_id,
                     )
                 )
             elif job == "Producer" and producer_count < 3:
@@ -143,19 +162,55 @@ class TMDBFetcher:
                         name=c["name"],
                         role_type="Producer",
                         character_name=None,
-                        profile_path=f"{self.IMG_URL}{c['profile_path']}"
-                        if c.get("profile_path")
-                        else None,
+                        profile_path=profile,
+                        tmdb_person_id=person_id,
                     )
                 )
                 producer_count += 1
+            elif job in ("Screenplay", "Writer") and writer_count < 3:
+                members.append(
+                    CastMember(
+                        name=c["name"],
+                        role_type="Writer",
+                        character_name=None,
+                        profile_path=profile,
+                        tmdb_person_id=person_id,
+                    )
+                )
+                writer_count += 1
 
         return members
 
+    def _extract_keywords(self, detail_res: dict) -> list[TMDBKeyword]:
+        keywords_data = detail_res.get("keywords", {}).get("keywords", [])
+        return [
+            TMDBKeyword(tmdb_id=kw["id"], name=kw["name"]) for kw in keywords_data
+        ]
+
+    def _extract_collection(self, detail_res: dict) -> TMDBCollection | None:
+        coll = detail_res.get("belongs_to_collection")
+        if not coll:
+            return None
+        return TMDBCollection(tmdb_id=coll["id"], name=coll["name"])
+
+    def _extract_production_companies(
+        self, detail_res: dict
+    ) -> list[TMDBProductionCompany]:
+        companies = detail_res.get("production_companies", [])
+        return [
+            TMDBProductionCompany(
+                tmdb_id=pc["id"],
+                name=pc["name"],
+                origin_country=pc.get("origin_country"),
+            )
+            for pc in companies
+        ]
+
 
 class MovieHydrator:
-    def __init__(self, db_session_factory) -> None:
+    def __init__(self, db_session_factory, neo4j_driver=None) -> None:
         self.db_session_factory = db_session_factory
+        self.neo4j_driver = neo4j_driver
         self.tmdb = TMDBFetcher()
 
     async def get_or_fetch_movie(
@@ -180,4 +235,22 @@ class MovieHydrator:
                 await save_hydrated_movie(db, movie_db_id, movie_details)
             except Exception:
                 logger.debug(f"Movie {movie_db_id} already saved by another task, skipping")
+
+        if self.neo4j_driver:
+            asyncio.create_task(self._enrich_kg(movie_details))
+
         return movie_details
+
+    async def _enrich_kg(self, movie_details: MovieDetails) -> None:
+        """Fire-and-forget KG enrichment. Never blocks the feed."""
+        try:
+            from movie_recommender.services.knowledge_graph.writer import (
+                upsert_movie_to_kg,
+            )
+
+            await upsert_movie_to_kg(self.neo4j_driver, movie_details)
+        except Exception:
+            logger.warning(
+                f"KG enrichment failed for {movie_details.title}, continuing",
+                exc_info=True,
+            )

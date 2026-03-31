@@ -70,22 +70,19 @@ async def save_hydrated_movie(
             )
 
     for member in details.cast:
-        result = await db.execute(
-            insert(crew_person)
-            .values(
-                name=member.name,
-                role_type=member.role_type,
-                character_name=member.character_name,
-                image_url=str(member.profile_path) if member.profile_path else None,
-            )
-            .returning(crew_person.c.id)
-        )
-        crew_id = result.scalar_one()
-        await db.execute(
-            insert(movies_cast_crew).values(
-                movie_id=movie_db_id, crew_person_id=crew_id
+        crew_id = await _get_or_create_crew_person(db, member)
+        exists = await db.execute(
+            select(movies_cast_crew).where(
+                movies_cast_crew.c.movie_id == movie_db_id,
+                movies_cast_crew.c.crew_person_id == crew_id,
             )
         )
+        if not exists.first():
+            await db.execute(
+                insert(movies_cast_crew).values(
+                    movie_id=movie_db_id, crew_person_id=crew_id
+                )
+            )
 
     for prov in details.movie_providers:
         provider_id = await _get_or_create_provider(
@@ -227,6 +224,32 @@ async def movies_to_details_bulk(
             )
         )
     return results
+
+
+async def _get_or_create_crew_person(db: AsyncSession, member: CastMember) -> int:
+    """Find crew person by tmdb_person_id (preferred) or create new."""
+    if member.tmdb_person_id:
+        result = await db.execute(
+            select(crew_person.c.id).where(
+                crew_person.c.tmdb_person_id == member.tmdb_person_id
+            )
+        )
+        row = result.first()
+        if row:
+            return row.id
+
+    result = await db.execute(
+        insert(crew_person)
+        .values(
+            tmdb_person_id=member.tmdb_person_id,
+            name=member.name,
+            role_type=member.role_type,
+            character_name=member.character_name,
+            image_url=str(member.profile_path) if member.profile_path else None,
+        )
+        .returning(crew_person.c.id)
+    )
+    return result.scalar_one()
 
 
 async def _get_or_create_genre(db: AsyncSession, name: str) -> int:
