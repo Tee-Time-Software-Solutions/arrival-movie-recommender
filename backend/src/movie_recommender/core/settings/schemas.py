@@ -47,6 +47,13 @@ class StorageSettings(BaseModel):
     azure_account_key: str | None = None
 
 
+class Neo4jSettings(BaseModel):
+    uri: str
+    username: str
+    password: str
+    database: str = "neo4j"
+
+
 class FirebaseSettings(BaseModel):
     firebase_project_id: str
     firebase_private_key_id: str

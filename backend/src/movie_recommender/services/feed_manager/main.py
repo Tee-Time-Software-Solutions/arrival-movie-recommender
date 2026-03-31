@@ -30,10 +30,14 @@ class FeedManager:
         recommender: Recommender,
         hydrator: MovieHydrator,
         redis_client: redis.Redis,
+        neo4j_driver=None,
+        db_session_factory=None,
     ) -> None:
         self.recommender = recommender
         self.hydrator = hydrator
         self.redis_client = redis_client
+        self.neo4j_driver = neo4j_driver
+        self.db_session_factory = db_session_factory
         self.settings = AppSettings()
 
     async def get_next_movie(
@@ -59,9 +63,56 @@ class FeedManager:
         logger.info(f"Movie data from Redis: {movie_data}")
         movie_id, movie_title = json.loads(movie_data)
 
-        return await self.hydrator.get_or_fetch_movie(
+        movie_details = await self.hydrator.get_or_fetch_movie(
             movie_db_id=movie_id, movie_title=movie_title
         )
+
+        if movie_details and movie_details.tmdb_id and self.neo4j_driver:
+            movie_details = await self._attach_explanation(user_id, movie_details)
+
+        return movie_details
+
+    async def _attach_explanation(
+        self, user_id: int, movie_details: MovieDetails
+    ) -> MovieDetails:
+        """Attach KG explanation to movie details. Never blocks or raises."""
+        try:
+            from movie_recommender.services.knowledge_graph.explainer import (
+                explain_recommendation,
+            )
+            from movie_recommender.schemas.requests.movies import (
+                EntityReference,
+                ExplanationResponse,
+            )
+
+            result = await asyncio.wait_for(
+                explain_recommendation(
+                    neo4j_driver=self.neo4j_driver,
+                    redis_client=self.redis_client,
+                    db_session_factory=self.db_session_factory,
+                    user_id=user_id,
+                    movie_tmdb_id=movie_details.tmdb_id,
+                ),
+                timeout=0.1,  # 100ms budget
+            )
+            if result:
+                movie_details.explanation = ExplanationResponse(
+                    text=result.text,
+                    entities=[
+                        EntityReference(
+                            entity_type=e.entity_type,
+                            tmdb_id=e.tmdb_id,
+                            name=e.name,
+                        )
+                        for e in result.entities
+                    ],
+                    confidence=result.confidence,
+                )
+        except asyncio.TimeoutError:
+            logger.debug("Explanation timed out, serving without")
+        except Exception:
+            logger.warning("Explanation generation failed", exc_info=True)
+        return movie_details
 
     async def refill_queue(self, user_id: int, queue_key: str):
         logger.info(f"Refilling queue for user {user_id}")

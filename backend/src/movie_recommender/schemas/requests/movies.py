@@ -27,6 +27,9 @@ class CastMember(BaseModel):
     profile_path: Optional[str] = Field(
         None, description="Image url for the cast member"
     )
+    tmdb_person_id: Optional[int] = Field(
+        None, description="TMDB person ID for cross-system linking"
+    )
 
 
 class ProviderType(str, Enum):
@@ -40,6 +43,41 @@ class MovieProvider(BaseModel):
     provider_type: ProviderType
 
 
+class TMDBKeyword(BaseModel):
+    tmdb_id: int
+    name: str
+
+
+class TMDBCollection(BaseModel):
+    tmdb_id: int
+    name: str
+    part_number: Optional[int] = None
+
+
+class TMDBProductionCompany(BaseModel):
+    tmdb_id: int
+    name: str
+    origin_country: Optional[str] = None
+
+
+class EntityReference(BaseModel):
+    entity_type: str = Field(..., description="Person, Genre, Movie, Keyword, etc.")
+    tmdb_id: int
+    name: str
+
+
+class ExplanationResponse(BaseModel):
+    text: str = Field(
+        ..., description="Human-readable explanation with @EntityName markers"
+    )
+    entities: List[EntityReference] = Field(
+        default_factory=list, description="All referenced entities for frontend linking"
+    )
+    confidence: float = Field(
+        ..., ge=0.0, le=1.0, description="Explanation confidence score"
+    )
+
+
 class MovieDetails(MovieCard):
     synopsis: str
     cast: List[CastMember] = Field(default_factory=list)
@@ -50,6 +88,21 @@ class MovieDetails(MovieCard):
     movie_providers: List[MovieProvider] = Field(
         default_factory=list,
         description="Providers offering this movie for streaming, rent, or buy.",
+    )
+    keywords: List[TMDBKeyword] = Field(
+        default_factory=list, description="TMDB keywords for KG enrichment"
+    )
+    collection: Optional[TMDBCollection] = Field(
+        None, description="Collection this movie belongs to (e.g. franchise)"
+    )
+    production_companies: List[TMDBProductionCompany] = Field(
+        default_factory=list, description="Production companies for KG enrichment"
+    )
+    genre_tmdb_ids: List[int] = Field(
+        default_factory=list, description="TMDB genre IDs for KG enrichment"
+    )
+    explanation: Optional[ExplanationResponse] = Field(
+        None, description="KG-derived explanation for why this movie was recommended"
     )
 
 
