@@ -166,9 +166,7 @@ class TestKnownUserRecommendations:
 
 
 class TestColdStartUser:
-    def test_unknown_user_gets_recommendations(
-        self, pipeline_recommender: Recommender
-    ):
+    def test_unknown_user_gets_recommendations(self, pipeline_recommender: Recommender):
         recs = _top_n(pipeline_recommender, COLD_START_USER, 5)
         assert len(recs) == 5
 
@@ -256,22 +254,20 @@ class TestLikeShiftsRecommendations:
             np.linalg.norm(movie_vec) * np.linalg.norm(vec_before)
         )
 
-        rec.update_user(
-            user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE
-        )
+        rec.update_user(user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE)
 
         vec_after = rec._current_user_vector(uid)
         cos_after = float(movie_vec @ vec_after) / (
             np.linalg.norm(movie_vec) * np.linalg.norm(vec_after)
         )
 
-        print(f"\n  LIKE \"{title}\" (id={movie_id})")
-        print(f"  Cosine sim: {cos_before:.6f} -> {cos_after:.6f} ({cos_after - cos_before:+.6f})")
+        print(f'\n  LIKE "{title}" (id={movie_id})')
+        print(
+            f"  Cosine sim: {cos_before:.6f} -> {cos_after:.6f} ({cos_after - cos_before:+.6f})"
+        )
         assert cos_after > cos_before
 
-    def test_like_changes_user_vector(
-        self, loaded_artifacts: RecommenderArtifacts
-    ):
+    def test_like_changes_user_vector(self, loaded_artifacts: RecommenderArtifacts):
         """After liking a movie, the online user vector should differ from base."""
         rec = _fresh_rec(loaded_artifacts)
         uid = _real_user_id(loaded_artifacts)
@@ -279,9 +275,7 @@ class TestLikeShiftsRecommendations:
         movie_id = recs[0][0]
 
         vec_before = rec._current_user_vector(uid).copy()
-        rec.update_user(
-            user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE
-        )
+        rec.update_user(user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE)
         vec_after = rec._current_user_vector(uid)
 
         assert not np.array_equal(vec_before, vec_after)
@@ -308,15 +302,15 @@ class TestDislikeShiftsRecommendations:
         vec_before = rec._current_user_vector(uid)
         score_before = float(movie_vec @ vec_before)
 
-        rec.update_user(
-            user_id=uid, movie_id=movie_id, action_type=SwipeAction.DISLIKE
-        )
+        rec.update_user(user_id=uid, movie_id=movie_id, action_type=SwipeAction.DISLIKE)
 
         vec_after = rec._current_user_vector(uid)
         score_after = float(movie_vec @ vec_after)
 
-        print(f"\n  DISLIKE \"{title}\" (id={movie_id})")
-        print(f"  Score: {score_before:.4f} -> {score_after:.4f} ({score_after - score_before:+.4f})")
+        print(f'\n  DISLIKE "{title}" (id={movie_id})')
+        print(
+            f"  Score: {score_before:.4f} -> {score_after:.4f} ({score_after - score_before:+.4f})"
+        )
         assert score_after < score_before
 
     def test_dislike_changes_vector_opposite_to_like(
@@ -338,9 +332,9 @@ class TestDislikeShiftsRecommendations:
         rec_dislike.update_user(
             user_id=uid, movie_id=movie_id, action_type=SwipeAction.DISLIKE
         )
-        delta_dislike = (
-            rec_dislike.online_user_vectors[uid] - rec_dislike._base_user_vector(uid)
-        )
+        delta_dislike = rec_dislike.online_user_vectors[
+            uid
+        ] - rec_dislike._base_user_vector(uid)
 
         # Deltas should point in opposite directions (negative dot product)
         dot = float(delta_like @ delta_dislike)
@@ -361,9 +355,7 @@ class TestSkipBehaviour:
         movie_id = _real_movie_id(loaded_artifacts)
 
         vec_before = rec._current_user_vector(uid).copy()
-        rec.update_user(
-            user_id=uid, movie_id=movie_id, action_type=SwipeAction.SKIP
-        )
+        rec.update_user(user_id=uid, movie_id=movie_id, action_type=SwipeAction.SKIP)
 
         if uid in rec.online_user_vectors:
             vec_after = rec.online_user_vectors[uid]
@@ -376,9 +368,7 @@ class TestSkipBehaviour:
         uid = _real_user_id(loaded_artifacts)
         movie_id = _real_movie_id(loaded_artifacts)
 
-        rec.update_user(
-            user_id=uid, movie_id=movie_id, action_type=SwipeAction.SKIP
-        )
+        rec.update_user(user_id=uid, movie_id=movie_id, action_type=SwipeAction.SKIP)
         assert movie_id in rec.user_seen_movie_ids[uid]
 
 
@@ -400,14 +390,10 @@ class TestMultipleSwipesAccumulate:
         rec = _fresh_rec(loaded_artifacts)
         base = rec._base_user_vector(uid).copy()
 
-        rec.update_user(
-            user_id=uid, movie_id=movie_a, action_type=SwipeAction.LIKE
-        )
+        rec.update_user(user_id=uid, movie_id=movie_a, action_type=SwipeAction.LIKE)
         drift_one = float(np.linalg.norm(rec.online_user_vectors[uid] - base))
 
-        rec.update_user(
-            user_id=uid, movie_id=movie_b, action_type=SwipeAction.LIKE
-        )
+        rec.update_user(user_id=uid, movie_id=movie_b, action_type=SwipeAction.LIKE)
         drift_two = float(np.linalg.norm(rec.online_user_vectors[uid] - base))
 
         print(f"\n  Drift after 1 like: {drift_one:.6f}")
@@ -456,9 +442,7 @@ class TestSuperchargedSwipe:
         rec_regular.update_user(
             user_id=uid, movie_id=movie_id, action_type=SwipeAction.LIKE
         )
-        score_regular = float(
-            movie_vec @ rec_regular.online_user_vectors[uid]
-        )
+        score_regular = float(movie_vec @ rec_regular.online_user_vectors[uid])
 
         rec_super = _fresh_rec(loaded_artifacts)
         rec_super.update_user(
@@ -486,9 +470,7 @@ class TestSuperchargedSwipe:
         rec_regular.update_user(
             user_id=uid, movie_id=movie_id, action_type=SwipeAction.DISLIKE
         )
-        score_regular = float(
-            movie_vec @ rec_regular.online_user_vectors[uid]
-        )
+        score_regular = float(movie_vec @ rec_regular.online_user_vectors[uid])
 
         rec_super = _fresh_rec(loaded_artifacts)
         rec_super.update_user(

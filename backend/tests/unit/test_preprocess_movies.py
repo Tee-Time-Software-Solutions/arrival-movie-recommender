@@ -67,8 +67,10 @@ class TestPreprocessMoviesOrchestration:
         raw_path.write_text(csv_content)
         out_path = tmp_path / "movies_clean.parquet"
 
-        with patch(f"{_MODULE}.RAW_PATH", raw_path), \
-             patch(f"{_MODULE}.PROCESSED_PATH", out_path):
+        with (
+            patch(f"{_MODULE}.RAW_PATH", raw_path),
+            patch(f"{_MODULE}.PROCESSED_PATH", out_path),
+        ):
             preprocess_movies()
         return out_path
 

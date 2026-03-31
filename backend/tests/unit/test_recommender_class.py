@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
 
-from movie_recommender.schemas.interactions import SwipeAction
+from movie_recommender.schemas.requests.interactions import SwipeAction
 from movie_recommender.services.recommender.main import Recommender
-from movie_recommender.services.recommender.serving.artifact_loader import RecommenderArtifacts
+from movie_recommender.services.recommender.serving.artifact_loader import (
+    RecommenderArtifacts,
+)
 from movie_recommender.services.recommender.serving.user_vectors import (
     base_user_vector,
     cold_start_vector,
@@ -14,7 +16,9 @@ from movie_recommender.services.recommender.serving.validation import (
 )
 
 
-async def _top_n(recommender: Recommender, user_id: str, n: int) -> list[tuple[int, str]]:
+async def _top_n(
+    recommender: Recommender, user_id: str, n: int
+) -> list[tuple[int, str]]:
     ranked_ids = await recommender.get_top_n_recommendations(
         user_id=user_id,
         list_of_movie_ids=list(recommender.artifacts.movie_id_to_index.keys()),
@@ -43,7 +47,9 @@ class TestRequireArtifacts:
             require_artifacts(rec.artifacts, rec._artifact_load_error)
 
     def test_returns_artifacts_when_loaded(self, recommender):
-        result = require_artifacts(recommender.artifacts, recommender._artifact_load_error)
+        result = require_artifacts(
+            recommender.artifacts, recommender._artifact_load_error
+        )
         assert result is recommender.artifacts
 
     def test_error_message_includes_load_details(self):
@@ -70,7 +76,9 @@ class TestColdStartVector:
         result = cold_start_vector(synthetic_artifacts)
         assert result.dtype == np.float32
 
-    def test_cold_start_shape_matches_embedding_dim(self, recommender, synthetic_artifacts):
+    def test_cold_start_shape_matches_embedding_dim(
+        self, recommender, synthetic_artifacts
+    ):
         result = cold_start_vector(synthetic_artifacts)
         assert result.shape == (4,)
 
@@ -81,7 +89,9 @@ class TestBaseUserVector:
         result = base_user_vector(synthetic_artifacts, "1")
         np.testing.assert_array_equal(result, synthetic_artifacts.user_embeddings[0])
 
-    def test_known_user_2_returns_comedy_embedding(self, recommender, synthetic_artifacts):
+    def test_known_user_2_returns_comedy_embedding(
+        self, recommender, synthetic_artifacts
+    ):
         """User 2 (comedy fan) should get embedding [0, 1, 0, 0]."""
         result = base_user_vector(synthetic_artifacts, "2")
         np.testing.assert_array_equal(result, synthetic_artifacts.user_embeddings[1])
@@ -91,7 +101,9 @@ class TestBaseUserVector:
         expected = synthetic_artifacts.user_embeddings.mean(axis=0)
         np.testing.assert_allclose(result, expected, atol=1e-6)
 
-    def test_non_numeric_user_returns_cold_start(self, recommender, synthetic_artifacts):
+    def test_non_numeric_user_returns_cold_start(
+        self, recommender, synthetic_artifacts
+    ):
         result = base_user_vector(synthetic_artifacts, "abc")
         expected = synthetic_artifacts.user_embeddings.mean(axis=0)
         np.testing.assert_allclose(result, expected, atol=1e-6)
@@ -99,20 +111,28 @@ class TestBaseUserVector:
 
 class TestCurrentUserVector:
     def test_returns_base_when_no_online_vector(self, recommender, synthetic_artifacts):
-        result = current_user_vector(synthetic_artifacts, recommender.online_user_vectors, "1")
+        result = current_user_vector(
+            synthetic_artifacts, recommender.online_user_vectors, "1"
+        )
         np.testing.assert_array_equal(result, synthetic_artifacts.user_embeddings[0])
 
     def test_returns_online_vector_when_present(self, recommender):
         custom = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
         recommender.online_user_vectors["1"] = custom
-        result = current_user_vector(recommender.artifacts, recommender.online_user_vectors, "1")
+        result = current_user_vector(
+            recommender.artifacts, recommender.online_user_vectors, "1"
+        )
         np.testing.assert_array_equal(result, custom)
 
-    def test_online_vector_takes_precedence_over_base(self, recommender, synthetic_artifacts):
+    def test_online_vector_takes_precedence_over_base(
+        self, recommender, synthetic_artifacts
+    ):
         """Even for a known user, online vector should override base embedding."""
         custom = np.array([9.0, 9.0, 9.0, 9.0], dtype=np.float32)
         recommender.online_user_vectors["1"] = custom
-        result = current_user_vector(synthetic_artifacts, recommender.online_user_vectors, "1")
+        result = current_user_vector(
+            synthetic_artifacts, recommender.online_user_vectors, "1"
+        )
         np.testing.assert_array_equal(result, custom)
         # Verify it is NOT the base embedding
         assert not np.array_equal(result, synthetic_artifacts.user_embeddings[0])
@@ -178,18 +198,28 @@ class TestGetTopN:
 class TestUpdateUser:
     @pytest.mark.asyncio
     async def test_like_creates_online_vector(self, recommender):
-        await recommender.set_user_feedback("1", movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False)
+        await recommender.set_user_feedback(
+            "1", movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False
+        )
         assert "1" in recommender.online_user_vectors
 
     @pytest.mark.asyncio
     async def test_like_adds_to_seen_set(self, recommender):
-        await recommender.set_user_feedback("1", movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False)
+        await recommender.set_user_feedback(
+            "1", movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False
+        )
         assert 100 in recommender.user_seen_movie_ids["1"]
 
     @pytest.mark.asyncio
-    async def test_skip_marks_seen_but_vector_unchanged(self, recommender, synthetic_artifacts):
-        vec_before = current_user_vector(synthetic_artifacts, recommender.online_user_vectors, "1").copy()
-        await recommender.set_user_feedback("1", movie_id=100, interaction_type=SwipeAction.SKIP, is_supercharged=False)
+    async def test_skip_marks_seen_but_vector_unchanged(
+        self, recommender, synthetic_artifacts
+    ):
+        vec_before = current_user_vector(
+            synthetic_artifacts, recommender.online_user_vectors, "1"
+        ).copy()
+        await recommender.set_user_feedback(
+            "1", movie_id=100, interaction_type=SwipeAction.SKIP, is_supercharged=False
+        )
 
         assert 100 in recommender.user_seen_movie_ids["1"]
         # Skip preference is 0, so update_user_vector returns a copy unchanged
@@ -201,26 +231,46 @@ class TestUpdateUser:
 
     @pytest.mark.asyncio
     async def test_unknown_movie_marks_seen_no_vector_update(self, recommender):
-        await recommender.set_user_feedback("1", movie_id=999, interaction_type=SwipeAction.LIKE, is_supercharged=False)
+        await recommender.set_user_feedback(
+            "1", movie_id=999, interaction_type=SwipeAction.LIKE, is_supercharged=False
+        )
         assert 999 in recommender.user_seen_movie_ids["1"]
         # Unknown movie_id returns early before updating vector
         assert "1" not in recommender.online_user_vectors
 
     @pytest.mark.asyncio
     async def test_multiple_updates_accumulate_seen(self, recommender):
-        await recommender.set_user_feedback("1", movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False)
-        await recommender.set_user_feedback("1", movie_id=101, interaction_type=SwipeAction.DISLIKE, is_supercharged=False)
+        await recommender.set_user_feedback(
+            "1", movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False
+        )
+        await recommender.set_user_feedback(
+            "1",
+            movie_id=101,
+            interaction_type=SwipeAction.DISLIKE,
+            is_supercharged=False,
+        )
         assert recommender.user_seen_movie_ids["1"] == {100, 101}
 
     @pytest.mark.asyncio
     async def test_dislike_moves_vector_away(self, recommender, synthetic_artifacts):
         """Disliking action movie should decrease action score for user 1."""
-        vec_before = current_user_vector(synthetic_artifacts, recommender.online_user_vectors, "1").copy()
+        vec_before = current_user_vector(
+            synthetic_artifacts, recommender.online_user_vectors, "1"
+        ).copy()
         movie_idx = synthetic_artifacts.movie_id_to_index[100]
-        score_before = float(synthetic_artifacts.movie_embeddings[movie_idx] @ vec_before)
+        score_before = float(
+            synthetic_artifacts.movie_embeddings[movie_idx] @ vec_before
+        )
 
-        await recommender.set_user_feedback("1", movie_id=100, interaction_type=SwipeAction.DISLIKE, is_supercharged=False)
+        await recommender.set_user_feedback(
+            "1",
+            movie_id=100,
+            interaction_type=SwipeAction.DISLIKE,
+            is_supercharged=False,
+        )
 
-        vec_after = current_user_vector(synthetic_artifacts, recommender.online_user_vectors, "1")
+        vec_after = current_user_vector(
+            synthetic_artifacts, recommender.online_user_vectors, "1"
+        )
         score_after = float(synthetic_artifacts.movie_embeddings[movie_idx] @ vec_after)
         assert score_after < score_before

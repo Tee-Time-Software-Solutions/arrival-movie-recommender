@@ -36,6 +36,7 @@ def _top_n(rec: Recommender, user_id: str, n: int) -> list[tuple[int, str]]:
         for movie_id in ranked_ids[:n]
     ]
 
+
 # ---------------------------------------------------------------------------
 # Vector visualization helpers
 # ---------------------------------------------------------------------------
@@ -77,26 +78,40 @@ def _print_vector_comparison(
     raw_nudge = eta * preference * movie_vec
     nudge_norm = float(np.linalg.norm(raw_nudge))
 
-    print(f"  Before  norm={np.linalg.norm(vec_before):<8.4f} {_sparkline(vec_before, shared_min, shared_max)}")
+    print(
+        f"  Before  norm={np.linalg.norm(vec_before):<8.4f} {_sparkline(vec_before, shared_min, shared_max)}"
+    )
     print(f"  Movie   norm={np.linalg.norm(movie_vec):<8.4f} {_sparkline(movie_vec)}")
-    print(f"  After   norm={np.linalg.norm(vec_after):<8.4f} {_sparkline(vec_after, shared_min, shared_max)}")
+    print(
+        f"  After   norm={np.linalg.norm(vec_after):<8.4f} {_sparkline(vec_after, shared_min, shared_max)}"
+    )
     print()
 
     # Show the math
     capped = np.linalg.norm(vec_after) < np.linalg.norm(vec_before + raw_nudge) - 0.001
-    print(f"  Update: user + {eta} * {preference:+d} * movie  (nudge norm={nudge_norm:.6f})")
+    print(
+        f"  Update: user + {eta} * {preference:+d} * movie  (nudge norm={nudge_norm:.6f})"
+    )
     if capped:
         raw_norm = float(np.linalg.norm(vec_before + raw_nudge))
-        print(f"  Norm cap applied: {raw_norm:.4f} -> {norm_cap:.1f}  (rescaled entire vector)")
+        print(
+            f"  Norm cap applied: {raw_norm:.4f} -> {norm_cap:.1f}  (rescaled entire vector)"
+        )
     print(f"  Actual delta norm: {np.linalg.norm(delta):.6f}")
     print()
 
     # Top-N changed dimensions table
     top_dims = np.argsort(-np.abs(delta))[:top_n]
-    print(f"  {'dim':>5s}   {'before':>8s}   {'after':>8s}   {'delta':>8s}   {'movie':>8s}")
-    print(f"  {'───':>5s}   {'──────':>8s}   {'─────':>8s}   {'─────':>8s}   {'─────':>8s}")
+    print(
+        f"  {'dim':>5s}   {'before':>8s}   {'after':>8s}   {'delta':>8s}   {'movie':>8s}"
+    )
+    print(
+        f"  {'───':>5s}   {'──────':>8s}   {'─────':>8s}   {'─────':>8s}   {'─────':>8s}"
+    )
     for d in top_dims:
-        print(f"  {d:5d}   {vec_before[d]:+8.4f}   {vec_after[d]:+8.4f}   {delta[d]:+8.4f}   {movie_vec[d]:+8.4f}")
+        print(
+            f"  {d:5d}   {vec_before[d]:+8.4f}   {vec_after[d]:+8.4f}   {delta[d]:+8.4f}   {movie_vec[d]:+8.4f}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -197,9 +212,9 @@ class TestFilteringSurvival:
         total = len(train) + len(val) + len(test)
 
         print(f"\n--- CHRONOLOGICAL SPLIT ---")
-        print(f"  Train: {len(train):,} ({len(train)/total*100:.0f}%)")
-        print(f"  Val:   {len(val):,} ({len(val)/total*100:.0f}%)")
-        print(f"  Test:  {len(test):,} ({len(test)/total*100:.0f}%)")
+        print(f"  Train: {len(train):,} ({len(train) / total * 100:.0f}%)")
+        print(f"  Val:   {len(val):,} ({len(val) / total * 100:.0f}%)")
+        print(f"  Test:  {len(test):,} ({len(test) / total * 100:.0f}%)")
         print(f"  Total: {total:,} (filtered: {len(filtered):,})")
         print(f"  Adds up: {total == len(filtered)}")
 
@@ -238,8 +253,12 @@ class TestArtifactShapes:
         n_user_map = len(mappings["user_id_to_index"])
 
         print(f"\n--- EMBEDDING vs MAPPING COUNTS ---")
-        print(f"  Movie embeddings rows: {movies.shape[0]}, mapping entries: {n_movie_map}, match: {movies.shape[0] == n_movie_map}")
-        print(f"  User embeddings rows:  {users.shape[0]}, mapping entries: {n_user_map}, match: {users.shape[0] == n_user_map}")
+        print(
+            f"  Movie embeddings rows: {movies.shape[0]}, mapping entries: {n_movie_map}, match: {movies.shape[0] == n_movie_map}"
+        )
+        print(
+            f"  User embeddings rows:  {users.shape[0]}, mapping entries: {n_user_map}, match: {users.shape[0] == n_user_map}"
+        )
 
         assert movies.shape[0] == n_movie_map
         assert users.shape[0] == n_user_map
@@ -272,12 +291,18 @@ class TestArtifactShapes:
         with open(pipeline_dir / "artifacts/mappings.json") as f:
             mappings = json.load(f)
 
-        movie_oob = sum(1 for v in mappings["movie_id_to_index"].values() if int(v) >= movies.shape[0])
-        user_oob = sum(1 for v in mappings["user_id_to_index"].values() if int(v) >= users.shape[0])
+        movie_oob = sum(
+            1
+            for v in mappings["movie_id_to_index"].values()
+            if int(v) >= movies.shape[0]
+        )
+        user_oob = sum(
+            1 for v in mappings["user_id_to_index"].values() if int(v) >= users.shape[0]
+        )
 
         print(f"\n--- INDEX BOUNDS CHECK ---")
-        print(f"  Movie indices: 0..{movies.shape[0]-1}, out-of-bounds: {movie_oob}")
-        print(f"  User indices:  0..{users.shape[0]-1}, out-of-bounds: {user_oob}")
+        print(f"  Movie indices: 0..{movies.shape[0] - 1}, out-of-bounds: {movie_oob}")
+        print(f"  User indices:  0..{users.shape[0] - 1}, out-of-bounds: {user_oob}")
 
         assert movie_oob == 0
         assert user_oob == 0
@@ -313,13 +338,19 @@ class TestArtifactLoader:
     def test_load_returns_artifacts_dataclass(self, loaded_artifacts):
         print(f"\n--- ARTIFACT LOADER ---")
         print(f"  Returned type: {type(loaded_artifacts).__name__}")
-        print(f"  Is RecommenderArtifacts: {isinstance(loaded_artifacts, RecommenderArtifacts)}")
+        print(
+            f"  Is RecommenderArtifacts: {isinstance(loaded_artifacts, RecommenderArtifacts)}"
+        )
         assert isinstance(loaded_artifacts, RecommenderArtifacts)
 
     def test_loaded_embeddings_are_numpy(self, loaded_artifacts):
         print(f"\n--- LOADED EMBEDDING TYPES ---")
-        print(f"  movie_embeddings: {type(loaded_artifacts.movie_embeddings).__name__} {loaded_artifacts.movie_embeddings.shape}")
-        print(f"  user_embeddings:  {type(loaded_artifacts.user_embeddings).__name__} {loaded_artifacts.user_embeddings.shape}")
+        print(
+            f"  movie_embeddings: {type(loaded_artifacts.movie_embeddings).__name__} {loaded_artifacts.movie_embeddings.shape}"
+        )
+        print(
+            f"  user_embeddings:  {type(loaded_artifacts.user_embeddings).__name__} {loaded_artifacts.user_embeddings.shape}"
+        )
         assert isinstance(loaded_artifacts.movie_embeddings, np.ndarray)
         assert isinstance(loaded_artifacts.user_embeddings, np.ndarray)
 
@@ -336,7 +367,8 @@ class TestArtifactLoader:
 
     def test_every_movie_has_a_title(self, loaded_artifacts):
         missing = [
-            mid for mid in loaded_artifacts.movie_id_to_index
+            mid
+            for mid in loaded_artifacts.movie_id_to_index
             if mid not in loaded_artifacts.movie_id_to_title
         ]
         print(f"\n--- MOVIE TITLE COVERAGE ---")
@@ -346,7 +378,7 @@ class TestArtifactLoader:
         if not missing:
             sample = list(loaded_artifacts.movie_id_to_title.items())[:3]
             for mid, title in sample:
-                print(f"    id={mid}: \"{title}\"")
+                print(f'    id={mid}: "{title}"')
         assert len(missing) == 0
 
 
@@ -395,7 +427,7 @@ class TestOnlineWithRealArtifacts:
             in_index = mid in pipeline_recommender.artifacts.movie_id_to_index
             in_title = mid in pipeline_recommender.artifacts.movie_id_to_title
             valid = in_index and in_title
-            print(f"  id={mid} \"{title}\": in_index={in_index}, has_title={in_title}")
+            print(f'  id={mid} "{title}": in_index={in_index}, has_title={in_title}')
             if not valid:
                 all_valid = False
             assert in_index
@@ -428,7 +460,9 @@ class TestOnlineWithRealArtifacts:
 
 
 class TestFullLoop:
-    def _get_real_user_id(self, loaded_artifacts: RecommenderArtifacts, index: int = 0) -> str:
+    def _get_real_user_id(
+        self, loaded_artifacts: RecommenderArtifacts, index: int = 0
+    ) -> str:
         """Get a real user ID from the mappings."""
         user_ids = list(loaded_artifacts.user_id_to_index.keys())
         return str(user_ids[index])
@@ -454,10 +488,13 @@ class TestFullLoop:
         ids_after = [mid for mid, _ in recs_after]
 
         print(f"\n--- SEEN-MOVIE EXCLUSION (User {user_id}) ---")
-        print(f"  LIKE on \"{top_title}\" (id={top_movie_id})")
+        print(f'  LIKE on "{top_title}" (id={top_movie_id})')
         _print_vector_comparison(
-            vec_before, vec_after, movie_vec,
-            eta=pipeline_recommender.eta, preference=1,
+            vec_before,
+            vec_after,
+            movie_vec,
+            eta=pipeline_recommender.eta,
+            preference=1,
             norm_cap=pipeline_recommender.norm_cap,
         )
         print(f"  Recs before: {ids_before}")
@@ -484,10 +521,13 @@ class TestFullLoop:
         vec_after = pipeline_recommender._current_user_vector(user_id)
 
         print(f"\n--- LIKE UPDATES VECTOR (User {user_id}) ---")
-        print(f"  LIKE on \"{title}\" (id={movie_id})")
+        print(f'  LIKE on "{title}" (id={movie_id})')
         _print_vector_comparison(
-            vec_before, vec_after, movie_vec,
-            eta=pipeline_recommender.eta, preference=1,
+            vec_before,
+            vec_after,
+            movie_vec,
+            eta=pipeline_recommender.eta,
+            preference=1,
             norm_cap=pipeline_recommender.norm_cap,
         )
 
@@ -515,13 +555,18 @@ class TestFullLoop:
         score_after = float(movie_vec @ vec_after)
 
         print(f"\n--- DISLIKE LOWERS SCORE (User {user_id}) ---")
-        print(f"  DISLIKE on \"{title}\" (id={movie_id})")
+        print(f'  DISLIKE on "{title}" (id={movie_id})')
         _print_vector_comparison(
-            vec_before, vec_after, movie_vec,
-            eta=pipeline_recommender.eta, preference=-1,
+            vec_before,
+            vec_after,
+            movie_vec,
+            eta=pipeline_recommender.eta,
+            preference=-1,
             norm_cap=pipeline_recommender.norm_cap,
         )
-        print(f"  Score: {score_before:.4f} -> {score_after:.4f}  ({score_after - score_before:+.4f})")
+        print(
+            f"  Score: {score_before:.4f} -> {score_after:.4f}  ({score_after - score_before:+.4f})"
+        )
 
         assert score_after < score_before
 
@@ -539,18 +584,26 @@ class TestFullLoop:
             SwipeAction.LIKE,
             SwipeAction.DISLIKE,
         ]
-        preference_map = {SwipeAction.LIKE: 1, SwipeAction.DISLIKE: -1, SwipeAction.SKIP: 0}
+        preference_map = {
+            SwipeAction.LIKE: 1,
+            SwipeAction.DISLIKE: -1,
+            SwipeAction.SKIP: 0,
+        }
 
         vec_start = pipeline_recommender._current_user_vector(user_id).copy()
         print(f"\n--- FULL BROWSING SESSION (User {user_id}) ---")
-        print(f"  eta={pipeline_recommender.eta}, norm_cap={pipeline_recommender.norm_cap}")
-        print(f"  Start  norm={np.linalg.norm(vec_start):<8.4f} {_sparkline(vec_start)}")
+        print(
+            f"  eta={pipeline_recommender.eta}, norm_cap={pipeline_recommender.norm_cap}"
+        )
+        print(
+            f"  Start  norm={np.linalg.norm(vec_start):<8.4f} {_sparkline(vec_start)}"
+        )
         print()
 
         for step in range(5):
             recs = _top_n(pipeline_recommender, user_id, 3)
             if not recs:
-                print(f"  Step {step+1}: No more recommendations!")
+                print(f"  Step {step + 1}: No more recommendations!")
                 break
 
             movie_id, title = recs[0]
@@ -567,15 +620,25 @@ class TestFullLoop:
             pref = preference_map[action]
 
             seen = pipeline_recommender.user_seen_movie_ids.get(user_id, set())
-            print(f"  Step {step+1}: {action.value.upper():7s} \"{title}\" (pref={pref:+d})")
-            print(f"    movie  norm={np.linalg.norm(movie_vec):<8.4f} {_sparkline(movie_vec)}")
-            print(f"    user   norm={np.linalg.norm(vec_post):<8.4f} {_sparkline(vec_post, float(vec_start.min()), float(vec_start.max()))}  delta_norm={np.linalg.norm(step_delta):.6f}")
+            print(
+                f'  Step {step + 1}: {action.value.upper():7s} "{title}" (pref={pref:+d})'
+            )
+            print(
+                f"    movie  norm={np.linalg.norm(movie_vec):<8.4f} {_sparkline(movie_vec)}"
+            )
+            print(
+                f"    user   norm={np.linalg.norm(vec_post):<8.4f} {_sparkline(vec_post, float(vec_start.min()), float(vec_start.max()))}  delta_norm={np.linalg.norm(step_delta):.6f}"
+            )
 
         vec_end = pipeline_recommender._current_user_vector(user_id)
         total_drift = vec_end - vec_start
         print()
-        print(f"  Start  norm={np.linalg.norm(vec_start):<8.4f} {_sparkline(vec_start)}")
-        print(f"  Final  norm={np.linalg.norm(vec_end):<8.4f} {_sparkline(vec_end, float(vec_start.min()), float(vec_start.max()))}")
+        print(
+            f"  Start  norm={np.linalg.norm(vec_start):<8.4f} {_sparkline(vec_start)}"
+        )
+        print(
+            f"  Final  norm={np.linalg.norm(vec_end):<8.4f} {_sparkline(vec_end, float(vec_start.min()), float(vec_start.max()))}"
+        )
         print(f"  Total drift norm: {np.linalg.norm(total_drift):.6f}")
 
         # Show top dims that drifted over the full session
@@ -583,12 +646,16 @@ class TestFullLoop:
         print(f"\n  {'dim':>5s}   {'start':>8s}   {'final':>8s}   {'drift':>8s}")
         print(f"  {'───':>5s}   {'─────':>8s}   {'─────':>8s}   {'─────':>8s}")
         for d in top_dims:
-            print(f"  {d:5d}   {vec_start[d]:+8.4f}   {vec_end[d]:+8.4f}   {total_drift[d]:+8.4f}")
+            print(
+                f"  {d:5d}   {vec_start[d]:+8.4f}   {vec_end[d]:+8.4f}   {total_drift[d]:+8.4f}"
+            )
 
         seen = pipeline_recommender.user_seen_movie_ids.get(user_id, set())
         remaining = _top_n(pipeline_recommender, user_id, 10)
 
-        print(f"\n  Total seen: {len(seen)}, Remaining recs: {len(remaining)}, Online vector stored: {user_id in pipeline_recommender.online_user_vectors}")
+        print(
+            f"\n  Total seen: {len(seen)}, Remaining recs: {len(remaining)}, Online vector stored: {user_id in pipeline_recommender.online_user_vectors}"
+        )
 
         assert len(seen) == 5, f"Expected 5 seen movies, got {len(seen)}"
         assert user_id in pipeline_recommender.online_user_vectors
@@ -615,7 +682,10 @@ class TestSingleUserJourney:
     def _find_movie(artifacts, search_term):
         """Find a movie by title substring. Returns (movie_id, title)."""
         for mid, title in artifacts.movie_id_to_title.items():
-            if search_term.lower() in title.lower() and mid in artifacts.movie_id_to_index:
+            if (
+                search_term.lower() in title.lower()
+                and mid in artifacts.movie_id_to_index
+            ):
                 return mid, title
         return None, None
 
@@ -639,20 +709,20 @@ class TestSingleUserJourney:
 
         # -- Movies to swipe on --
         swipe_plan = [
-            (SwipeAction.LIKE,    "Die Hard"),
-            (SwipeAction.LIKE,    "Terminator 2"),
-            (SwipeAction.LIKE,    "Aliens"),
+            (SwipeAction.LIKE, "Die Hard"),
+            (SwipeAction.LIKE, "Terminator 2"),
+            (SwipeAction.LIKE, "Aliens"),
             (SwipeAction.DISLIKE, "Sleepless in Seattle"),
-            (SwipeAction.SKIP,    "Forrest Gump"),
-            (SwipeAction.LIKE,    "Matrix, The"),
+            (SwipeAction.SKIP, "Forrest Gump"),
+            (SwipeAction.LIKE, "Matrix, The"),
         ]
 
         # -- Probe movies to track scores (NOT swiped, just observed) --
         probe_def = {
-            "Action":  ["Predator", "Total Recall", "RoboCop"],
+            "Action": ["Predator", "Total Recall", "RoboCop"],
             "Romance": ["Pretty Woman", "Notting Hill", "Four Weddings"],
-            "Horror":  ["Shining, The", "Exorcist, The", "Nightmare on Elm St"],
-            "Drama":   ["Schindler's List", "Good Will Hunting", "American Beauty"],
+            "Horror": ["Shining, The", "Exorcist, The", "Nightmare on Elm St"],
+            "Drama": ["Schindler's List", "Good Will Hunting", "American Beauty"],
         }
 
         # Resolve probe movies
@@ -670,7 +740,9 @@ class TestSingleUserJourney:
         def score_probes():
             vec = rec._current_user_vector(USER)
             return {
-                (genre, mid): float(artifacts.movie_embeddings[artifacts.movie_id_to_index[mid]] @ vec)
+                (genre, mid): float(
+                    artifacts.movie_embeddings[artifacts.movie_id_to_index[mid]] @ vec
+                )
                 for genre, movies in probes.items()
                 for mid, _ in movies
             }
@@ -702,12 +774,12 @@ class TestSingleUserJourney:
 
         # ===============================================================
 
-        print(f"\n{'='*75}")
+        print(f"\n{'=' * 75}")
         print(f"  COLD-START USER JOURNEY  (real 64-dim ALS embeddings)")
         print(f"  eta={rec.eta}, norm_cap={rec.norm_cap}")
         n_users = len(artifacts.user_id_to_index)
         print(f"  Starting from mean of {n_users:,} user embeddings")
-        print(f"{'='*75}")
+        print(f"{'=' * 75}")
 
         # -- Print resolved movies --
         print(f"\n  Swipe targets:")
@@ -754,7 +826,9 @@ class TestSingleUserJourney:
                 scores_after_skip = scores
 
             label = action.value.upper()
-            print(f"\n  STEP {step}  {label} \"{title}\"  norm={np.linalg.norm(vec_after):.4f}  delta={delta_norm:.4f}")
+            print(
+                f'\n  STEP {step}  {label} "{title}"  norm={np.linalg.norm(vec_after):.4f}  delta={delta_norm:.4f}'
+            )
             print(f"  {_sparkline(vec_after, spark_min, spark_max)}")
             print_probe_table(scores, prev)
 
@@ -765,9 +839,9 @@ class TestSingleUserJourney:
         seen = rec.user_seen_movie_ids.get(USER, set())
         final_avgs = avg_by_genre(scores)
 
-        print(f"\n  {'='*71}")
+        print(f"\n  {'=' * 71}")
         print(f"  JOURNEY SUMMARY")
-        print(f"  {'='*71}")
+        print(f"  {'=' * 71}")
         print(f"  Swipes: 4 LIKES (action/sci-fi), 1 DISLIKE (romance), 1 SKIP (drama)")
         print(f"  Total seen: {len(seen)},  Vector drift: {drift:.4f}")
         print()
@@ -784,7 +858,7 @@ class TestSingleUserJourney:
             else:
                 bar = "-" * bar_len
             print(f"    {genre:<8s}  {d:+.4f}  {bar}")
-        print(f"  {'='*71}")
+        print(f"  {'=' * 71}")
         print()
 
         # -- Assertions --

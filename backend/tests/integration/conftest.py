@@ -41,9 +41,12 @@ def _download_movielens_20m(raw_dir: Path):
 
     print(f"Downloading MovieLens 20M from {ML20M_URL}...")
     import certifi
+
     ssl_ctx = ssl.create_default_context(cafile=certifi.where())
-    with urllib.request.urlopen(ML20M_URL, context=ssl_ctx) as resp, \
-         open(zip_path, "wb") as out:
+    with (
+        urllib.request.urlopen(ML20M_URL, context=ssl_ctx) as resp,
+        open(zip_path, "wb") as out,
+    ):
         shutil.copyfileobj(resp, out)
 
     with zipfile.ZipFile(zip_path) as zf:
