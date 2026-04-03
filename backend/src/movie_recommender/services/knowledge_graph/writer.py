@@ -31,103 +31,123 @@ async def upsert_movie_to_kg(driver: AsyncDriver, details: MovieDetails) -> None
             is_adult=details.is_adult,
         )
 
-        # Cast and crew relationships
-        for member in details.cast:
+        # Cast and crew — batched by role type
+        directors = []
+        actors = []
+        writers = []
+        producers = []
+        for i, member in enumerate(details.cast):
             if not member.tmdb_person_id:
                 continue
-
+            person = {
+                "person_id": member.tmdb_person_id,
+                "name": member.name,
+                "image_url": member.profile_path,
+            }
             if member.role_type == "Director":
-                await session.run(
-                    """
-                    MERGE (p:Person {tmdb_id: $person_id})
-                    SET p.name = $name, p.image_url = $image_url
-                    WITH p
-                    MATCH (m:Movie {tmdb_id: $movie_id})
-                    MERGE (m)-[:DIRECTED_BY]->(p)
-                    """,
-                    person_id=member.tmdb_person_id,
-                    name=member.name,
-                    image_url=member.profile_path,
-                    movie_id=details.tmdb_id,
-                )
+                directors.append(person)
             elif member.role_type == "Actor":
-                await session.run(
-                    """
-                    MERGE (p:Person {tmdb_id: $person_id})
-                    SET p.name = $name, p.image_url = $image_url
-                    WITH p
-                    MATCH (m:Movie {tmdb_id: $movie_id})
-                    MERGE (p)-[r:ACTED_IN]->(m)
-                    SET r.character_name = $character_name, r.cast_order = $cast_order
-                    """,
-                    person_id=member.tmdb_person_id,
-                    name=member.name,
-                    image_url=member.profile_path,
-                    movie_id=details.tmdb_id,
-                    character_name=member.character_name,
-                    cast_order=details.cast.index(member),
-                )
+                person["character_name"] = member.character_name
+                person["cast_order"] = i
+                actors.append(person)
             elif member.role_type == "Writer":
-                await session.run(
-                    """
-                    MERGE (p:Person {tmdb_id: $person_id})
-                    SET p.name = $name, p.image_url = $image_url
-                    WITH p
-                    MATCH (m:Movie {tmdb_id: $movie_id})
-                    MERGE (m)-[:WRITTEN_BY]->(p)
-                    """,
-                    person_id=member.tmdb_person_id,
-                    name=member.name,
-                    image_url=member.profile_path,
-                    movie_id=details.tmdb_id,
-                )
+                writers.append(person)
             elif member.role_type == "Producer":
-                await session.run(
-                    """
-                    MERGE (p:Person {tmdb_id: $person_id})
-                    SET p.name = $name, p.image_url = $image_url
-                    WITH p
-                    MATCH (m:Movie {tmdb_id: $movie_id})
-                    MERGE (m)-[:PRODUCED_BY]->(p)
-                    """,
-                    person_id=member.tmdb_person_id,
-                    name=member.name,
-                    image_url=member.profile_path,
-                    movie_id=details.tmdb_id,
-                )
+                producers.append(person)
 
-        # Genre relationships
+        if directors:
+            await session.run(
+                """
+                UNWIND $people AS p
+                MERGE (person:Person {tmdb_id: p.person_id})
+                SET person.name = p.name, person.image_url = p.image_url
+                WITH person
+                MATCH (m:Movie {tmdb_id: $movie_id})
+                MERGE (m)-[:DIRECTED_BY]->(person)
+                """,
+                people=directors,
+                movie_id=details.tmdb_id,
+            )
+
+        if actors:
+            await session.run(
+                """
+                UNWIND $people AS p
+                MERGE (person:Person {tmdb_id: p.person_id})
+                SET person.name = p.name, person.image_url = p.image_url
+                WITH person, p
+                MATCH (m:Movie {tmdb_id: $movie_id})
+                MERGE (person)-[r:ACTED_IN]->(m)
+                SET r.character_name = p.character_name, r.cast_order = p.cast_order
+                """,
+                people=actors,
+                movie_id=details.tmdb_id,
+            )
+
+        if writers:
+            await session.run(
+                """
+                UNWIND $people AS p
+                MERGE (person:Person {tmdb_id: p.person_id})
+                SET person.name = p.name, person.image_url = p.image_url
+                WITH person
+                MATCH (m:Movie {tmdb_id: $movie_id})
+                MERGE (m)-[:WRITTEN_BY]->(person)
+                """,
+                people=writers,
+                movie_id=details.tmdb_id,
+            )
+
+        if producers:
+            await session.run(
+                """
+                UNWIND $people AS p
+                MERGE (person:Person {tmdb_id: p.person_id})
+                SET person.name = p.name, person.image_url = p.image_url
+                WITH person
+                MATCH (m:Movie {tmdb_id: $movie_id})
+                MERGE (m)-[:PRODUCED_BY]->(person)
+                """,
+                people=producers,
+                movie_id=details.tmdb_id,
+            )
+
+        # Genre relationships — batched
         if details.genre_tmdb_ids and len(details.genre_tmdb_ids) == len(
             details.genres
         ):
-            for genre_name, genre_tmdb_id in zip(
-                details.genres, details.genre_tmdb_ids
-            ):
-                await session.run(
-                    """
-                    MERGE (g:Genre {tmdb_id: $genre_id})
-                    SET g.name = $name
-                    WITH g
-                    MATCH (m:Movie {tmdb_id: $movie_id})
-                    MERGE (m)-[:HAS_GENRE]->(g)
-                    """,
-                    genre_id=genre_tmdb_id,
-                    name=genre_name,
-                    movie_id=details.tmdb_id,
-                )
-
-        # Keyword relationships
-        for kw in details.keywords:
+            genres = [
+                {"genre_id": gid, "name": gname}
+                for gname, gid in zip(details.genres, details.genre_tmdb_ids)
+            ]
             await session.run(
                 """
-                MERGE (k:Keyword {tmdb_id: $kw_id})
-                SET k.name = $name
+                UNWIND $genres AS g
+                MERGE (genre:Genre {tmdb_id: g.genre_id})
+                SET genre.name = g.name
+                WITH genre
+                MATCH (m:Movie {tmdb_id: $movie_id})
+                MERGE (m)-[:HAS_GENRE]->(genre)
+                """,
+                genres=genres,
+                movie_id=details.tmdb_id,
+            )
+
+        # Keyword relationships — batched
+        if details.keywords:
+            keywords = [
+                {"kw_id": kw.tmdb_id, "name": kw.name} for kw in details.keywords
+            ]
+            await session.run(
+                """
+                UNWIND $keywords AS kw
+                MERGE (k:Keyword {tmdb_id: kw.kw_id})
+                SET k.name = kw.name
                 WITH k
                 MATCH (m:Movie {tmdb_id: $movie_id})
                 MERGE (m)-[:HAS_KEYWORD]->(k)
                 """,
-                kw_id=kw.tmdb_id,
-                name=kw.name,
+                keywords=keywords,
                 movie_id=details.tmdb_id,
             )
 
@@ -148,19 +168,26 @@ async def upsert_movie_to_kg(driver: AsyncDriver, details: MovieDetails) -> None
                 part_number=details.collection.part_number,
             )
 
-        # Production company relationships
-        for pc in details.production_companies:
+        # Production company relationships — batched
+        if details.production_companies:
+            companies = [
+                {
+                    "pc_id": pc.tmdb_id,
+                    "name": pc.name,
+                    "country": pc.origin_country,
+                }
+                for pc in details.production_companies
+            ]
             await session.run(
                 """
-                MERGE (pc:ProductionCompany {tmdb_id: $pc_id})
-                SET pc.name = $name, pc.origin_country = $country
+                UNWIND $companies AS c
+                MERGE (pc:ProductionCompany {tmdb_id: c.pc_id})
+                SET pc.name = c.name, pc.origin_country = c.country
                 WITH pc
                 MATCH (m:Movie {tmdb_id: $movie_id})
                 MERGE (m)-[:PRODUCED_BY]->(pc)
                 """,
-                pc_id=pc.tmdb_id,
-                name=pc.name,
-                country=pc.origin_country,
+                companies=companies,
                 movie_id=details.tmdb_id,
             )
 
