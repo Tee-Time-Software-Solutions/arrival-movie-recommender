@@ -216,3 +216,198 @@ async def save_beacon_map(redis_client, user_id: int, beacon_map: BeaconMap) -> 
         pipe.hset(redis_key, field, json.dumps(asdict(entry)))
     pipe.expire(redis_key, BEACON_TTL_SECONDS)
     await pipe.execute()
+
+
+PEOPLE_ENTITY_TYPES = {"Director", "Actor", "Writer"}
+
+
+async def get_top_people(
+    redis_client,
+    neo4j_driver: AsyncDriver,
+    db: AsyncSession,
+    user_id: int,
+    limit: int = 5,
+) -> dict[str, list[dict]]:
+    """
+    Extract top directors, actors, and writers from the beacon map.
+    Returns a dict with keys 'directors', 'actors', 'writers',
+    each containing a list of dicts with tmdb_id, name, entity_type, weight,
+    image_url, and linked_movies (user's liked movies they appear in).
+    """
+    beacon_map = await load_beacon_map(redis_client, user_id)
+    if beacon_map is None:
+        beacon_map = await build_beacon_map(neo4j_driver, db, user_id)
+        if beacon_map:
+            await save_beacon_map(redis_client, user_id, beacon_map)
+
+    # Filter to people with positive weight, group by type
+    grouped: dict[str, list[BeaconEntry]] = {
+        "Director": [],
+        "Actor": [],
+        "Writer": [],
+    }
+    for entry in beacon_map.values():
+        if entry.entity_type in PEOPLE_ENTITY_TYPES and entry.weight > 0:
+            grouped[entry.entity_type].append(entry)
+
+    # Sort each group by weight desc, take top N
+    for entity_type in grouped:
+        grouped[entity_type].sort(key=lambda e: e.weight, reverse=True)
+        grouped[entity_type] = grouped[entity_type][:limit]
+
+    # Collect all person tmdb_ids for batch queries
+    all_tmdb_ids = [
+        entry.tmdb_id
+        for entries in grouped.values()
+        for entry in entries
+    ]
+
+    if not all_tmdb_ids:
+        return {"directors": [], "actors": [], "writers": []}
+
+    # Batch fetch person images
+    image_map = await _batch_fetch_person_images(neo4j_driver, all_tmdb_ids)
+
+    # Get user's liked movie tmdb_ids from swipes
+    liked_tmdb_ids = await _get_liked_movie_tmdb_ids(db, user_id)
+
+    # Batch fetch linked movies (which liked movies each person appears in)
+    linked_movies_map: dict[int, list[dict]] = {}
+    if liked_tmdb_ids:
+        linked_movies_map = await _batch_fetch_linked_movies(
+            neo4j_driver, db, all_tmdb_ids, liked_tmdb_ids
+        )
+
+    # Build response dicts
+    result = {}
+    type_to_key = {"Director": "directors", "Actor": "actors", "Writer": "writers"}
+    for entity_type, response_key in type_to_key.items():
+        result[response_key] = [
+            {
+                "tmdb_id": entry.tmdb_id,
+                "name": entry.name,
+                "entity_type": entry.entity_type,
+                "weight": round(entry.weight, 2),
+                "image_url": image_map.get(entry.tmdb_id),
+                "linked_movies": linked_movies_map.get(entry.tmdb_id, []),
+            }
+            for entry in grouped[entity_type]
+        ]
+
+    return result
+
+
+async def _batch_fetch_person_images(
+    neo4j_driver: AsyncDriver, tmdb_ids: list[int]
+) -> dict[int, str | None]:
+    """Batch-fetch image_url for Person nodes from Neo4j."""
+    image_map: dict[int, str | None] = {}
+    async with neo4j_driver.session() as session:
+        result = await session.run(
+            """
+            UNWIND $tmdb_ids AS tid
+            MATCH (p:Person {tmdb_id: tid})
+            RETURN p.tmdb_id AS tmdb_id, p.image_url AS image_url
+            """,
+            tmdb_ids=tmdb_ids,
+        )
+        records = await result.data()
+        for record in records:
+            image_map[record["tmdb_id"]] = record["image_url"]
+    return image_map
+
+
+async def get_person_linked_movies(
+    neo4j_driver: AsyncDriver,
+    db: AsyncSession,
+    user_id: int,
+    person_tmdb_id: int,
+) -> list[dict]:
+    """
+    For a single person, find which of the user's liked movies they appear in.
+    Returns [{tmdb_id, title, poster_url}, ...].
+    """
+    liked_tmdb_ids = await _get_liked_movie_tmdb_ids(db, user_id)
+    if not liked_tmdb_ids:
+        return []
+
+    result = await _batch_fetch_linked_movies(
+        neo4j_driver, db, [person_tmdb_id], liked_tmdb_ids
+    )
+    return result.get(person_tmdb_id, [])
+
+
+async def _get_liked_movie_tmdb_ids(
+    db: AsyncSession, user_id: int
+) -> list[int]:
+    """Get tmdb_ids of movies the user liked (positive swipe score)."""
+    result = await db.execute(
+        select(movies.c.tmdb_id)
+        .join(swipes, swipes.c.movie_id == movies.c.id)
+        .where(
+            swipes.c.user_id == user_id,
+            swipes.c.action_type == "like",
+            movies.c.tmdb_id.isnot(None),
+        )
+        .distinct()
+    )
+    return [row.tmdb_id for row in result.fetchall()]
+
+
+async def _batch_fetch_linked_movies(
+    neo4j_driver: AsyncDriver,
+    db: AsyncSession,
+    person_tmdb_ids: list[int],
+    liked_tmdb_ids: list[int],
+) -> dict[int, list[dict]]:
+    """
+    For each person, find which of the user's liked movies they appear in.
+    Returns {person_tmdb_id: [{tmdb_id, title, poster_url}, ...]}.
+    """
+    # Query Neo4j for person-movie connections within liked movies
+    person_movies: dict[int, list[dict]] = {}
+    async with neo4j_driver.session() as session:
+        result = await session.run(
+            """
+            UNWIND $person_tmdb_ids AS pid
+            MATCH (p:Person {tmdb_id: pid})
+            MATCH (p)-[:ACTED_IN|DIRECTED_BY|WRITTEN_BY]-(m:Movie)
+            WHERE m.tmdb_id IN $liked_tmdb_ids
+            RETURN pid AS person_tmdb_id,
+                   collect(DISTINCT {tmdb_id: m.tmdb_id, title: m.title}) AS movies
+            """,
+            person_tmdb_ids=person_tmdb_ids,
+            liked_tmdb_ids=liked_tmdb_ids,
+        )
+        records = await result.data()
+        for record in records:
+            person_movies[record["person_tmdb_id"]] = record["movies"]
+
+    # Collect all unique movie tmdb_ids to batch-fetch poster_urls from PostgreSQL
+    all_movie_tmdb_ids = set()
+    for movie_list in person_movies.values():
+        for m in movie_list:
+            all_movie_tmdb_ids.add(m["tmdb_id"])
+
+    poster_map: dict[int, str | None] = {}
+    if all_movie_tmdb_ids:
+        result = await db.execute(
+            select(movies.c.tmdb_id, movies.c.poster_url).where(
+                movies.c.tmdb_id.in_(list(all_movie_tmdb_ids))
+            )
+        )
+        for row in result.fetchall():
+            poster_map[row.tmdb_id] = row.poster_url
+
+    # Enrich with poster_urls
+    for person_id, movie_list in person_movies.items():
+        person_movies[person_id] = [
+            {
+                "tmdb_id": m["tmdb_id"],
+                "title": m["title"],
+                "poster_url": poster_map.get(m["tmdb_id"]),
+            }
+            for m in movie_list
+        ]
+
+    return person_movies
