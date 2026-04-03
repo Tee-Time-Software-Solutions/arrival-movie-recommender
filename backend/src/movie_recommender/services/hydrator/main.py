@@ -1,6 +1,8 @@
 import asyncio
 import logging
-import requests
+import re
+
+import httpx
 
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.schemas.requests.movies import (
@@ -19,6 +21,17 @@ from movie_recommender.database.CRUD.movies import (
 
 logger = logging.getLogger(__name__)
 
+# Regex for cleaning movie titles from the MovieLens dataset
+_AKA_RE = re.compile(r"\s*\(a\.k\.a\..*?\)")
+_ARTICLE_SUFFIX_RE = re.compile(r"^(.+),\s*(The|A|An)$")
+
+
+def _clean_title(title: str) -> str:
+    """Strip '(a.k.a. ...)' and fix trailing articles: 'Matrix, The' → 'The Matrix'."""
+    cleaned = _AKA_RE.sub("", title)
+    cleaned = _ARTICLE_SUFFIX_RE.sub(r"\2 \1", cleaned)
+    return cleaned.strip()
+
 
 class TMDBFetcher:
     def __init__(self) -> None:
@@ -26,42 +39,43 @@ class TMDBFetcher:
         self.TMDB_API_KEY = settings.tmdb.api_key
         self.BASE_URL = settings.tmdb.base_url
         self.IMG_URL = settings.tmdb.img_url
+        self._client = httpx.AsyncClient(timeout=10.0)
 
     async def get_or_fetch_movie(self, movie_database_id: int, movie_title: str):
         """
         Get movie from DB or fetch from TMDB and store if not found.
         """
         logger.info(f"Hydrating movie: id={movie_database_id}, title={movie_title}")
-        # 1) Check db
-        # movie = await self.db.movies.find_unique(where={"id": movie_id})
-        # if movie:
-        #       return movie
 
-        # 2) Fetch from TMDB and store
-        movie = self._fetch_tmdb_metadata(movie_database_id, movie_title)
+        movie = await self._fetch_tmdb_metadata(movie_database_id, movie_title)
         logger.info(f"Fetched movie from TMDB: {movie.title if movie else None}")
-        # movie = await self.db.movie.create(movie)
         return movie
 
-    def _fetch_tmdb_metadata(
+    async def _fetch_tmdb_metadata(
         self, movie_database_id: int, movie_title: str
-    ) -> MovieDetails:
-        logger.info(f"Searching TMDB for: {movie_title}")
-        search_res = requests.get(
-            f"{self.BASE_URL}/search/movie",
-            params={"api_key": self.TMDB_API_KEY, "query": movie_title},
+    ) -> MovieDetails | None:
+        clean = _clean_title(movie_title)
+        logger.info(f"Searching TMDB for: {clean}")
+
+        search_res = (
+            await self._client.get(
+                f"{self.BASE_URL}/search/movie",
+                params={"api_key": self.TMDB_API_KEY, "query": clean},
+            )
         ).json()
 
         if not search_res["results"]:
             return None
 
         tmdb_id = search_res["results"][0]["id"]
-        detail_res = requests.get(
-            f"{self.BASE_URL}/movie/{tmdb_id}",
-            params={
-                "api_key": self.TMDB_API_KEY,
-                "append_to_response": "credits,videos,watch/providers,keywords",
-            },
+        detail_res = (
+            await self._client.get(
+                f"{self.BASE_URL}/movie/{tmdb_id}",
+                params={
+                    "api_key": self.TMDB_API_KEY,
+                    "append_to_response": "credits,videos,watch/providers,keywords",
+                },
+            )
         ).json()
 
         trailer_url = self._extract_trailer_url(detail_res)
@@ -220,7 +234,7 @@ class MovieHydrator:
                 logger.info(f"Movie found in DB: {movie.title}")
                 return await movie_to_details(db, movie_db_id)
 
-        movie_details = self.tmdb._fetch_tmdb_metadata(movie_db_id, movie_title)
+        movie_details = await self.tmdb._fetch_tmdb_metadata(movie_db_id, movie_title)
         if not movie_details:
             logger.warning(f"Could not find movie on TMDB: {movie_title}")
             return None

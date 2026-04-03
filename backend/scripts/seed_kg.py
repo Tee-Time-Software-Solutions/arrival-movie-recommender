@@ -11,7 +11,7 @@ and upserts each into the KG. Rate-limited to respect TMDB API limits.
 import argparse
 import asyncio
 import logging
-import time
+import asyncio
 
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.core.clients.neo4j import Neo4jClient
@@ -59,7 +59,7 @@ async def seed_kg(limit: int | None = None, offset: int = 0) -> None:
     failed = 0
     for i, row in enumerate(movie_rows):
         try:
-            details = tmdb_fetcher._fetch_tmdb_metadata(row.id, row.title)
+            details = await tmdb_fetcher._fetch_tmdb_metadata(row.id, row.title)
             if details:
                 await upsert_movie_to_kg(neo4j_driver, details)
                 success += 1
@@ -73,7 +73,7 @@ async def seed_kg(limit: int | None = None, offset: int = 0) -> None:
         if (i + 1) % 10 == 0:
             logger.info(f"Progress: {i + 1}/{total} (success={success}, failed={failed})")
 
-        time.sleep(RATE_LIMIT_DELAY)
+        await asyncio.sleep(RATE_LIMIT_DELAY)
 
     logger.info(
         f"Seeding complete: {success} succeeded, {failed} failed out of {total}"
