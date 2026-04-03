@@ -1,12 +1,28 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 
-import { Heart, ThumbsDown, Star, MousePointerClick, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Heart,
+  ThumbsDown,
+  Star,
+  MousePointerClick,
+  Eye,
+  ChevronRight,
+} from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
-import type { UserProfileSummary } from "@/types/user";
+import type { UserProfileSummary, TopPeopleResponse } from "@/types/user";
 import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
+import { TopPeopleSection } from "./TopPeopleSection";
+import { MoviesDrawer } from "./MoviesDrawer";
 import { useAuthStore } from "@/stores/authStore";
-import { getProfileSummary, getLikedMovies, getRatedMovies } from "@/services/api/user";
+import {
+  getProfileSummary,
+  getLikedMovies,
+  getRatedMovies,
+  getTopPeople,
+} from "@/services/api/user";
+
+type DrawerType = "liked" | "rated";
 
 export function ProfilePage() {
   const { user, firebaseUid } = useAuthStore();
@@ -15,10 +31,11 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(null);
-  const [showRatedMovies, setShowRatedMovies] = useState(false);
+  const [topPeople, setTopPeople] = useState<TopPeopleResponse | null>(null);
+
+  // Movies drawer state
+  const [drawerType, setDrawerType] = useState<DrawerType | null>(null);
   const [ratedMovies, setRatedMovies] = useState<MovieDetails[]>([]);
-  const [ratedMoviesTotal, setRatedMoviesTotal] = useState(0);
-  const [loadingRated, setLoadingRated] = useState(false);
 
   useEffect(() => {
     if (!firebaseUid) {
@@ -26,14 +43,25 @@ export function ProfilePage() {
       return;
     }
     setLoading(true);
-    Promise.all([getProfileSummary(firebaseUid), getLikedMovies(firebaseUid)])
-      .then(([profileData, likedData]) => {
+    Promise.all([
+      getProfileSummary(firebaseUid),
+      getLikedMovies(firebaseUid, 200),
+      getTopPeople(firebaseUid),
+      getRatedMovies(firebaseUid, 200),
+    ])
+      .then(([profileData, likedData, topPeopleData, ratedData]) => {
         setProfile(profileData);
         setLikedMovies(likedData.items);
+        setTopPeople(topPeopleData);
+        setRatedMovies(ratedData.items);
       })
       .catch(() => setError("Failed to load profile"))
       .finally(() => setLoading(false));
   }, [firebaseUid]);
+
+  const handleOpenDrawer = (type: DrawerType) => {
+    setDrawerType(type);
+  };
 
   if (loading) {
     return (
@@ -56,25 +84,10 @@ export function ProfilePage() {
   const { profile: displayInfo, stats } = profile;
   const avatarUrl = displayInfo.avatar_url || user?.photoURL;
 
-  const handleToggleRated = async () => {
-    if (showRatedMovies) {
-      setShowRatedMovies(false);
-      return;
-    }
-    setShowRatedMovies(true);
-    if (ratedMovies.length > 0) return;
-    if (!firebaseUid) return;
-    setLoadingRated(true);
-    try {
-      const data = await getRatedMovies(firebaseUid, 50);
-      setRatedMovies(data.items);
-      setRatedMoviesTotal(data.total);
-    } catch {
-      // fail silently — the section just stays empty
-    } finally {
-      setLoadingRated(false);
-    }
-  };
+  const drawerMovies = drawerType === "liked" ? likedMovies : ratedMovies;
+  const drawerTitle =
+    drawerType === "liked" ? "Recently Liked" : "All Films Seen";
+  const drawerLoading = false;
 
   return (
     <div className="min-h-screen px-4 pb-20 pt-10 md:pb-4">
@@ -112,7 +125,9 @@ export function ProfilePage() {
             <div className="text-center">
               <div className="flex items-center justify-center gap-1">
                 <ThumbsDown className="h-4 w-4 text-red-500" />
-                <span className="text-xl font-bold">{stats.total_dislikes}</span>
+                <span className="text-xl font-bold">
+                  {stats.total_dislikes}
+                </span>
               </div>
               <p className="text-[10px] text-muted-foreground">Passed</p>
             </div>
@@ -123,20 +138,13 @@ export function ProfilePage() {
               </div>
               <p className="text-[10px] text-muted-foreground">Swipes</p>
             </div>
-            <button onClick={handleToggleRated} className="text-center transition hover:opacity-80">
+            <div className="text-center">
               <div className="flex items-center justify-center gap-1">
                 <Eye className="h-4 w-4 text-purple-500" />
                 <span className="text-xl font-bold">{stats.total_seen}</span>
               </div>
-              <div className="flex items-center justify-center gap-0.5">
-                <p className="text-[10px] text-muted-foreground">Films Seen</p>
-                {showRatedMovies ? (
-                  <ChevronUp className="h-3 w-3 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                )}
-              </div>
-            </button>
+              <p className="text-[10px] text-muted-foreground">Films Seen</p>
+            </div>
           </div>
         </div>
       </div>
@@ -158,87 +166,113 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* All rated movies (expandable) */}
-      <AnimatePresence>
-        {showRatedMovies && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-8 overflow-hidden"
-          >
-            <h2 className="mb-4 text-lg font-semibold">
-              All Films Seen ({ratedMoviesTotal})
-            </h2>
-            {loadingRated ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : ratedMovies.length > 0 ? (
-              <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
-                {ratedMovies.map((movie) => (
-                  <button
-                    key={movie.movie_db_id}
-                    onClick={() => setSelectedMovie(movie)}
-                    className="group flex flex-col items-center"
-                  >
-                    <div className="relative overflow-hidden rounded-lg">
-                      <img
-                        src={movie.poster_url}
-                        alt={movie.title}
-                        className="h-36 w-24 object-cover transition group-hover:scale-105"
-                      />
-                      <div className="absolute bottom-0 inset-x-0 bg-black/70 px-1 py-0.5 flex items-center justify-center gap-0.5">
-                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                        <span className="text-[10px] text-white">{movie.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    <p className="mt-1 w-24 truncate text-center text-[11px] text-muted-foreground">
-                      {movie.title}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No rated movies yet.</p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Recently liked movies from local store */}
-      {likedMovies.length > 0 && (
-        <div className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold">Recently Liked</h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {likedMovies.slice(-15).reverse().map((movie) => (
-              <button
-                key={movie.movie_db_id}
-                onClick={() => setSelectedMovie(movie)}
-                className="group flex shrink-0 flex-col items-center"
-              >
-                <div className="relative overflow-hidden rounded-lg">
-                  <img
-                    src={movie.poster_url}
-                    alt={movie.title}
-                    className="h-36 w-24 object-cover transition group-hover:scale-105"
-                  />
-                  <div className="absolute bottom-0 inset-x-0 bg-black/70 px-1 py-0.5 flex items-center justify-center gap-0.5">
-                    <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                    <span className="text-[10px] text-white">{movie.rating.toFixed(1)}</span>
-                  </div>
-                </div>
-                <p className="mt-1 w-24 truncate text-center text-[11px] text-muted-foreground">
-                  {movie.title}
-                </p>
-              </button>
-            ))}
+      {/* ── People & Movies side-by-side ── */}
+      <div className="mb-8 flex flex-col gap-6 lg:flex-row">
+        {/* People panel */}
+        {topPeople && (
+          <div className="min-w-0 flex-1 rounded-xl border border-violet-500/20 bg-violet-500/5 p-5">
+            <TopPeopleSection data={topPeople} />
           </div>
-        </div>
-      )}
+        )}
 
-      {likedMovies.length === 0 && (
+        {/* Movies panel */}
+        {(likedMovies.length > 0 || stats.total_seen > 0) && (
+          <div className="min-w-0 flex-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
+            <h2 className="mb-4 text-lg font-semibold">Your Movies</h2>
+
+            {/* Recently Liked row */}
+            {likedMovies.length > 0 && (
+              <div className="mb-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Recently Liked
+                  </h3>
+                  <button
+                    onClick={() => handleOpenDrawer("liked")}
+                    className="flex items-center gap-0.5 text-xs text-primary transition hover:opacity-80"
+                  >
+                    See All <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {likedMovies
+                    .slice(-8)
+                    .reverse()
+                    .map((movie) => (
+                      <button
+                        key={movie.movie_db_id}
+                        onClick={() => setSelectedMovie(movie)}
+                        className="group flex shrink-0 flex-col items-center"
+                      >
+                        <div className="relative overflow-hidden rounded-lg">
+                          <img
+                            src={movie.poster_url}
+                            alt={movie.title}
+                            className="h-36 w-24 object-cover transition group-hover:scale-105"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/70 px-1 py-0.5">
+                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                            <span className="text-[10px] text-white">
+                              {movie.rating.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-1 w-24 truncate text-center text-[11px] text-muted-foreground">
+                          {movie.title}
+                        </p>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* All Films Seen row */}
+            {stats.total_seen > 0 && (
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    All Films Seen ({stats.total_seen})
+                  </h3>
+                  <button
+                    onClick={() => handleOpenDrawer("rated")}
+                    className="flex items-center gap-0.5 text-xs text-primary transition hover:opacity-80"
+                  >
+                    See All <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {ratedMovies.slice(0, 8).map((movie) => (
+                    <button
+                      key={movie.movie_db_id}
+                      onClick={() => setSelectedMovie(movie)}
+                      className="group flex shrink-0 flex-col items-center"
+                    >
+                      <div className="relative overflow-hidden rounded-lg">
+                        <img
+                          src={movie.poster_url}
+                          alt={movie.title}
+                          className="h-36 w-24 object-cover transition group-hover:scale-105"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/70 px-1 py-0.5">
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                          <span className="text-[10px] text-white">
+                            {movie.rating.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="mt-1 w-24 truncate text-center text-[11px] text-muted-foreground">
+                        {movie.title}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {likedMovies.length === 0 && stats.total_seen === 0 && !topPeople && (
         <div className="py-12 text-center">
           <p className="text-muted-foreground">
             Start swiping to build your movie collection!
@@ -246,6 +280,20 @@ export function ProfilePage() {
         </div>
       )}
 
+      {/* Movies drawer overlay */}
+      <AnimatePresence>
+        {drawerType && (
+          <MoviesDrawer
+            title={drawerTitle}
+            movies={drawerMovies}
+            loading={drawerLoading}
+            onClose={() => setDrawerType(null)}
+            onMovieClick={setSelectedMovie}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Movie detail overlay */}
       <AnimatePresence>
         {selectedMovie && (
           <MovieDetail
