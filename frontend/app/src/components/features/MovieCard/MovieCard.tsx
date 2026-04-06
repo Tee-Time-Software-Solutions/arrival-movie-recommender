@@ -16,7 +16,7 @@ interface MovieCardProps {
   onSuperLike: () => void;
   onSuperDislike: () => void;
   onExpand: () => void;
-  onWatched: () => void;
+  onSkipped: () => void;
   isTop: boolean;
   forceSwipe?: "left" | "right" | "down" | null;
 }
@@ -31,7 +31,7 @@ export function MovieCard({
   onSuperLike,
   onSuperDislike,
   onExpand,
-  onWatched,
+  onSkipped,
   isTop,
   forceSwipe,
 }: MovieCardProps) {
@@ -78,7 +78,7 @@ export function MovieCard({
   const likeOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
   const dislikeOpacity = useTransform(x, [-SWIPE_THRESHOLD, 0], [1, 0]);
   const detailsOpacity = useTransform(y, [-SWIPE_THRESHOLD, 0], [1, 0]);
-  const watchedOpacity = useTransform(y, [0, SWIPE_THRESHOLD], [0, 1]);
+  const skippedOpacity = useTransform(y, [0, SWIPE_THRESHOLD], [0, 1]);
 
   const handlePointerDown = () => {
     holdTimerRef.current = setTimeout(() => {
@@ -117,7 +117,7 @@ export function MovieCard({
       } else if (offset.y > SWIPE_THRESHOLD || velocity.y > 500) {
         setExitY(500);
         setSwiped(true);
-        onWatched();
+        onSkipped();
       }
     }
   };
@@ -197,13 +197,13 @@ export function MovieCard({
         <span className="text-2xl font-bold text-blue-500">INFO</span>
       </motion.div>
 
-      {/* WATCHED stamp */}
+      {/* SKIP stamp */}
       <motion.div
         className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-xl border-4 border-violet-500 bg-violet-500/10 px-4 py-2"
-        style={forceSwipe === null || forceSwipe === undefined ? { opacity: watchedOpacity } : undefined}
+        style={forceSwipe === null || forceSwipe === undefined ? { opacity: skippedOpacity } : undefined}
         animate={forceSwipe ? { opacity: forceSwipe === "down" ? 1 : 0 } : undefined}
       >
-        <span className="text-2xl font-bold text-violet-500">WATCHED</span>
+        <span className="text-2xl font-bold text-violet-500">SKIP</span>
       </motion.div>
 
       {/* Supercharged glow overlay */}
