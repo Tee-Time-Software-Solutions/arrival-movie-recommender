@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     MetaData,
     String,
@@ -132,6 +133,7 @@ swipes = Table(
     Column("action_type", String(16), nullable=False),
     Column("is_supercharged", Boolean, default=False, nullable=False),
     Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    Index("ix_swipes_user_movie", "user_id", "movie_id"),
 )
 
 watchlist = Table(

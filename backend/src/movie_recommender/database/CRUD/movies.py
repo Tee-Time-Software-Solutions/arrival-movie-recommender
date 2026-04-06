@@ -25,12 +25,6 @@ async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieRow | None:
     return result.first()
 
 
-async def create_movie_stub(db: AsyncSession, title: str) -> MovieRow:
-    """Create a movie with just a title. Returns row with auto-generated ID."""
-    result = await db.execute(insert(movies).values(title=title).returning(*movies.c))
-    await db.commit()
-    return result.first()
-
 
 async def save_hydrated_movie(
     db: AsyncSession, movie_db_id: int, details: MovieDetails

@@ -5,7 +5,6 @@ from .watchlist import (
     remove_from_watchlist as remove_from_watchlist,
 )
 from .movies import (
-    create_movie_stub as create_movie_stub,
     get_movie_by_id as get_movie_by_id,
     movie_to_details as movie_to_details,
     save_hydrated_movie as save_hydrated_movie,
