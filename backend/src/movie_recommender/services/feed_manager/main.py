@@ -11,15 +11,7 @@ from movie_recommender.services.recommender.main import Recommender
 
 logger = logging.getLogger(__name__)
 
-
-# async def get_filtered_movies_for_user(db: AsyncSession, user_id: int) -> List[int]:
-#     """Get list of movie IDs to exclude based on user preferences."""
-#     from movie_recommender.database.CRUD.users import get_user_preferences
-#     preferences = await get_user_preferences(db, user_id)
-#     if not preferences:
-#         return []
-#     # TODO: query movies that don't match preference filters (genres, year range, rating)
-#     return []
+SEEN_KEY_PREFIX = "seen:user:"
 
 
 class FeedManager:
@@ -46,15 +38,23 @@ class FeedManager:
         """
         1. Extract from queue
         2. Refill queue if empty (blocking refill) or below threshold
-        3. Hydrate movie info onto database
+        3. Skip any movie the user already interacted with (Redis seen set)
+        4. Hydrate movie info onto database
         """
         queue_key = f"feed:user:{user_id}"
 
-        movie_data = await self.redis_client.lpop(queue_key)
+        # Redis seen set is updated synchronously on every swipe,
+        # so it's always current for the active session.
+        seen_ids: set[int] = set()
+        redis_seen = await self.redis_client.smembers(f"{SEEN_KEY_PREFIX}{user_id}")
+        if redis_seen:
+            seen_ids = {int(m) for m in redis_seen}
+
+        movie_data = await self._pop_unseen(queue_key, seen_ids)
 
         if not movie_data:
             await self.refill_queue(user_id, queue_key)
-            movie_data = await self.redis_client.lpop(queue_key)
+            movie_data = await self._pop_unseen(queue_key, seen_ids)
         else:
             queue_len = await self.redis_client.llen(queue_key)
             if queue_len < self.settings.app_logic.queue_min_capacity:
@@ -71,6 +71,18 @@ class FeedManager:
             movie_details = await self._attach_explanation(user_id, movie_details)
 
         return movie_details
+
+    async def _pop_unseen(
+        self, queue_key: str, seen_ids: set[int]
+    ) -> str | None:
+        """Pop entries from the queue, skipping any the user already interacted with."""
+        while True:
+            raw = await self.redis_client.lpop(queue_key)
+            if raw is None:
+                return None
+            movie_id, _ = json.loads(raw)
+            if int(movie_id) not in seen_ids:
+                return raw
 
     async def _attach_explanation(
         self, user_id: int, movie_details: MovieDetails
@@ -124,6 +136,7 @@ class FeedManager:
             user_id=user_id,
             list_of_movie_ids=list(self.recommender.artifacts.movie_id_to_index.keys()),
         )
+
         movies = [
             (
                 movie_id,
