@@ -24,7 +24,5 @@ async def get_linked_movies_for_person(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    results = await get_person_linked_movies(
-        neo4j_driver, db, user.id, person_tmdb_id
-    )
+    results = await get_person_linked_movies(neo4j_driver, db, user.id, person_tmdb_id)
     return [LinkedMovie(**m) for m in results]

@@ -256,11 +256,7 @@ async def get_top_people(
         grouped[entity_type] = grouped[entity_type][:limit]
 
     # Collect all person tmdb_ids for batch queries
-    all_tmdb_ids = [
-        entry.tmdb_id
-        for entries in grouped.values()
-        for entry in entries
-    ]
+    all_tmdb_ids = [entry.tmdb_id for entries in grouped.values() for entry in entries]
 
     if not all_tmdb_ids:
         return {"directors": [], "actors": [], "writers": []}
@@ -337,9 +333,7 @@ async def get_person_linked_movies(
     return result.get(person_tmdb_id, [])
 
 
-async def _get_liked_movie_tmdb_ids(
-    db: AsyncSession, user_id: int
-) -> list[int]:
+async def _get_liked_movie_tmdb_ids(db: AsyncSession, user_id: int) -> list[int]:
     """Get tmdb_ids of movies the user liked (positive swipe score)."""
     result = await db.execute(
         select(movies.c.tmdb_id)

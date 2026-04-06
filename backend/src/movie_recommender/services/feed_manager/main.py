@@ -72,9 +72,7 @@ class FeedManager:
 
         return movie_details
 
-    async def _pop_unseen(
-        self, queue_key: str, seen_ids: set[int]
-    ) -> str | None:
+    async def _pop_unseen(self, queue_key: str, seen_ids: set[int]) -> str | None:
         """Pop entries from the queue, skipping any the user already interacted with."""
         while True:
             raw = await self.redis_client.lpop(queue_key)

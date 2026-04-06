@@ -25,7 +25,6 @@ async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieRow | None:
     return result.first()
 
 
-
 async def save_hydrated_movie(
     db: AsyncSession, movie_db_id: int, details: MovieDetails
 ):
