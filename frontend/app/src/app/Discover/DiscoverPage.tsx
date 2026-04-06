@@ -63,7 +63,7 @@ export function DiscoverPage() {
     registerSwipe(movie.movie_db_id, "dislike").catch(console.error);
   };
 
-  const handleWatched = async (movie: MovieDetails) => {
+  const handleSkipped = async (movie: MovieDetails) => {
     nextMovie();
     registerSwipe(movie.movie_db_id, "skip").catch(console.error);
   };
@@ -116,7 +116,7 @@ export function DiscoverPage() {
         currentIndex={currentIndex}
         onLike={handleLike}
         onDislike={handleDislike}
-        onWatched={handleWatched}
+        onSkipped={handleSkipped}
         onSuperLike={handleSuperLike}
         onSuperDislike={handleSuperDislike}
       />

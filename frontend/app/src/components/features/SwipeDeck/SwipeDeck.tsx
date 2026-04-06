@@ -16,7 +16,7 @@ interface SwipeDeckProps {
   currentIndex: number;
   onLike: (movie: MovieDetails) => void;
   onDislike: (movie: MovieDetails) => void;
-  onWatched: (movie: MovieDetails) => void;
+  onSkipped: (movie: MovieDetails) => void;
   onSuperLike: (movie: MovieDetails) => void;
   onSuperDislike: (movie: MovieDetails) => void;
 }
@@ -26,7 +26,7 @@ export function SwipeDeck({
   currentIndex,
   onLike,
   onDislike,
-  onWatched,
+  onSkipped,
   onSuperLike,
   onSuperDislike,
 }: SwipeDeckProps) {
@@ -68,10 +68,10 @@ export function SwipeDeck({
         setForceSwipe(null);
         if (direction === "right") onLike(movie);
         else if (direction === "left") onDislike(movie);
-        else onWatched(movie);
+        else onSkipped(movie);
       }, 300);
     },
-    [forceSwipe, currentMovie, onLike, onDislike, onWatched],
+    [forceSwipe, currentMovie, onLike, onDislike, onSkipped],
   );
 
   // Keyboard support
@@ -148,7 +148,7 @@ export function SwipeDeck({
             onLike={() => onLike(currentMovie)}
             onDislike={() => onDislike(currentMovie)}
             onExpand={() => setMode("details")}
-            onWatched={() => onWatched(currentMovie)}
+            onSkipped={() => onSkipped(currentMovie)}
             onSuperLike={() => onSuperLike(currentMovie)}
             onSuperDislike={() => onSuperDislike(currentMovie)}
             forceSwipe={forceSwipe}
@@ -162,7 +162,7 @@ export function SwipeDeck({
           <p>
             <span className="mr-3">← Dislike</span>
             <span className="mr-3">↑ Details</span>
-            <span className="mr-3">↓ Watched</span>
+            <span className="mr-3">↓ Skip</span>
             <span className="mr-3">Like →</span>
             <span>Hold + Swipe = Super</span>
           </p>
