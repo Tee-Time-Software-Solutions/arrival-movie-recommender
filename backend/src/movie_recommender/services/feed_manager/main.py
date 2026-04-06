@@ -60,8 +60,15 @@ class FeedManager:
             if queue_len < self.settings.app_logic.queue_min_capacity:
                 asyncio.create_task(self.refill_queue(user_id, queue_key))
 
+        if not movie_data:
+            logger.warning("No movies available for user %s after refill", user_id)
+            return None
+
         logger.info(f"Movie data from Redis: {movie_data}")
         movie_id, movie_title = json.loads(movie_data)
+
+        # Mark as seen immediately so concurrent/future requests won't serve it again
+        await self.redis_client.sadd(f"{SEEN_KEY_PREFIX}{user_id}", movie_id)
 
         movie_details = await self.hydrator.get_or_fetch_movie(
             movie_db_id=movie_id, movie_title=movie_title
