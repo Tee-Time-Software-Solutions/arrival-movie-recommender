@@ -6,7 +6,6 @@ from movie_recommender.database.CRUD.users import get_user_by_firebase_uid
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
 from movie_recommender.dependencies.neo4j import get_neo4j_driver
-from movie_recommender.dependencies.redis import get_async_redis
 from movie_recommender.schemas.requests.users import LinkedMovie
 from movie_recommender.services.knowledge_graph.beacon import get_person_linked_movies
 
