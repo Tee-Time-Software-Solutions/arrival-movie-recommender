@@ -41,6 +41,7 @@ class TestUserAnalytics:
             total_swipes=100,
             total_likes=60,
             total_dislikes=40,
+            total_seen=80,
             top_genres=["Sci-Fi", "Drama"],
         )
         assert stats.total_swipes == 100
@@ -61,7 +62,9 @@ class TestUserCreate:
 
     def test_missing_email_raises(self):
         with pytest.raises(ValidationError):
-            UserCreate(firebase_uid="abc123", profile_image_url="https://example.com/pic.jpg")
+            UserCreate(
+                firebase_uid="abc123", profile_image_url="https://example.com/pic.jpg"
+            )
 
 
 class TestUserProfileSummary:
@@ -76,6 +79,7 @@ class TestUserProfileSummary:
                 total_swipes=10,
                 total_likes=6,
                 total_dislikes=4,
+                total_seen=8,
                 top_genres=["Drama"],
             ),
             preferences=UserPreferences(),

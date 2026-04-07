@@ -23,12 +23,25 @@ export interface MovieCard {
   is_adult: boolean;
 }
 
+export interface EntityReference {
+  entity_type: string;
+  tmdb_id: number;
+  name: string;
+}
+
+export interface ExplanationResponse {
+  text: string;
+  entities: EntityReference[];
+  confidence: number;
+}
+
 export interface MovieDetails extends MovieCard {
   synopsis: string;
   cast: CastMember[];
   trailer_url: string | null;
   runtime: number;
   movie_providers: MovieProvider[];
+  explanation: ExplanationResponse | null;
 }
 
 export interface PaginatedMovieDetails {
@@ -57,4 +70,14 @@ export interface RatedMovie {
   movie: MovieDetails;
   user_rating: number;
   rated_at: string;
+}
+
+export interface WatchlistAddResponse {
+  movie_id: number;
+  added: boolean;
+}
+
+export interface WatchlistRemoveResponse {
+  movie_id: number;
+  removed: boolean;
 }

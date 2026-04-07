@@ -50,4 +50,7 @@ check-enviroment-variables:
 	fi
 	echo "Environment is: $(ENVIRONMENT)"
 
+lint: ## Check backend for lint errors and auto-fix if any are found
+	cd backend && uv run ruff check src/ || uv run ruff check --fix src/
+
 format-check:

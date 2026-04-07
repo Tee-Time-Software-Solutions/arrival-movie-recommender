@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Star, ChevronDown } from "lucide-react";
+import { Star, ChevronDown, Bookmark, Check } from "lucide-react";
+import { ExplanationBanner } from "@/components/features/ExplanationBanner/ExplanationBanner";
 import { MovieCard } from "@/components/features/MovieCard/MovieCard";
 import { MovieDetailContent } from "@/components/features/MovieDetail/MovieDetail";
+import { addToWatchlist } from "@/services/api/watchlist";
 import type { MovieDetails } from "@/types/movie";
 
 type DeckMode = "card" | "details";
@@ -14,7 +16,7 @@ interface SwipeDeckProps {
   currentIndex: number;
   onLike: (movie: MovieDetails) => void;
   onDislike: (movie: MovieDetails) => void;
-  onWatched: (movie: MovieDetails) => void;
+  onSkipped: (movie: MovieDetails) => void;
   onSuperLike: (movie: MovieDetails) => void;
   onSuperDislike: (movie: MovieDetails) => void;
 }
@@ -24,12 +26,14 @@ export function SwipeDeck({
   currentIndex,
   onLike,
   onDislike,
-  onWatched,
+  onSkipped,
   onSuperLike,
   onSuperDislike,
 }: SwipeDeckProps) {
   const [mode, setMode] = useState<DeckMode>("card");
   const [forceSwipe, setForceSwipe] = useState<"left" | "right" | "down" | null>(null);
+  const [savedToWatchlist, setSavedToWatchlist] = useState(false);
+  const [savingToWatchlist, setSavingToWatchlist] = useState(false);
 
   const currentMovie = movies[currentIndex];
 
@@ -37,7 +41,22 @@ export function SwipeDeck({
   useEffect(() => {
     setMode("card");
     setForceSwipe(null);
+    setSavedToWatchlist(false);
+    setSavingToWatchlist(false);
   }, [currentIndex]);
+
+  const handleSaveToWatchlist = async () => {
+    if (savedToWatchlist || savingToWatchlist || !currentMovie) return;
+    setSavingToWatchlist(true);
+    try {
+      await addToWatchlist(currentMovie.movie_db_id);
+      setSavedToWatchlist(true);
+    } catch {
+      setSavedToWatchlist(true);
+    } finally {
+      setSavingToWatchlist(false);
+    }
+  };
 
   // Trigger like/dislike/watched after swipe animation plays
   const triggerSwipe = useCallback(
@@ -49,10 +68,10 @@ export function SwipeDeck({
         setForceSwipe(null);
         if (direction === "right") onLike(movie);
         else if (direction === "left") onDislike(movie);
-        else onWatched(movie);
+        else onSkipped(movie);
       }, 300);
     },
-    [forceSwipe, currentMovie, onLike, onDislike, onWatched],
+    [forceSwipe, currentMovie, onLike, onDislike, onSkipped],
   );
 
   // Keyboard support
@@ -108,6 +127,9 @@ export function SwipeDeck({
 
   return (
     <>
+      {mode === "card" && (
+        <ExplanationBanner explanation={currentMovie.explanation} />
+      )}
       <div className="relative mx-auto h-[70vh] w-full max-w-sm">
         {/* Full card — default mode */}
         <motion.div
@@ -126,7 +148,7 @@ export function SwipeDeck({
             onLike={() => onLike(currentMovie)}
             onDislike={() => onDislike(currentMovie)}
             onExpand={() => setMode("details")}
-            onWatched={() => onWatched(currentMovie)}
+            onSkipped={() => onSkipped(currentMovie)}
             onSuperLike={() => onSuperLike(currentMovie)}
             onSuperDislike={() => onSuperDislike(currentMovie)}
             forceSwipe={forceSwipe}
@@ -140,7 +162,7 @@ export function SwipeDeck({
           <p>
             <span className="mr-3">← Dislike</span>
             <span className="mr-3">↑ Details</span>
-            <span className="mr-3">↓ Watched</span>
+            <span className="mr-3">↓ Skip</span>
             <span className="mr-3">Like →</span>
             <span>Hold + Swipe = Super</span>
           </p>
@@ -177,6 +199,25 @@ export function SwipeDeck({
                 <span>{currentMovie.runtime} min</span>
               </div>
             </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveToWatchlist();
+              }}
+              disabled={savingToWatchlist}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                savedToWatchlist
+                  ? "bg-primary/15 text-primary"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              {savedToWatchlist ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Bookmark className="h-4 w-4" />
+              )}
+              {savedToWatchlist ? "Saved" : "Watchlist"}
+            </button>
             <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" />
           </div>
 

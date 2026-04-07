@@ -52,7 +52,9 @@ def load_recommender_artifacts() -> RecommenderArtifacts:
     movie_id_to_index = {
         int(k): int(v) for k, v in mappings["movie_id_to_index"].items()
     }
-    index_to_movie_id = {int(k): int(v) for k, v in mappings["index_to_movie_id"].items()}
+    index_to_movie_id = {
+        int(k): int(v) for k, v in mappings["index_to_movie_id"].items()
+    }
 
     movies_df = pd.read_parquet(MOVIES_FILTERED_PATH, columns=["movie_id", "title"])
     movie_id_to_title = {

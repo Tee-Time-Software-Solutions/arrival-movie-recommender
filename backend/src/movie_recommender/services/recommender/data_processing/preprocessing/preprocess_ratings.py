@@ -1,6 +1,5 @@
 # recommender/training/preprocess_ratings.py
 
-from pathlib import Path
 import pandas as pd
 from movie_recommender.services.recommender.paths_dev import DATA_RAW, DATA_PROCESSED
 

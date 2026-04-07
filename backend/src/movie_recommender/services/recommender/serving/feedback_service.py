@@ -3,7 +3,7 @@ from logging import Logger
 
 import numpy as np
 
-from movie_recommender.schemas.interactions import SwipeAction
+from movie_recommender.schemas.requests.interactions import SwipeAction
 from movie_recommender.services.recommender.serving.artifact_loader import (
     RecommenderArtifacts,
 )

@@ -10,7 +10,6 @@ def require_artifacts(
 ) -> RecommenderArtifacts:
     if artifacts is None:
         raise RuntimeError(
-            "Recommender artifacts are not available. "
-            f"Details: {artifact_load_error}"
+            f"Recommender artifacts are not available. Details: {artifact_load_error}"
         )
     return artifacts

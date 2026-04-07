@@ -12,12 +12,14 @@ _MODULE = "movie_recommender.services.recommender.data_processing.split"
 
 
 def _make_user_df(user_id, n, start_ts=1000):
-    return pd.DataFrame({
-        "user_id": [user_id] * n,
-        "movie_id": list(range(n)),
-        "preference": [1] * n,
-        "timestamp": list(range(start_ts, start_ts + n)),
-    })
+    return pd.DataFrame(
+        {
+            "user_id": [user_id] * n,
+            "movie_id": list(range(n)),
+            "preference": [1] * n,
+            "timestamp": list(range(start_ts, start_ts + n)),
+        }
+    )
 
 
 class TestChronologicalSplit:
@@ -65,11 +67,13 @@ class TestChronologicalSplit:
         assert len(test) > 0
 
     def test_multiple_users_varying_counts(self):
-        df = pd.concat([
-            _make_user_df(1, 10),
-            _make_user_df(2, 50),
-            _make_user_df(3, 100),
-        ])
+        df = pd.concat(
+            [
+                _make_user_df(1, 10),
+                _make_user_df(2, 50),
+                _make_user_df(3, 100),
+            ]
+        )
         train, val, test = chronological_split(df)
         assert len(train) + len(val) + len(test) == 160
 
@@ -84,10 +88,12 @@ class TestRunSplitOrchestration:
         val_path = tmp_path / "val.parquet"
         test_path = tmp_path / "test.parquet"
 
-        with patch(f"{_MODULE}.INPUT_PATH", input_path), \
-             patch(f"{_MODULE}.TRAIN_PATH", train_path), \
-             patch(f"{_MODULE}.VAL_PATH", val_path), \
-             patch(f"{_MODULE}.TEST_PATH", test_path):
+        with (
+            patch(f"{_MODULE}.INPUT_PATH", input_path),
+            patch(f"{_MODULE}.TRAIN_PATH", train_path),
+            patch(f"{_MODULE}.VAL_PATH", val_path),
+            patch(f"{_MODULE}.TEST_PATH", test_path),
+        ):
             run_split()
         return train_path, val_path, test_path
 

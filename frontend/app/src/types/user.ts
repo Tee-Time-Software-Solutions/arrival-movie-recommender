@@ -4,6 +4,7 @@ export interface UserAnalytics {
   total_swipes: number;
   total_likes: number;
   total_dislikes: number;
+  total_seen: number;
   top_genres: string[];
 }
 
@@ -42,4 +43,25 @@ export interface UserCreatedResponse {
   email: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface LinkedMovie {
+  tmdb_id: number;
+  title: string;
+  poster_url: string | null;
+}
+
+export interface TopPerson {
+  tmdb_id: number;
+  name: string;
+  entity_type: string;
+  weight: number;
+  image_url: string | null;
+  linked_movies: LinkedMovie[];
+}
+
+export interface TopPeopleResponse {
+  directors: TopPerson[];
+  actors: TopPerson[];
+  writers: TopPerson[];
 }

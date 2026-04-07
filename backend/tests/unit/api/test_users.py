@@ -6,12 +6,26 @@ from unittest.mock import AsyncMock, patch
 
 from tests.unit.api.conftest import AUTH_HEADERS, FAKE_UID, FAKE_USER
 
-FakePref = namedtuple("FakePref", ["id", "user_id", "min_year", "max_year", "min_rating", "include_adult", "updated_at"])
+FakePref = namedtuple(
+    "FakePref",
+    [
+        "id",
+        "user_id",
+        "min_year",
+        "max_year",
+        "min_rating",
+        "include_adult",
+        "updated_at",
+    ],
+)
 
 
 class TestRegisterUser:
     @patch("movie_recommender.api.v1.users.create_user", new_callable=AsyncMock)
-    @patch("movie_recommender.api.v1.users.get_user_by_firebase_uid", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.get_user_by_firebase_uid",
+        new_callable=AsyncMock,
+    )
     def test_register_new_user(self, mock_get_user, mock_create_user, client):
         mock_get_user.return_value = None
         mock_create_user.return_value = FAKE_USER
@@ -30,7 +44,10 @@ class TestRegisterUser:
         assert resp.json()["id"] == 1
         assert resp.json()["email"] == "test@example.com"
 
-    @patch("movie_recommender.api.v1.users.get_user_by_firebase_uid", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.get_user_by_firebase_uid",
+        new_callable=AsyncMock,
+    )
     def test_duplicate_user_returns_409(self, mock_get_user, client):
         mock_get_user.return_value = FAKE_USER
 
@@ -48,21 +65,41 @@ class TestRegisterUser:
 
 
 class TestGetProfileSummary:
-    @patch("movie_recommender.api.v1.users.get_user_excluded_genres", new_callable=AsyncMock)
-    @patch("movie_recommender.api.v1.users.get_user_included_genres", new_callable=AsyncMock)
-    @patch("movie_recommender.api.v1.users.get_user_preferences", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.get_user_excluded_genres",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "movie_recommender.api.v1.users.get_user_included_genres",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "movie_recommender.api.v1.users.get_user_preferences", new_callable=AsyncMock
+    )
     @patch("movie_recommender.api.v1.users.get_user_analytics", new_callable=AsyncMock)
-    @patch("movie_recommender.api.v1.users.get_user_by_firebase_uid", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.get_user_by_firebase_uid",
+        new_callable=AsyncMock,
+    )
     def test_returns_full_profile(
         self, mock_get_user, mock_analytics, mock_prefs, mock_inc, mock_exc, client
     ):
         mock_get_user.return_value = FAKE_USER
         mock_analytics.return_value = {
-            "total_swipes": 10, "total_likes": 6, "total_dislikes": 4, "top_genres": ["Drama"],
+            "total_swipes": 10,
+            "total_likes": 6,
+            "total_dislikes": 4,
+            "total_seen": 10,
+            "top_genres": ["Drama"],
         }
         mock_prefs.return_value = FakePref(
-            id=1, user_id=1, min_year=2000, max_year=2025,
-            min_rating=7.0, include_adult=False, updated_at=datetime.now(),
+            id=1,
+            user_id=1,
+            min_year=2000,
+            max_year=2025,
+            min_rating=7.0,
+            include_adult=False,
+            updated_at=datetime.now(),
         )
         mock_inc.return_value = ["Sci-Fi"]
         mock_exc.return_value = ["Horror"]
@@ -76,7 +113,10 @@ class TestGetProfileSummary:
         assert data["preferences"]["excluded_genres"] == ["Horror"]
         assert data["preferences"]["max_release_year"] == 2025
 
-    @patch("movie_recommender.api.v1.users.get_user_by_firebase_uid", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.get_user_by_firebase_uid",
+        new_callable=AsyncMock,
+    )
     def test_user_not_found_returns_404(self, mock_get_user, client):
         mock_get_user.return_value = None
 
@@ -85,8 +125,13 @@ class TestGetProfileSummary:
 
 
 class TestUpdatePreferences:
-    @patch("movie_recommender.api.v1.users.update_user_preferences", new_callable=AsyncMock)
-    @patch("movie_recommender.api.v1.users.get_user_by_firebase_uid", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.update_user_preferences", new_callable=AsyncMock
+    )
+    @patch(
+        "movie_recommender.api.v1.users.get_user_by_firebase_uid",
+        new_callable=AsyncMock,
+    )
     def test_update_preferences(self, mock_get_user, mock_update, client):
         mock_get_user.return_value = FAKE_USER
 
@@ -109,7 +154,10 @@ class TestUpdatePreferences:
         assert data["max_release_year"] == 2025
         mock_update.assert_called_once()
 
-    @patch("movie_recommender.api.v1.users.get_user_by_firebase_uid", new_callable=AsyncMock)
+    @patch(
+        "movie_recommender.api.v1.users.get_user_by_firebase_uid",
+        new_callable=AsyncMock,
+    )
     def test_user_not_found_returns_404(self, mock_get_user, client):
         mock_get_user.return_value = None
 

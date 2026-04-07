@@ -1,6 +1,5 @@
 # recommender/training/split.py
 
-from pathlib import Path
 import pandas as pd
 from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED, DATA_SPLITS
 

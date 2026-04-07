@@ -68,8 +68,10 @@ class TestPreprocessRatingsOrchestration:
         raw_path.write_text(csv_content)
         out_path = tmp_path / "interactions_clean.parquet"
 
-        with patch(f"{_MODULE}.RAW_PATH", raw_path), \
-             patch(f"{_MODULE}.PROCESSED_PATH", out_path):
+        with (
+            patch(f"{_MODULE}.RAW_PATH", raw_path),
+            patch(f"{_MODULE}.PROCESSED_PATH", out_path),
+        ):
             preprocess_ratings()
         return out_path
 
@@ -89,5 +91,5 @@ class TestPreprocessRatingsOrchestration:
         out = self._run(tmp_path, csv)
         df = pd.read_parquet(out)
         prefs = dict(zip(df["user_id"], df["preference"]))
-        assert prefs[1] == 2    # rating 5.0 → bucket 4 → preference +2
-        assert prefs[2] == -2   # rating 1.0 → bucket 1 → preference -2
+        assert prefs[1] == 2  # rating 5.0 → bucket 4 → preference +2
+        assert prefs[2] == -2  # rating 1.0 → bucket 1 → preference -2

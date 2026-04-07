@@ -9,11 +9,13 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     MetaData,
     String,
     Table,
     Text,
+    UniqueConstraint,
     text,
 )
 
@@ -93,6 +95,7 @@ crew_person = Table(
     "crew_person",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("tmdb_person_id", Integer, unique=True, nullable=True),
     Column("name", String(256), nullable=False),
     Column("role_type", String(64), nullable=True),
     Column("character_name", String(256), nullable=True),
@@ -130,6 +133,17 @@ swipes = Table(
     Column("action_type", String(16), nullable=False),
     Column("is_supercharged", Boolean, default=False, nullable=False),
     Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    Index("ix_swipes_user_movie", "user_id", "movie_id"),
+)
+
+watchlist = Table(
+    "watchlist",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("movie_id", Integer, ForeignKey("movies.id"), nullable=False),
+    Column("added_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    UniqueConstraint("user_id", "movie_id", name="uq_watchlist_user_movie"),
 )
 
 
@@ -177,3 +191,10 @@ class SwipeRow(TypedDict):
     action_type: str
     is_supercharged: bool
     created_at: datetime
+
+
+class WatchlistRow(TypedDict):
+    id: int
+    user_id: int
+    movie_id: int
+    added_at: datetime
