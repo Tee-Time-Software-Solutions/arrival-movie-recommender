@@ -6,7 +6,9 @@ from pathlib import Path
 from unittest.mock import patch
 from scipy.sparse import load_npz
 
-from movie_recommender.services.recommender.learning.build_matrix import build_sparse_matrix
+from movie_recommender.services.recommender.learning.build_matrix import (
+    build_sparse_matrix,
+)
 
 _MODULE = "movie_recommender.services.recommender.learning.build_matrix"
 
@@ -23,10 +25,12 @@ def _run_build(tmp_path, df):
     artifacts_dir.mkdir(exist_ok=True)
     df.to_parquet(train_path, index=False)
 
-    with patch(f"{_MODULE}.TRAIN_PATH", train_path), \
-         patch(f"{_MODULE}.MATRIX_PATH", artifacts_dir / "R_train.npz"), \
-         patch(f"{_MODULE}.MAPPINGS_PATH", artifacts_dir / "mappings.json"), \
-         patch(f"{_MODULE}.ARTIFACTS", artifacts_dir):
+    with (
+        patch(f"{_MODULE}.TRAIN_PATH", train_path),
+        patch(f"{_MODULE}.MATRIX_PATH", artifacts_dir / "R_train.npz"),
+        patch(f"{_MODULE}.MAPPINGS_PATH", artifacts_dir / "mappings.json"),
+        patch(f"{_MODULE}.ARTIFACTS", artifacts_dir),
+    ):
         build_sparse_matrix()
 
     return artifacts_dir
@@ -34,11 +38,16 @@ def _run_build(tmp_path, df):
 
 class TestMatrixShape:
     def test_shape_matches_unique_users_and_movies(self, tmp_path):
-        df = _make_train_df([
-            (1, 100, 1), (1, 101, -1), (1, 102, 2),
-            (2, 100, 1), (2, 101, -2),
-            (3, 102, 1),
-        ])
+        df = _make_train_df(
+            [
+                (1, 100, 1),
+                (1, 101, -1),
+                (1, 102, 2),
+                (2, 100, 1),
+                (2, 101, -2),
+                (3, 102, 1),
+            ]
+        )
         arts = _run_build(tmp_path, df)
         R = load_npz(arts / "R_train.npz")
         assert R.shape == (3, 3)  # 3 users, 3 movies
@@ -50,10 +59,14 @@ class TestMatrixShape:
         assert R.shape == (1, 1)
 
     def test_nonzero_count_matches_interactions(self, tmp_path):
-        df = _make_train_df([
-            (1, 100, 1), (1, 101, -1),
-            (2, 100, 2), (2, 102, -2),
-        ])
+        df = _make_train_df(
+            [
+                (1, 100, 1),
+                (1, 101, -1),
+                (2, 100, 2),
+                (2, 102, -2),
+            ]
+        )
         arts = _run_build(tmp_path, df)
         R = load_npz(arts / "R_train.npz")
         assert R.nnz == 4
@@ -61,11 +74,13 @@ class TestMatrixShape:
 
 class TestMatrixValues:
     def test_preference_values_stored_correctly(self, tmp_path):
-        df = _make_train_df([
-            (1, 100, 2),
-            (1, 101, -1),
-            (2, 100, -2),
-        ])
+        df = _make_train_df(
+            [
+                (1, 100, 2),
+                (1, 101, -1),
+                (2, 100, -2),
+            ]
+        )
         arts = _run_build(tmp_path, df)
         R = load_npz(arts / "R_train.npz")
 
@@ -91,9 +106,13 @@ class TestMatrixValues:
 
 class TestMappings:
     def test_mappings_are_bijective(self, tmp_path):
-        df = _make_train_df([
-            (1, 100, 1), (2, 101, -1), (3, 102, 2),
-        ])
+        df = _make_train_df(
+            [
+                (1, 100, 1),
+                (2, 101, -1),
+                (3, 102, 2),
+            ]
+        )
         arts = _run_build(tmp_path, df)
 
         with open(arts / "mappings.json") as f:
@@ -106,9 +125,13 @@ class TestMappings:
             assert idx_to_mid[str(idx)] == int(mid)
 
     def test_user_mappings_cover_all_users(self, tmp_path):
-        df = _make_train_df([
-            (10, 100, 1), (20, 100, -1), (30, 101, 2),
-        ])
+        df = _make_train_df(
+            [
+                (10, 100, 1),
+                (20, 100, -1),
+                (30, 101, 2),
+            ]
+        )
         arts = _run_build(tmp_path, df)
 
         with open(arts / "mappings.json") as f:
@@ -118,9 +141,13 @@ class TestMappings:
         assert mapped_users == {10, 20, 30}
 
     def test_movie_mappings_cover_all_movies(self, tmp_path):
-        df = _make_train_df([
-            (1, 200, 1), (1, 300, -1), (2, 400, 2),
-        ])
+        df = _make_train_df(
+            [
+                (1, 200, 1),
+                (1, 300, -1),
+                (2, 400, 2),
+            ]
+        )
         arts = _run_build(tmp_path, df)
 
         with open(arts / "mappings.json") as f:

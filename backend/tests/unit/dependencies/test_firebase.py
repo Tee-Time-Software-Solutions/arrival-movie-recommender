@@ -29,7 +29,9 @@ def _make_request(user_id: str | None = None) -> MagicMock:
     return request
 
 
-def _make_user_record(email_verified: bool = True, display_name: str = "Test User") -> MagicMock:
+def _make_user_record(
+    email_verified: bool = True, display_name: str = "Test User"
+) -> MagicMock:
     record = MagicMock()
     record.email_verified = email_verified
     record.display_name = display_name
@@ -91,7 +93,9 @@ class TestVerifyUserFailureCases:
         assert exc.value.status_code == 401
         assert "Authentication failed" == exc.value.detail
 
-    def test_unverified_email_raises_403_when_required(self, mock_verify, mock_get_user):
+    def test_unverified_email_raises_403_when_required(
+        self, mock_verify, mock_get_user
+    ):
         mock_verify.return_value = DECODED_TOKEN
         mock_get_user.return_value = _make_user_record(email_verified=False)
 

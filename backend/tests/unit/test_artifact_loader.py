@@ -13,18 +13,23 @@ class TestEnsureArtifactPathsExist:
         for p in paths:
             p.touch()
 
-        with patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-            paths[0],
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-            paths[1],
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-            paths[2],
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-            paths[3],
+        with (
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
+                paths[0],
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
+                paths[1],
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
+                paths[2],
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
+                paths[3],
+            ),
         ):
             _ensure_artifact_paths_exist()  # should not raise
 
@@ -33,18 +38,23 @@ class TestEnsureArtifactPathsExist:
         existing.touch()
         missing = tmp_path / "missing.npy"
 
-        with patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-            existing,
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-            missing,
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-            existing,
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-            existing,
+        with (
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
+                existing,
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
+                missing,
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
+                existing,
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
+                existing,
+            ),
         ):
             with pytest.raises(FileNotFoundError, match="missing.npy"):
                 _ensure_artifact_paths_exist()
@@ -55,18 +65,23 @@ class TestEnsureArtifactPathsExist:
         missing1 = tmp_path / "missing1.npy"
         missing2 = tmp_path / "missing2.npy"
 
-        with patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-            missing1,
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-            missing2,
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-            existing,
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-            existing,
+        with (
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
+                missing1,
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
+                missing2,
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
+                existing,
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
+                existing,
+            ),
         ):
             with pytest.raises(FileNotFoundError) as exc_info:
                 _ensure_artifact_paths_exist()
@@ -80,18 +95,23 @@ class TestEnsureArtifactPathsExist:
         paths[2].touch()
         # paths[3] is missing
 
-        with patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-            paths[0],
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-            paths[1],
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-            paths[2],
-        ), patch(
-            "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-            paths[3],
+        with (
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
+                paths[0],
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
+                paths[1],
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
+                paths[2],
+            ),
+            patch(
+                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
+                paths[3],
+            ),
         ):
             with pytest.raises(FileNotFoundError) as exc_info:
                 _ensure_artifact_paths_exist()

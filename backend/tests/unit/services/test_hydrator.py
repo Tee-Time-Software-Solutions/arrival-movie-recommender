@@ -20,20 +20,56 @@ def _make_tmdb_fetcher() -> TMDBFetcher:
 SAMPLE_CREDITS = {
     "credits": {
         "cast": [
-            {"name": "Amy Adams", "character": "Louise Banks", "profile_path": "/amy.jpg"},
-            {"name": "Jeremy Renner", "character": "Ian Donnelly", "profile_path": "/jeremy.jpg"},
-            {"name": "Forest Whitaker", "character": "Colonel Weber", "profile_path": None},
-            {"name": "Michael Stuhlbarg", "character": "Agent Halpern", "profile_path": "/michael.jpg"},
-            {"name": "Mark O'Brien", "character": "Captain Marks", "profile_path": "/mark.jpg"},
-            {"name": "Extra Person", "character": "Extra", "profile_path": "/extra.jpg"},
+            {
+                "name": "Amy Adams",
+                "character": "Louise Banks",
+                "profile_path": "/amy.jpg",
+            },
+            {
+                "name": "Jeremy Renner",
+                "character": "Ian Donnelly",
+                "profile_path": "/jeremy.jpg",
+            },
+            {
+                "name": "Forest Whitaker",
+                "character": "Colonel Weber",
+                "profile_path": None,
+            },
+            {
+                "name": "Michael Stuhlbarg",
+                "character": "Agent Halpern",
+                "profile_path": "/michael.jpg",
+            },
+            {
+                "name": "Mark O'Brien",
+                "character": "Captain Marks",
+                "profile_path": "/mark.jpg",
+            },
+            {
+                "name": "Extra Person",
+                "character": "Extra",
+                "profile_path": "/extra.jpg",
+            },
         ],
         "crew": [
-            {"name": "Denis Villeneuve", "job": "Director", "profile_path": "/denis.jpg"},
+            {
+                "name": "Denis Villeneuve",
+                "job": "Director",
+                "profile_path": "/denis.jpg",
+            },
             {"name": "Shawn Levy", "job": "Producer", "profile_path": "/shawn.jpg"},
             {"name": "Dan Levine", "job": "Producer", "profile_path": "/dan.jpg"},
             {"name": "Aaron Ryder", "job": "Producer", "profile_path": "/aaron.jpg"},
-            {"name": "Fourth Producer", "job": "Producer", "profile_path": "/fourth.jpg"},
-            {"name": "Johann Johannsson", "job": "Original Music Composer", "profile_path": "/johann.jpg"},
+            {
+                "name": "Fourth Producer",
+                "job": "Producer",
+                "profile_path": "/fourth.jpg",
+            },
+            {
+                "name": "Johann Johannsson",
+                "job": "Original Music Composer",
+                "profile_path": "/johann.jpg",
+            },
         ],
     }
 }

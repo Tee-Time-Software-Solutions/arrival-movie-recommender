@@ -1,6 +1,5 @@
 # prune_movies.py (or inside filtering.py)
 import pandas as pd
-from pathlib import Path
 from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
 
 MOVIES_INPUT = DATA_PROCESSED / "movies_clean.parquet"

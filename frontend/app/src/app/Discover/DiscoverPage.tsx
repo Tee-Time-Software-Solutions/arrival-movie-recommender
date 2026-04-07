@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback } from "react";
 import { SwipeDeck } from "@/components/features/SwipeDeck/SwipeDeck";
 import { useMovieStore } from "@/stores/movieStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -17,18 +17,14 @@ export function DiscoverPage() {
     error,
     addToQueue,
     nextMovie,
-    likeMovie,
-    dislikeMovie,
     setLoading,
     setError,
   } = useMovieStore();
 
   const { user, loading: authLoading } = useAuthStore();
-  const fetchingRef = useRef(false);
 
   const fetchMovies = useCallback(async () => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
+    if (loading) return;
     setLoading(true);
     setError(null);
 
@@ -39,9 +35,8 @@ export function DiscoverPage() {
       setError("Failed to load movies. Please try again.");
     } finally {
       setLoading(false);
-      fetchingRef.current = false;
     }
-  }, [addToQueue, setLoading, setError]);
+  }, [loading, addToQueue, setLoading, setError]);
 
   // Initial load — wait for auth to resolve first
   useEffect(() => {
@@ -53,42 +48,39 @@ export function DiscoverPage() {
   // Prefetch when running low
   useEffect(() => {
     const remaining = queue.length - currentIndex;
-    if (remaining < QUEUE_PREFETCH_THRESHOLD && remaining > 0) {
+    if (remaining <= QUEUE_PREFETCH_THRESHOLD && !loading) {
       fetchMovies();
     }
-  }, [currentIndex, queue.length, fetchMovies]);
+  }, [currentIndex, queue.length, loading, fetchMovies]);
 
   const handleLike = async (movie: MovieDetails) => {
-    likeMovie(movie);
     nextMovie();
-    // Optimistic: fire and forget
     registerSwipe(movie.movie_db_id, "like").catch(console.error);
   };
 
   const handleDislike = async (movie: MovieDetails) => {
-    dislikeMovie(movie);
     nextMovie();
     registerSwipe(movie.movie_db_id, "dislike").catch(console.error);
   };
 
-  const handleWatched = async (movie: MovieDetails) => {
+  const handleSkipped = async (movie: MovieDetails) => {
     nextMovie();
     registerSwipe(movie.movie_db_id, "skip").catch(console.error);
   };
 
   const handleSuperLike = async (movie: MovieDetails) => {
-    likeMovie(movie);
     nextMovie();
     registerSwipe(movie.movie_db_id, "like", true).catch(console.error);
   };
 
   const handleSuperDislike = async (movie: MovieDetails) => {
-    dislikeMovie(movie);
     nextMovie();
     registerSwipe(movie.movie_db_id, "dislike", true).catch(console.error);
   };
 
-  if (loading && queue.length === 0) {
+  const currentMovie = queue[currentIndex];
+
+  if (loading && !currentMovie) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="text-center">
@@ -124,7 +116,7 @@ export function DiscoverPage() {
         currentIndex={currentIndex}
         onLike={handleLike}
         onDislike={handleDislike}
-        onWatched={handleWatched}
+        onSkipped={handleSkipped}
         onSuperLike={handleSuperLike}
         onSuperDislike={handleSuperDislike}
       />

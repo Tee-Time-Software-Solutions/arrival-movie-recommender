@@ -70,7 +70,9 @@ class TestNormCapping:
     def test_large_preference_capped(self):
         user = _vec(1.0, 0.0, 0.0)
         movie = _vec(1.0, 0.0, 0.0)
-        result = update_user_vector(user, movie, preference=1000, eta=1.0, norm_cap=10.0)
+        result = update_user_vector(
+            user, movie, preference=1000, eta=1.0, norm_cap=10.0
+        )
         assert np.linalg.norm(result) == pytest.approx(10.0, abs=1e-5)
 
 

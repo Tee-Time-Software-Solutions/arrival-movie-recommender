@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { IoHome, IoChatbubble, IoLogOutOutline, IoPersonCircleOutline } from "react-icons/io5";
+import { IoHome, IoChatbubble, IoBookmark, IoLogOutOutline, IoPersonCircleOutline } from "react-icons/io5";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 const tabs = [
   { path: "/", icon: IoHome, label: "Discover" },
   { path: "/chat", icon: IoChatbubble, label: "Chat" },
+  { path: "/watchlist", icon: IoBookmark, label: "Watchlist" },
   { path: "/profile", icon: IoPersonCircleOutline, label: "Profile" },
 ] as const;
 
@@ -55,9 +56,9 @@ export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps)
               )}
             >
               {label === "Profile" && user?.photoURL ? (
-                <img src={user.photoURL} alt="Profile" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+                <img src={user.photoURL} alt="Profile" className="h-5 w-5 shrink-0 rounded-full object-cover" />
               ) : (
-                <Icon className="h-6 w-6 shrink-0" />
+                <Icon className="h-5 w-5 shrink-0" />
               )}
               <span
                 className={cn(
@@ -89,7 +90,7 @@ export function Sidebar({ collapsed, onMouseEnter, onMouseLeave }: SidebarProps)
             collapsed ? "justify-center px-0" : "gap-4 px-3",
           )}
         >
-          <IoLogOutOutline className="h-6 w-6 shrink-0" />
+          <IoLogOutOutline className="h-5 w-5 shrink-0" />
           <span
             className={cn(
               "whitespace-nowrap transition-opacity duration-200",
