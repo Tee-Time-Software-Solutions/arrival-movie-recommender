@@ -4,6 +4,7 @@ import json
 import pickle
 
 from lightfm import LightFM
+from tqdm import trange
 
 from movie_recommender.services.recommender.paths_dev import ARTIFACTS
 from movie_recommender.services.recommender.learning.fm.data import (
@@ -36,12 +37,15 @@ def train_fm() -> None:
     )
 
     print("Training LightFM (BPR)...")
-    model.fit(
-        interactions,
-        item_features=item_features,
-        epochs=EPOCHS,
-        num_threads=NUM_THREADS,
-    )
+    # LightFM's `fit()` doesn't expose a progress callback; we train one epoch at a time
+    # via `fit_partial()` to provide a visible progress bar.
+    for _ in trange(EPOCHS, desc="LightFM epochs", unit="epoch"):
+        model.fit_partial(
+            interactions,
+            item_features=item_features,
+            epochs=1,
+            num_threads=NUM_THREADS,
+        )
 
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
 
