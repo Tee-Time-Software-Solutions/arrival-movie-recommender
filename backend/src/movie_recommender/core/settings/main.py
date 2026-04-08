@@ -1,8 +1,11 @@
 import os
 import logging
+from typing import List
 
 from movie_recommender.core.settings.schemas import (
     AppLogicSettings,
+    FirebaseSettings,
+    Neo4jSettings,
     RedisSettings,
     DatabaseSettings,
     StorageSettings,
@@ -10,6 +13,12 @@ from movie_recommender.core.settings.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def check_required(required: List):
+    missing = [var for var in required if not os.getenv(var)]
+    if missing:
+        raise ValueError(f"Missing required database variables: {', '.join(missing)}")
 
 
 class AppSettings:
@@ -29,7 +38,9 @@ class AppSettings:
         self.app_logic = self._load_app_logic_settings()
         self.tmdb = self._load_tmdb_settings()
         self.redis = self._load_redis_settings()
-        # self.database = self._load_database_settings() # TODO: implement db
+        self.neo4j = self._load_neo4j_settings()
+        self.firebase = self._load_firebase_settings()
+        self.database = self._load_database_settings()
         # self.storage = self._load_storage_settings() # TODO: implement storage
 
         logger.info(f"Settings initialized for environment: {self.environment}")
@@ -66,32 +77,42 @@ class AppSettings:
             url=url, max_connections=int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
         )
 
+    def _load_neo4j_settings(self) -> Neo4jSettings:
+        """Load Neo4j settings."""
+        uri = os.getenv("NEO4J_URI", "bolt://neo4j:7687")
+        username = os.getenv("NEO4J_USERNAME", "neo4j")
+        password = os.getenv("NEO4J_PASSWORD", "dev-password")
+        database = os.getenv("NEO4J_DATABASE", "neo4j")
+
+        return Neo4jSettings(
+            uri=uri,
+            username=username,
+            password=password,
+            database=database,
+        )
+
     def _load_database_settings(self) -> DatabaseSettings:
         """Load database settings."""
-        required = [
-            "MYSQL_USER",
-            "MYSQL_PASSWORD",
-            "MYSQL_HOST",
-            "MYSQL_PORT",
-            "MYSQL_DATABASE",
-            "MYSQL_SYNC_DRIVER",
-            "MYSQL_ASYNC_DRIVER",
-        ]
-
-        missing = [var for var in required if not os.getenv(var)]
-        if missing:
-            raise ValueError(
-                f"Missing required database variables: {', '.join(missing)}"
-            )
+        check_required(
+            [
+                "DB_HOST",
+                "DB_PORT",
+                "DB_NAME",
+                "DB_USER",
+                "DB_PASSWORD",
+                "DB_SYNC_DRIVER",
+                "DB_ASYNC_DRIVER",
+            ]
+        )
 
         return DatabaseSettings(
-            user=os.getenv("MYSQL_USER"),
-            password=os.getenv("MYSQL_PASSWORD"),
-            host=os.getenv("MYSQL_HOST"),
-            port=os.getenv("MYSQL_PORT"),
-            database=os.getenv("MYSQL_DATABASE"),
-            sync_driver=os.getenv("MYSQL_SYNC_DRIVER"),
-            async_driver=os.getenv("MYSQL_ASYNC_DRIVER"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            database=os.getenv("DB_NAME"),
+            sync_driver=os.getenv("DB_SYNC_DRIVER"),
+            async_driver=os.getenv("DB_ASYNC_DRIVER"),
         )
 
     def _load_storage_settings(self) -> StorageSettings:
@@ -128,3 +149,22 @@ class AppSettings:
             raise ValueError(
                 f"Unsupported CLOUD_PROVIDER: {provider}. Use 'aws' or 'azure'"
             )
+
+    def _load_firebase_settings(self) -> FirebaseSettings:
+        check_required(
+            [
+                "FIREBASE_PROJECT_ID",
+                "FIREBASE_PRIVATE_KEY_ID",
+                "FIREBASE_PRIVATE_KEY",
+                "FIREBASE_CLIENT_EMAIL",
+                "FIREBASE_CLIENT_ID",
+            ]
+        )
+
+        return FirebaseSettings(
+            firebase_project_id=os.getenv("FIREBASE_PROJECT_ID"),
+            firebase_private_key_id=os.getenv("FIREBASE_PRIVATE_KEY_ID"),
+            firebase_private_key=os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+            firebase_client_email=os.getenv("FIREBASE_CLIENT_EMAIL"),
+            firebase_client_id=os.getenv("FIREBASE_CLIENT_ID"),
+        )

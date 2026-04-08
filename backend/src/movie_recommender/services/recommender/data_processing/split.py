@@ -1,6 +1,5 @@
 # recommender/training/split.py
 
-from pathlib import Path
 import pandas as pd
 from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED, DATA_SPLITS
 
@@ -12,6 +11,7 @@ TEST_PATH = DATA_SPLITS / "test.parquet"
 TRAIN_RATIO = 0.8
 VAL_RATIO = 0.1
 # Remaining 0.1 automatically test
+
 
 def chronological_split(df):
     """
