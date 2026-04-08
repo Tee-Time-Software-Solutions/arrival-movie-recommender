@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import Dict
 
 import numpy as np
+from scipy.sparse import load_npz
 
 from movie_recommender.services.recommender.paths_dev import ARTIFACTS
 from movie_recommender.services.recommender.learning.fm.data import (
@@ -41,8 +42,6 @@ def _get_processed_mappings() -> tuple[dict[int, int], dict[int, int]]:
 
 @lru_cache(maxsize=1)
 def _load_item_features():
-    from scipy.sparse import load_npz
-
     return load_npz(ITEM_FEATURES_PATH)
 
 
