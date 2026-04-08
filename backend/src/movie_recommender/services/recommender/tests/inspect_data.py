@@ -1,5 +1,4 @@
 import pandas as pd
-from pathlib import Path
 from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
 
 INTERACTIONS_CLEAN_PATH = DATA_PROCESSED / "interactions_clean.parquet"

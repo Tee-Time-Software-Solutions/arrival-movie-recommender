@@ -1,7 +1,6 @@
 # recommender/training/filtering.py
 
 from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
-from pathlib import Path
 import pandas as pd
 
 PROCESSED_INPUT = DATA_PROCESSED / "interactions_clean.parquet"
@@ -54,9 +53,7 @@ def run_filtering():
     print(f"Initial movies: {df['movie_id'].nunique()}")
 
     df_filtered = iterative_core_filter(
-        df,
-        MIN_USER_INTERACTIONS,
-        MIN_MOVIE_INTERACTIONS
+        df, MIN_USER_INTERACTIONS, MIN_MOVIE_INTERACTIONS
     )
 
     print("\nFinal stats:")

@@ -31,8 +31,8 @@ COPY ./src ./src
 RUN uv pip install -e . --no-deps
 
 # 6. Finalize
-# COPY ./alembic.ini ./
-# COPY ./scripts ./scripts
+COPY ./alembic.ini ./
+COPY ./scripts ./scripts
 
 EXPOSE 8000
 

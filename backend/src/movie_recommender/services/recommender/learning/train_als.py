@@ -1,4 +1,3 @@
-from pathlib import Path
 import json
 import numpy as np
 from scipy.sparse import load_npz
@@ -34,7 +33,7 @@ def train():
         factors=FACTORS,
         regularization=REGULARIZATION,
         iterations=ITERATIONS,
-        use_gpu=False
+        use_gpu=False,
     )
 
     model.fit(C)
@@ -60,7 +59,7 @@ def train():
         "alpha": ALPHA,
         "num_movies": movie_embeddings.shape[0],
         "num_users": user_embeddings.shape[0],
-        "embedding_dim": movie_embeddings.shape[1]
+        "embedding_dim": movie_embeddings.shape[1],
     }
 
     with open(MODEL_INFO_PATH, "w") as f:
