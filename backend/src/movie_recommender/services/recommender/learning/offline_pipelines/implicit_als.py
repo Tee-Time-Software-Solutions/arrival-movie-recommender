@@ -13,7 +13,7 @@ from movie_recommender.services.recommender.learning.evaluate import evaluate
 def run_pipeline():
     start_time = time.time()
 
-    print("\n========== OFFLINE TRAINING PIPELINE START ==========\n")
+    print("\n========== ALS OFFLINE TRAINING PIPELINE START ==========\n")
 
     print("Step 1: Preprocessing movies...")
     preprocess_movies()

@@ -5,6 +5,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/movie_recommender"]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [project]
 name = "movie-recommender"
 version = "0.1.0"
@@ -25,7 +28,7 @@ dependencies = [
       "scipy",
       "implicit",
       "cython",
-      "lightfm @ git+https://github.com/lyst/lightfm.git@0c9c31e027b976beab2385e268b58010fff46096",
+      "lightfm @ git+https://github.com/lyst/lightfm.git",
       "tqdm",
       "alembic", # db
       "asyncpg", #db --  async postgres driver (used by the app)
