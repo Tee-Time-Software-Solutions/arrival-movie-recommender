@@ -20,7 +20,7 @@ dependencies = [
       "scipy",
       "implicit",
       "cython",
-      "lightfm @ git+https://github.com/lyst/lightfm.git",
+      "lightfm @ git+https://github.com/lyst/lightfm.git@0c9c31e027b976beab2385e268b58010fff46096",
       "tqdm",
 ]
 

@@ -28,6 +28,16 @@ def _load_mappings() -> Dict[str, Dict[str, int]]:
     with open(MAPPINGS_PATH, "r") as f:
         return json.load(f)
 
+@lru_cache(maxsize=1)
+def _get_processed_mappings() -> tuple[dict[int, int], dict[int, int]]:
+    """
+    Return mappings as int->int dicts, cached to avoid rebuilding per call.
+    """
+    mappings = _load_mappings()
+    user_id_to_index = {int(k): int(v) for k, v in mappings["user_id_to_index"].items()}
+    movie_id_to_index = {int(k): int(v) for k, v in mappings["movie_id_to_index"].items()}
+    return user_id_to_index, movie_id_to_index
+
 
 @lru_cache(maxsize=1)
 def _load_item_features():
@@ -41,13 +51,9 @@ def score_user_movie(user_id: int, movie_id: int) -> float:
     Compute LightFM score for a (user, movie) pair using the persisted model.
     """
     model = _load_lightfm_model()
-    mappings = _load_mappings()
     item_features = _load_item_features()
 
-    user_id_to_index = {int(k): int(v) for k, v in mappings["user_id_to_index"].items()}
-    movie_id_to_index = {
-        int(k): int(v) for k, v in mappings["movie_id_to_index"].items()
-    }
+    user_id_to_index, movie_id_to_index = _get_processed_mappings()
 
     if user_id not in user_id_to_index or movie_id not in movie_id_to_index:
         return float(0.0)
