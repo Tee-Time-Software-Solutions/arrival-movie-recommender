@@ -8,6 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from movie_recommender.services.recommender.paths_dev import ARTIFACTS, DATA_SPLITS
+from movie_recommender.services.recommender.learning.metrics import dcg_at_k
 from movie_recommender.services.recommender.learning.fm.inference import (
     _load_lightfm_model,
     _load_item_features,
@@ -23,10 +24,6 @@ ALS_MOVIE_EMB_PATH = ARTIFACTS / "movie_embeddings.npy"
 MAPPINGS_PATH = ARTIFACTS / "mappings.json"
 
 K = 10
-
-
-def dcg_at_k(relevance):
-    return sum(rel / np.log2(idx + 2) for idx, rel in enumerate(relevance))
 
 
 def compare_als_vs_fm() -> None:

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from movie_recommender.services.recommender.paths_dev import ARTIFACTS, DATA_SPLITS
+from movie_recommender.services.recommender.learning.metrics import dcg_at_k
 
 TRAIN_PATH = DATA_SPLITS / "train.parquet"
 VAL_PATH = DATA_SPLITS / "val.parquet"
@@ -13,13 +14,6 @@ MOVIE_EMB_PATH = ARTIFACTS / "movie_embeddings.npy"
 MAPPINGS_PATH = ARTIFACTS / "mappings.json"
 
 K = 10
-
-
-def dcg_at_k(relevance):
-    return sum(
-        rel / np.log2(idx + 2)
-        for idx, rel in enumerate(relevance)
-    )
 
 
 def evaluate():

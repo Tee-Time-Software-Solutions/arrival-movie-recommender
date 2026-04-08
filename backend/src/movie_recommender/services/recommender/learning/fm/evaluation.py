@@ -7,6 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from movie_recommender.services.recommender.paths_dev import DATA_SPLITS
+from movie_recommender.services.recommender.learning.metrics import dcg_at_k
 from movie_recommender.services.recommender.learning.fm.inference import (
     _load_lightfm_model,
     _load_item_features,
@@ -18,10 +19,6 @@ TRAIN_PATH = DATA_SPLITS / "train.parquet"
 VAL_PATH = DATA_SPLITS / "val.parquet"
 
 K = 10
-
-
-def dcg_at_k(relevance):
-    return sum(rel / np.log2(idx + 2) for idx, rel in enumerate(relevance))
 
 
 def evaluate_fm() -> None:
