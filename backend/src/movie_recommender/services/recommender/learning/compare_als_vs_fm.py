@@ -26,6 +26,25 @@ MAPPINGS_PATH = ARTIFACTS / "mappings.json"
 K = 10
 
 
+def _calculate_metrics(
+    *,
+    recommended_ids: set[int],
+    true_ids: set[int],
+    relevance_list: list[int],
+    k: int,
+) -> tuple[float, float, float]:
+    hits = recommended_ids & true_ids
+
+    recall = 0.0 if not true_ids else len(hits) / len(true_ids)
+    precision = 0.0 if k <= 0 else len(hits) / k
+
+    dcg = dcg_at_k(relevance_list)
+    idcg = dcg_at_k(sorted(relevance_list, reverse=True))
+    ndcg = dcg / idcg if idcg > 0 else 0.0
+
+    return recall, precision, ndcg
+
+
 def compare_als_vs_fm() -> None:
     """
     Evaluate ALS and LightFM-FM on the same validation users and print metrics side by side.
@@ -98,22 +117,24 @@ def compare_als_vs_fm() -> None:
         ]
         als_scores[seen_indices] = -np.inf
 
-        top_k_indices = np.argpartition(als_scores, -K)[-K:]
+        k_eff_als = min(K, int(als_scores.shape[0]))
+        if k_eff_als <= 0:
+            continue
+
+        top_k_indices = np.argpartition(als_scores, -k_eff_als)[-k_eff_als:]
         top_k_indices = top_k_indices[np.argsort(-als_scores[top_k_indices])]
 
         als_recommended = {index_to_movie_id[idx] for idx in top_k_indices}
 
-        als_hits = als_recommended & true_movies
-
-        als_recall = len(als_hits) / len(true_movies)
-        als_precision = len(als_hits) / K
-
         als_relevance = [
             1 if index_to_movie_id[idx] in true_movies else 0 for idx in top_k_indices
         ]
-        als_dcg = dcg_at_k(als_relevance)
-        als_idcg = dcg_at_k(sorted(als_relevance, reverse=True))
-        als_ndcg = als_dcg / als_idcg if als_idcg > 0 else 0.0
+        als_recall, als_precision, als_ndcg = _calculate_metrics(
+            recommended_ids=als_recommended,
+            true_ids=true_movies,
+            relevance_list=als_relevance,
+            k=k_eff_als,
+        )
 
         als_recall_scores.append(als_recall)
         als_precision_scores.append(als_precision)
@@ -145,24 +166,27 @@ def compare_als_vs_fm() -> None:
             item_features=fm_item_features,
         )
 
-        fm_top_k_indices = np.argpartition(fm_scores, -K)[-K:]
+        k_eff_fm = min(K, int(fm_scores.shape[0]))
+        if k_eff_fm <= 0:
+            continue
+
+        fm_top_k_indices = np.argpartition(fm_scores, -k_eff_fm)[-k_eff_fm:]
         fm_top_k_indices = fm_top_k_indices[
             np.argsort(-fm_scores[fm_top_k_indices])
         ]
 
         fm_recommended = {candidate_movie_ids[i] for i in fm_top_k_indices}
-        fm_hits = fm_recommended & true_movies
-
-        fm_recall = len(fm_hits) / len(true_movies)
-        fm_precision = len(fm_hits) / K
 
         fm_relevance = [
             1 if candidate_movie_ids[i] in true_movies else 0
             for i in fm_top_k_indices
         ]
-        fm_dcg = dcg_at_k(fm_relevance)
-        fm_idcg = dcg_at_k(sorted(fm_relevance, reverse=True))
-        fm_ndcg = fm_dcg / fm_idcg if fm_idcg > 0 else 0.0
+        fm_recall, fm_precision, fm_ndcg = _calculate_metrics(
+            recommended_ids=fm_recommended,
+            true_ids=true_movies,
+            relevance_list=fm_relevance,
+            k=k_eff_fm,
+        )
 
         fm_recall_scores.append(fm_recall)
         fm_precision_scores.append(fm_precision)
