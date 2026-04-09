@@ -194,7 +194,7 @@ def compare_als_vs_fm() -> None:
 
     print("\n=== ALS vs LightFM Comparison (Validation) ===")
     print(f"Users evaluated: {len(als_recall_scores)}")
-    print(f"Metric        ALS         LightFM")
+    print("Metric        ALS         LightFM")
     print(
         f"Recall@{K}:   {np.mean(als_recall_scores):.4f}    {np.mean(fm_recall_scores):.4f}"
     )
