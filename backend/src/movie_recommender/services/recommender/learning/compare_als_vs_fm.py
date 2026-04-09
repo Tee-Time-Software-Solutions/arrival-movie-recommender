@@ -94,19 +94,23 @@ def compare_als_vs_fm() -> None:
     fm_precision_scores = []
     fm_ndcg_scores = []
 
-    print("Comparing ALS and LightFM on validation users (vectorized FM)...")
-    for user_id in tqdm(val_lookup.keys()):
+    als_users = set(user_id_to_index.keys())
+    fm_users = set(fm_user_id_to_index.keys())
+    val_users = {u for u, true_movies in val_lookup.items() if true_movies}
+    comparison_users = val_users & als_users & fm_users
+
+    print(
+        "Comparing ALS and LightFM on validation users (vectorized FM)...\n"
+        f"Users in validation with ground truth: {len(val_users)}\n"
+        f"Users present in both models: {len(comparison_users)}"
+    )
+
+    for user_id in tqdm(sorted(comparison_users)):
         true_movies = val_lookup[user_id]
-        if not true_movies:
-            continue
 
         seen_movies = train_lookup.get(user_id, set())
 
         # ---------- ALS ----------
-        if user_id not in user_id_to_index:
-            # User not present in ALS training set
-            continue
-
         user_index = user_id_to_index[user_id]
         user_vector = user_embeddings[user_index]
 
@@ -141,10 +145,6 @@ def compare_als_vs_fm() -> None:
         als_ndcg_scores.append(als_ndcg)
 
         # ---------- LightFM FM ----------
-        if user_id not in fm_user_id_to_index:
-            # User not present in LightFM training set
-            continue
-
         candidate_pairs = [
             (m, fm_movie_id_to_index[m])
             for m in all_movie_ids

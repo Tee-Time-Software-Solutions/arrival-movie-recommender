@@ -150,14 +150,17 @@ def build_lightfm_data() -> None:
 
         year_val = row_m.get("release_year")
         if not pd.isna(year_val):
-            f_idx = add_feature(f"year_{int(year_val)}")
-            row_if.append(item_idx)
-            col_if.append(f_idx)
-            data_if.append(1.0)
+            f_idx = feature_to_index.get(f"year_{int(year_val)}")
+            if f_idx is not None:
+                row_if.append(item_idx)
+                col_if.append(f_idx)
+                data_if.append(1.0)
 
         genres_val = row_m.get("genres")
         for g in _extract_genres(genres_val):
-            f_idx = add_feature(f"genre_{g}")
+            f_idx = feature_to_index.get(f"genre_{g}")
+            if f_idx is None:
+                continue
             row_if.append(item_idx)
             col_if.append(f_idx)
             data_if.append(1.0)
