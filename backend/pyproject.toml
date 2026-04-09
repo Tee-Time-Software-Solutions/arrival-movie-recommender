@@ -28,7 +28,6 @@ dependencies = [
       "scipy",
       "implicit",
       "cython",
-      "lightfm @ git+https://github.com/lyst/lightfm.git",
       "tqdm",
       "alembic", # db
       "asyncpg", #db --  async postgres driver (used by the app)
