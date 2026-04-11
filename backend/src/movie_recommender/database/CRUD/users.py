@@ -1,4 +1,4 @@
-from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy import delete, func, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from movie_recommender.database.models import (
@@ -136,6 +136,15 @@ async def update_user_preferences(
     if excluded_genre_names is not None:
         await _sync_genre_list(db, user_id, excluded_genre_names, excluded_genres)
 
+    await db.commit()
+
+
+async def mark_onboarding_completed(db: AsyncSession, user_id: int) -> None:
+    await db.execute(
+        update(users)
+        .where(users.c.id == user_id)
+        .values(onboarding_completed=True)
+    )
     await db.commit()
 
 

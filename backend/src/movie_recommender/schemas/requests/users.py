@@ -48,6 +48,7 @@ class UserCreatedResponse(BaseModel):
     email: str
     created_at: datetime
     updated_at: datetime
+    onboarding_completed: bool
 
 
 class LinkedMovie(BaseModel):

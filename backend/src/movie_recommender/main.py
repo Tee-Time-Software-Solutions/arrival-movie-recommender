@@ -13,6 +13,7 @@ from movie_recommender.core.clients.firebase import initialize_firebase
 from movie_recommender.database.engine import DatabaseEngine
 from movie_recommender.dependencies.recommender import init_recommender_redis
 from movie_recommender.services.knowledge_graph.schema import ensure_kg_schema
+from movie_recommender.services.onboarding.seed import seed_onboarding_movies
 from movie_recommender.services.swipe_worker.main import drain_swipe_queue
 
 
@@ -34,6 +35,9 @@ async def lifespan(app: FastAPI):
     swipe_task = asyncio.create_task(
         drain_swipe_queue(redis_client, db_engine.session_factory)
     )
+
+    # Seed onboarding movies if not already in DB (fire-and-forget)
+    asyncio.create_task(seed_onboarding_movies())
 
     yield
 

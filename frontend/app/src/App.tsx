@@ -6,6 +6,7 @@ import { ChatPage } from "./app/Chat/ChatPage";
 import { ProfilePage } from "./app/Profile/ProfilePage";
 import { WatchlistPage } from "./app/Watchlist/WatchlistPage";
 import { LandingPage } from "./app/Landing/LandingPage";
+import { OnboardingPage } from "./app/Onboarding/OnboardingPage";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
           <Route path="/" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
           <Route path="/watchlist" element={<ProtectedRoute><WatchlistPage /></ProtectedRoute>} />

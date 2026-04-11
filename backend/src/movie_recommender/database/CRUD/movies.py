@@ -49,6 +49,61 @@ async def get_filtered_movie_ids(
     return {row.id for row in result}
 
 
+async def get_movie_by_tmdb_id(db: AsyncSession, tmdb_id: int) -> MovieRow | None:
+    result = await db.execute(select(movies).where(movies.c.tmdb_id == tmdb_id))
+    return result.first()
+
+
+async def get_movies_by_tmdb_ids(
+    db: AsyncSession, tmdb_ids: list[int]
+) -> list[MovieRow]:
+    if not tmdb_ids:
+        return []
+    result = await db.execute(
+        select(movies).where(movies.c.tmdb_id.in_(tmdb_ids))
+    )
+    return list(result)
+
+
+async def get_onboarding_movie_cards(
+    db: AsyncSession, tmdb_ids: list[int]
+) -> list[dict]:
+    """Fetch lightweight movie cards for onboarding grid display."""
+    if not tmdb_ids:
+        return []
+
+    movie_rows = await db.execute(
+        select(movies).where(
+            movies.c.tmdb_id.in_(tmdb_ids),
+            movies.c.poster_url.isnot(None),
+        )
+    )
+    movies_list = list(movie_rows)
+
+    movie_ids = [m.id for m in movies_list]
+    genre_rows = await db.execute(
+        select(movies_genres.c.movie_id, genres.c.name)
+        .join(genres, genres.c.id == movies_genres.c.genre_id)
+        .where(movies_genres.c.movie_id.in_(movie_ids))
+    )
+    genres_by_movie: dict[int, list[str]] = defaultdict(list)
+    for row in genre_rows:
+        genres_by_movie[row.movie_id].append(row.name)
+
+    return [
+        {
+            "movie_db_id": m.id,
+            "tmdb_id": m.tmdb_id,
+            "title": m.title,
+            "poster_url": m.poster_url,
+            "release_year": m.release_year or 0,
+            "tmdb_rating": m.tmdb_rating or 0.0,
+            "genres": genres_by_movie.get(m.id, []),
+        }
+        for m in movies_list
+    ]
+
+
 async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieRow | None:
     result = await db.execute(select(movies).where(movies.c.id == movie_id))
     return result.first()
