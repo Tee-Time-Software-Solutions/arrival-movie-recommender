@@ -10,6 +10,7 @@ Preference values match serving via swipe_to_preference (-2 .. +2).
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -45,9 +46,7 @@ def ml_user_id_for_app_user(app_user_id: int, offset: int | None = None) -> int:
 def _timestamp_to_unix_seconds(ts: datetime | None) -> int:
     if ts is None:
         return 0
-    if ts.tzinfo is not None:
-        return int(ts.timestamp())
-    return int(ts.timestamp()) if hasattr(ts, "timestamp") else 0
+    return int(ts.timestamp())
 
 
 def swipe_row_to_preference(action_type: str, is_supercharged: bool) -> int:
@@ -56,11 +55,11 @@ def swipe_row_to_preference(action_type: str, is_supercharged: bool) -> int:
 
 
 def swipes_to_dataframe(
-    rows: list[Any],
+    rows: Sequence[Mapping[str, Any]],
     app_user_id_offset: int | None = None,
 ) -> pd.DataFrame:
     """
-    Build a labeled export DataFrame from SQLAlchemy row mappings (or dicts).
+    Build a labeled export DataFrame from SQLAlchemy RowMappings or plain dicts.
     Each row: user_id, movie_id, action_type, is_supercharged, created_at.
     """
     off = (
@@ -70,19 +69,18 @@ def swipes_to_dataframe(
     )
     records: list[dict[str, Any]] = []
     for row in rows:
-        r = dict(row) if not isinstance(row, dict) else row
-        uid = int(r["user_id"])
+        uid = int(row["user_id"])
         pref = swipe_row_to_preference(
-            str(r["action_type"]), bool(r["is_supercharged"])
+            str(row["action_type"]), bool(row["is_supercharged"])
         )
-        ts = r.get("created_at")
+        ts = row.get("created_at")
         records.append(
             {
                 "app_user_id": uid,
                 "user_id": ml_user_id_for_app_user(uid, off),
-                "movie_id": int(r["movie_id"]),
-                "action_type": str(r["action_type"]),
-                "is_supercharged": bool(r["is_supercharged"]),
+                "movie_id": int(row["movie_id"]),
+                "action_type": str(row["action_type"]),
+                "is_supercharged": bool(row["is_supercharged"]),
                 "preference": pref,
                 "timestamp": _timestamp_to_unix_seconds(ts),
             }
@@ -90,7 +88,7 @@ def swipes_to_dataframe(
     return pd.DataFrame.from_records(records)
 
 
-async def fetch_all_swipe_rows(db: AsyncSession) -> list[dict[str, Any]]:
+async def fetch_all_swipe_rows(db: AsyncSession) -> list[Mapping[str, Any]]:
     result = await db.execute(
         select(
             swipes.c.user_id,
@@ -100,7 +98,8 @@ async def fetch_all_swipe_rows(db: AsyncSession) -> list[dict[str, Any]]:
             swipes.c.created_at,
         ).order_by(swipes.c.created_at.asc())
     )
-    return [dict(m) for m in result.mappings().all()]
+    # RowMappings are Mapping-like; avoid materializing a dict per row here.
+    return result.mappings().all()
 
 
 async def export_swipes_to_parquet(

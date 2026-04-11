@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from pandas.util import hash_pandas_object
 
 from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings import (
     bucket_to_preference,
@@ -70,7 +71,7 @@ def merge_and_dedupe_interactions(
     Returns (interactions_for_als, skips_df for ranking sidecar).
     """
     skips = pd.DataFrame(columns=["user_id", "movie_id", "timestamp"])
-    parts: list[pd.DataFrame] = [movielens_df.copy()]
+    parts: list[pd.DataFrame] = [movielens_df]
 
     if swipes_df is not None and len(swipes_df) > 0:
         swipe_skips = swipes_df[swipes_df["preference"] == 0][
@@ -97,7 +98,9 @@ def merge_and_dedupe_interactions(
 
 
 def _fingerprint_df(df: pd.DataFrame) -> str:
-    payload = df.to_csv(index=False).encode("utf-8")
+    """Stable short id for metadata; avoids materializing a full CSV string on large frames."""
+    row_hashes = hash_pandas_object(df, index=False)
+    payload = row_hashes.to_numpy(dtype="uint64", copy=False).tobytes()
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
