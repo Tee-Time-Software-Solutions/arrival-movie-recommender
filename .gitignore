@@ -228,10 +228,8 @@ __marimo__/
 data/
 
 # Pipeline artifacts (large/generated files) — keep EDA notebooks
-backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/source/
-backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/processed/
-backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/splits/
-backend/src/movie_recommender/services/recommender/pipeline/artifacts/model_assets/
+backend/src/movie_recommender/services/recommender/pipeline/artifacts/
+!backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/eda/
 
 # E2E Testing
 e2e-backend.log
