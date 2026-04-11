@@ -34,6 +34,11 @@ class FeedManager:
         self.db_session_factory = db_session_factory
         self.settings = AppSettings()
 
+    async def flush_feed(self, user_id: int) -> None:
+        """Delete the user's Redis feed queue (e.g. after filter changes)."""
+        queue_key = f"feed:user:{user_id}"
+        await self.redis_client.delete(queue_key)
+
     async def get_next_movie(
         self, user_id: int, user_preferences: UserPreferences | None = None
     ) -> MovieDetails:

@@ -104,6 +104,5 @@ async def flush_movies_feed(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    queue_key = f"feed:user:{user.id}"
-    await feed_manager.redis_client.delete(queue_key)
+    await feed_manager.flush_feed(user.id)
     return {"flushed": True}

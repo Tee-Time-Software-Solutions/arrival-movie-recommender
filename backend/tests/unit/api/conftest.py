@@ -22,6 +22,7 @@ FakeRow = namedtuple(
         "email",
         "created_at",
         "updated_at",
+        "onboarding_completed",
     ],
 )
 
@@ -32,6 +33,7 @@ FAKE_USER = FakeRow(
     email="test@example.com",
     created_at=datetime(2024, 1, 1),
     updated_at=datetime(2024, 1, 1),
+    onboarding_completed=False,
 )
 
 
