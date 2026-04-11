@@ -12,6 +12,7 @@ RESET = \033[0m
 
 PROJECT_NAME = movie_recommender
 BACKEND_ENV_FILE_SYNCED_PATH = ../backend/env_config/synced/.env.$(ENVIRONMENT)
+FRONTEND_ENV_FILE_SYNCED_PATH = ../frontend/app/env_config/synced/.env.$(ENVIRONMENT)
 
 
 
@@ -26,16 +27,16 @@ install: ## Install projet-wide dependencies
 
 dev-start: ## Start dev (no rebuild, fast). Use dev-rebuild if deps changed
 	$(MAKE) check-enviroment-variables
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) FRONTEND_ENV_FILE=$(FRONTEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up
 
 dev-rebuild: ## Rebuild images then start dev (use when deps change)
 	$(MAKE) check-enviroment-variables
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build -V
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) FRONTEND_ENV_FILE=$(FRONTEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build -V
 
 dev-stop: ## Stop development environment
 	$(MAKE) check-enviroment-variables
 	@echo "$(YELLOW)Stopping development environment...$(RESET)"
-	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) down -v || true
+	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) FRONTEND_ENV_FILE=$(FRONTEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) down -v || true
 
 backend-tests: ## Run unit tests
 	$(MAKE) -C backend unit-test
