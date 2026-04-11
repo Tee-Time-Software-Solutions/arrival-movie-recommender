@@ -101,6 +101,33 @@ def _fingerprint_df(df: pd.DataFrame) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
+def _print_interaction_snapshot(title: str, df: pd.DataFrame, *, note: str | None = None) -> None:
+    """Human-readable stats for one interaction table (MovieLens, swipes export, or merged)."""
+    print()
+    print(f"--- {title} ---")
+    if note:
+        print(f"    ({note})")
+    print(f"    rows: {len(df):,}")
+    if df.empty:
+        print("    (empty)")
+        return
+    print(f"    columns: {list(df.columns)}")
+    if "user_id" in df.columns:
+        print(f"    unique users:  {df['user_id'].nunique():,}")
+    if "movie_id" in df.columns:
+        print(f"    unique movies: {df['movie_id'].nunique():,}")
+    if "preference" in df.columns:
+        vc = df["preference"].value_counts().sort_index()
+        parts = [f"{int(k)} → {v:,}" for k, v in vc.items()]
+        print(f"    preference counts:  {', '.join(parts)}")
+        if (df["preference"] == 0).any():
+            n0 = int((df["preference"] == 0).sum())
+            print(f"    rows with preference==0 (skips): {n0:,}")
+    if "timestamp" in df.columns:
+        ts = df["timestamp"]
+        print(f"    timestamp (unix s): min={int(ts.min())}  max={int(ts.max())}")
+
+
 def run_unified_preprocess(
     swipes_parquet_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -110,14 +137,41 @@ def run_unified_preprocess(
     """
     print("Loading MovieLens ratings...")
     ml_df = load_movielens_ratings_df()
+    _print_interaction_snapshot(
+        "MovieLens (ratings.csv → preference scale)",
+        ml_df,
+        note="source for offline training; no skips",
+    )
+
     swipes_df = load_swipes_export_df(swipes_parquet_path)
 
     if swipes_df is not None:
-        print(f"Merging app swipes: {len(swipes_df)} rows from export")
+        _print_interaction_snapshot(
+            "App swipes (swipes_from_db.parquet)",
+            swipes_df,
+            note="includes skips as preference==0; non-zero merged below",
+        )
+        print(f"\nMerging app swipes: {len(swipes_df):,} rows from export")
     else:
-        print("No swipes export found — MovieLens only")
+        print()
+        print("--- App swipes (swipes_from_db.parquet) ---")
+        print("    (not found — unified table is MovieLens-only after dedupe)")
 
     train_df, skips_df = merge_and_dedupe_interactions(ml_df, swipes_df)
+
+    _print_interaction_snapshot(
+        "Unified / ALS training (MovieLens + app, deduped by latest timestamp per user–movie)",
+        train_df,
+        note="skips excluded; interactions_clean.parquet",
+    )
+    if len(skips_df) > 0:
+        print()
+        print("--- Skips sidecar (for ranking / not in ALS matrix) ---")
+        print(f"    rows: {len(skips_df):,}")
+        if "user_id" in skips_df.columns:
+            print(f"    unique users:  {skips_df['user_id'].nunique():,}")
+        if "movie_id" in skips_df.columns:
+            print(f"    unique movies: {skips_df['movie_id'].nunique():,}")
 
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
     train_df.to_parquet(INTERACTIONS_CLEAN_PATH, index=False)

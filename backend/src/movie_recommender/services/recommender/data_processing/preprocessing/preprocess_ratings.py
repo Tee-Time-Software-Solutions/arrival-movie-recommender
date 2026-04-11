@@ -1,6 +1,5 @@
 # recommender/training/preprocess_ratings.py
 
-import pandas as pd
 from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
 
 PROCESSED_PATH = DATA_PROCESSED / "interactions_clean.parquet"
@@ -43,11 +42,6 @@ def preprocess_ratings():
 
     print("Preprocessing ratings (unified MovieLens + optional app swipes)...")
     meta = run_unified_preprocess()
-    print("Preference distribution (interactions_clean):")
-    df = pd.read_parquet(PROCESSED_PATH)
-    print(df["preference"].value_counts().sort_index())
-    print(f"Unique users: {df['user_id'].nunique()}")
-    print(f"Unique movies: {df['movie_id'].nunique()}")
     return meta
 
 

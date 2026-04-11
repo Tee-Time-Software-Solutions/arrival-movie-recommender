@@ -36,6 +36,10 @@ from movie_recommender.services.recommender.data_processing.split import run_spl
 from movie_recommender.services.recommender.learning.build_matrix import build_sparse_matrix
 from movie_recommender.services.recommender.learning.evaluate import evaluate
 from movie_recommender.services.recommender.learning.train_als import train
+from movie_recommender.services.recommender.data_processing.swipe_export import (
+    SWIPES_FROM_DB_FILENAME,
+)
+from movie_recommender.services.recommender.paths_dev import DATA_RAW
 
 BACKEND_ROOT = Path(__file__).resolve().parents[6]
 EXPORT_SCRIPT = BACKEND_ROOT / "scripts" / "export_swipes.py"
@@ -65,6 +69,11 @@ def run_closed_loop(
     if not skip_export:
         print("\nStep 0: Exporting swipes from Postgres...")
         _run_export_subprocess(app_user_id_offset)
+        export_path = DATA_RAW / SWIPES_FROM_DB_FILENAME
+        print(f"  Raw export: {export_path}")
+        print(
+            "  Step 2 will print MovieLens vs app swipes vs unified merge (row counts, prefs, ranges)."
+        )
     else:
         print("\nStep 0: Skipping swipe export (--skip-export)")
 
