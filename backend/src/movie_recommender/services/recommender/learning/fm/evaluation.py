@@ -44,9 +44,7 @@ def evaluate_fm() -> None:
     item_features = _load_item_features()
     mappings = _load_mappings()
 
-    user_id_to_index = {
-        int(k): int(v) for k, v in mappings["user_id_to_index"].items()
-    }
+    user_id_to_index = {int(k): int(v) for k, v in mappings["user_id_to_index"].items()}
     movie_id_to_index = {
         int(k): int(v) for k, v in mappings["movie_id_to_index"].items()
     }
@@ -123,4 +121,3 @@ def evaluate_fm() -> None:
 
 if __name__ == "__main__":
     evaluate_fm()
-

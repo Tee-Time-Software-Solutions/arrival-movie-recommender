@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from movie_recommender.services.recommender.paths_dev import ARTIFACTS, DATA_SPLITS
+from movie_recommender.services.recommender.paths_dev import DATA_SPLITS, artifacts_dir
 from movie_recommender.services.recommender.learning.metrics import dcg_at_k
 from movie_recommender.services.recommender.learning.fm.inference import (
     _load_lightfm_model,
@@ -18,10 +18,6 @@ from movie_recommender.services.recommender.learning.fm.inference import (
 
 TRAIN_PATH = DATA_SPLITS / "train.parquet"
 VAL_PATH = DATA_SPLITS / "val.parquet"
-
-ALS_USER_EMB_PATH = ARTIFACTS / "user_embeddings.npy"
-ALS_MOVIE_EMB_PATH = ARTIFACTS / "movie_embeddings.npy"
-MAPPINGS_PATH = ARTIFACTS / "mappings.json"
 
 K = 10
 
@@ -62,10 +58,11 @@ def compare_als_vs_fm() -> None:
     )
 
     print("Loading ALS artifacts...")
-    user_embeddings = np.load(ALS_USER_EMB_PATH)
-    movie_embeddings = np.load(ALS_MOVIE_EMB_PATH)
+    als_root = artifacts_dir()
+    user_embeddings = np.load(als_root / "user_embeddings.npy")
+    movie_embeddings = np.load(als_root / "movie_embeddings.npy")
 
-    with open(MAPPINGS_PATH, "r") as f:
+    with open(als_root / "mappings.json", "r") as f:
         mappings = json.load(f)
 
     user_id_to_index = {int(k): v for k, v in mappings["user_id_to_index"].items()}
@@ -171,15 +168,12 @@ def compare_als_vs_fm() -> None:
             continue
 
         fm_top_k_indices = np.argpartition(fm_scores, -k_eff_fm)[-k_eff_fm:]
-        fm_top_k_indices = fm_top_k_indices[
-            np.argsort(-fm_scores[fm_top_k_indices])
-        ]
+        fm_top_k_indices = fm_top_k_indices[np.argsort(-fm_scores[fm_top_k_indices])]
 
         fm_recommended = {candidate_movie_ids[i] for i in fm_top_k_indices}
 
         fm_relevance = [
-            1 if candidate_movie_ids[i] in true_movies else 0
-            for i in fm_top_k_indices
+            1 if candidate_movie_ids[i] in true_movies else 0 for i in fm_top_k_indices
         ]
         fm_recall, fm_precision, fm_ndcg = _calculate_metrics(
             recommended_ids=fm_recommended,
@@ -208,4 +202,3 @@ def compare_als_vs_fm() -> None:
 
 if __name__ == "__main__":
     compare_als_vs_fm()
-
