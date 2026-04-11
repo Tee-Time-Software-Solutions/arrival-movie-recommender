@@ -141,9 +141,7 @@ async def update_user_preferences(
 
 async def mark_onboarding_completed(db: AsyncSession, user_id: int) -> None:
     await db.execute(
-        update(users)
-        .where(users.c.id == user_id)
-        .values(onboarding_completed=True)
+        update(users).where(users.c.id == user_id).values(onboarding_completed=True)
     )
     await db.commit()
 

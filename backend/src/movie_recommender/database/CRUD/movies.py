@@ -59,9 +59,7 @@ async def get_movies_by_tmdb_ids(
 ) -> list[MovieRow]:
     if not tmdb_ids:
         return []
-    result = await db.execute(
-        select(movies).where(movies.c.tmdb_id.in_(tmdb_ids))
-    )
+    result = await db.execute(select(movies).where(movies.c.tmdb_id.in_(tmdb_ids)))
     return list(result)
 
 

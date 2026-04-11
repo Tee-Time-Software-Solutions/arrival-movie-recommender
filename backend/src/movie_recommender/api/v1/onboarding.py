@@ -156,7 +156,9 @@ async def _hydrate_tmdb_movie(db: AsyncSession, tmdb_id: int) -> int | None:
         movie_providers=_get_tmdb_fetcher()._extract_providers(detail_res),
         keywords=_get_tmdb_fetcher()._extract_keywords(detail_res),
         collection=_get_tmdb_fetcher()._extract_collection(detail_res),
-        production_companies=_get_tmdb_fetcher()._extract_production_companies(detail_res),
+        production_companies=_get_tmdb_fetcher()._extract_production_companies(
+            detail_res
+        ),
         genre_tmdb_ids=[g["id"] for g in detail_res.get("genres", [])],
     )
 
@@ -212,9 +214,7 @@ async def complete_onboarding(
 
     # Mark onboarding as complete (same transaction as swipes)
     await db.execute(
-        update(users)
-        .where(users.c.id == user.id)
-        .values(onboarding_completed=True)
+        update(users).where(users.c.id == user.id).values(onboarding_completed=True)
     )
 
     # Single commit for all DB writes (swipes + hydrated movies + onboarding flag)

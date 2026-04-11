@@ -37,8 +37,8 @@ def warm_start_vector(
     ]
     if not indices:
         return cold_start_vector(artifacts)
-    return artifacts.movie_embeddings[indices].mean(axis=0).astype(
-        np.float32, copy=False
+    return (
+        artifacts.movie_embeddings[indices].mean(axis=0).astype(np.float32, copy=False)
     )
 
 

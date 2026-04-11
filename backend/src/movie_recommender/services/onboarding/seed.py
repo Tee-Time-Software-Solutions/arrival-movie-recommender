@@ -12,7 +12,10 @@ from sqlalchemy import func, select
 
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.database.engine import DatabaseEngine
-from movie_recommender.database.CRUD.movies import get_movie_by_tmdb_id, save_hydrated_movie
+from movie_recommender.database.CRUD.movies import (
+    get_movie_by_tmdb_id,
+    save_hydrated_movie,
+)
 from movie_recommender.database.models import movies
 from movie_recommender.schemas.requests.movies import MovieDetails
 from movie_recommender.services.hydrator.main import TMDBFetcher
