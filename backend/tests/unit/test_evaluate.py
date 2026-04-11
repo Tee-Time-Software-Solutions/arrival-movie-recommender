@@ -4,7 +4,8 @@ import pandas as pd
 import pytest
 from unittest.mock import patch
 
-from movie_recommender.services.recommender.learning.evaluate import dcg_at_k, evaluate
+from movie_recommender.services.recommender.learning.evaluate import evaluate
+from movie_recommender.services.recommender.learning.metrics import dcg_at_k
 
 _MODULE = "movie_recommender.services.recommender.learning.evaluate"
 
@@ -69,9 +70,7 @@ class TestEvaluateOrchestration:
 
     def _run(self, tmp_path):
         with (
-            patch(f"{_MODULE}.USER_EMB_PATH", tmp_path / "user_embeddings.npy"),
-            patch(f"{_MODULE}.MOVIE_EMB_PATH", tmp_path / "movie_embeddings.npy"),
-            patch(f"{_MODULE}.MAPPINGS_PATH", tmp_path / "mappings.json"),
+            patch(f"{_MODULE}.artifacts_dir", lambda: tmp_path),
             patch(f"{_MODULE}.TRAIN_PATH", tmp_path / "train.parquet"),
             patch(f"{_MODULE}.VAL_PATH", tmp_path / "val.parquet"),
             patch(f"{_MODULE}.K", 3),

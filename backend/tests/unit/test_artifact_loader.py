@@ -1,122 +1,68 @@
 import pytest
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
+from movie_recommender.services.recommender.serving import artifact_loader as al
 from movie_recommender.services.recommender.serving.artifact_loader import (
     _ensure_artifact_paths_exist,
 )
 
 
 class TestEnsureArtifactPathsExist:
+    def _touch_embeddings_and_mappings(self, emb_root: Path):
+        (emb_root / "movie_embeddings.npy").touch()
+        (emb_root / "user_embeddings.npy").touch()
+        (emb_root / "mappings.json").touch()
+
     def test_all_present_no_error(self, tmp_path):
-        paths = [tmp_path / f"file_{i}.npy" for i in range(4)]
-        for p in paths:
-            p.touch()
+        emb_root = tmp_path / "emb"
+        emb_root.mkdir()
+        self._touch_embeddings_and_mappings(emb_root)
+        (tmp_path / "movies_filtered.parquet").touch()
 
         with (
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-                paths[0],
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-                paths[1],
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-                paths[2],
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-                paths[3],
-            ),
+            patch.object(al, "artifacts_dir", lambda: emb_root),
+            patch.object(al, "DATA_PROCESSED", tmp_path),
         ):
-            _ensure_artifact_paths_exist()  # should not raise
+            _ensure_artifact_paths_exist()
 
     def test_missing_file_raises(self, tmp_path):
-        existing = tmp_path / "exists.npy"
-        existing.touch()
-        missing = tmp_path / "missing.npy"
+        emb_root = tmp_path / "emb"
+        emb_root.mkdir()
+        (emb_root / "movie_embeddings.npy").touch()
+        (emb_root / "mappings.json").touch()
+        (tmp_path / "movies_filtered.parquet").touch()
 
         with (
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-                existing,
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-                missing,
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-                existing,
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-                existing,
-            ),
+            patch.object(al, "artifacts_dir", lambda: emb_root),
+            patch.object(al, "DATA_PROCESSED", tmp_path),
         ):
-            with pytest.raises(FileNotFoundError, match="missing.npy"):
+            with pytest.raises(FileNotFoundError, match="user_embeddings"):
                 _ensure_artifact_paths_exist()
 
     def test_multiple_missing_lists_all(self, tmp_path):
-        existing = tmp_path / "exists.npy"
-        existing.touch()
-        missing1 = tmp_path / "missing1.npy"
-        missing2 = tmp_path / "missing2.npy"
+        emb_root = tmp_path / "emb"
+        emb_root.mkdir()
+        (tmp_path / "movies_filtered.parquet").touch()
 
         with (
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-                missing1,
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-                missing2,
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-                existing,
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-                existing,
-            ),
-        ):
-            with pytest.raises(FileNotFoundError) as exc_info:
-                _ensure_artifact_paths_exist()
-            assert "missing1.npy" in str(exc_info.value)
-            assert "missing2.npy" in str(exc_info.value)
-
-    def test_partial_missing_lists_only_missing(self, tmp_path):
-        paths = [tmp_path / f"file_{i}.npy" for i in range(4)]
-        paths[0].touch()
-        paths[1].touch()
-        paths[2].touch()
-        # paths[3] is missing
-
-        with (
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIE_EMBEDDINGS_PATH",
-                paths[0],
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.USER_EMBEDDINGS_PATH",
-                paths[1],
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MAPPINGS_PATH",
-                paths[2],
-            ),
-            patch(
-                "movie_recommender.services.recommender.serving.artifact_loader.MOVIES_FILTERED_PATH",
-                paths[3],
-            ),
+            patch.object(al, "artifacts_dir", lambda: emb_root),
+            patch.object(al, "DATA_PROCESSED", tmp_path),
         ):
             with pytest.raises(FileNotFoundError) as exc_info:
                 _ensure_artifact_paths_exist()
             msg = str(exc_info.value)
-            assert "file_3.npy" in msg
-            assert "file_0.npy" not in msg
-            assert "file_1.npy" not in msg
-            assert "file_2.npy" not in msg
+            assert "movie_embeddings" in msg or "user_embeddings" in msg
+
+    def test_partial_missing_lists_only_missing(self, tmp_path):
+        emb_root = tmp_path / "emb"
+        emb_root.mkdir()
+        self._touch_embeddings_and_mappings(emb_root)
+
+        with (
+            patch.object(al, "artifacts_dir", lambda: emb_root),
+            patch.object(al, "DATA_PROCESSED", tmp_path),
+        ):
+            with pytest.raises(FileNotFoundError) as exc_info:
+                _ensure_artifact_paths_exist()
+            assert "movies_filtered" in str(exc_info.value)

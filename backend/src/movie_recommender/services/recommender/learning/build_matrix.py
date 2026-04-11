@@ -4,14 +4,16 @@ import json
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, save_npz
-from movie_recommender.services.recommender.paths_dev import DATA_SPLITS, ARTIFACTS
+from movie_recommender.services.recommender.paths_dev import DATA_SPLITS, artifacts_dir
 
 TRAIN_PATH = DATA_SPLITS / "train.parquet"
-MATRIX_PATH = ARTIFACTS / "R_train.npz"
-MAPPINGS_PATH = ARTIFACTS / "mappings.json"
 
 
 def build_sparse_matrix():
+    artifact_root = artifacts_dir()
+    matrix_path = artifact_root / "R_train.npz"
+    mappings_path = artifact_root / "mappings.json"
+
     print("Loading train split...")
     df = pd.read_parquet(TRAIN_PATH)
 
@@ -54,10 +56,10 @@ def build_sparse_matrix():
     print(f"Non-zero entries: {R_train.nnz}")
 
     # ---- Save artifacts ----
-    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    artifact_root.mkdir(parents=True, exist_ok=True)
 
     print("Saving sparse matrix...")
-    save_npz(MATRIX_PATH, R_train)
+    save_npz(matrix_path, R_train)
 
     print("Saving mappings...")
 
@@ -71,7 +73,7 @@ def build_sparse_matrix():
         "index_to_movie_id": _to_native(index_to_movie_id),
     }
 
-    with open(MAPPINGS_PATH, "w") as f:
+    with open(mappings_path, "w") as f:
         json.dump(mappings, f)
 
     print("Artifacts saved successfully.")

@@ -31,6 +31,7 @@ dependencies = [
       "tqdm",
       "alembic", # db
       "asyncpg", #db --  async postgres driver (used by the app)
+      "greenlet>=3.0.0", # sqlalchemy async session (export_swipes, app)
       "psycopg2-binary", # db -- sync postgres driver (for migrations)
       "python-dotenv",
       "neo4j>=5.0.0",

@@ -8,9 +8,9 @@ import pandas as pd
 from scipy.sparse import csr_matrix, save_npz, load_npz
 
 from movie_recommender.services.recommender.paths_dev import (
-    ARTIFACTS,
     DATA_PROCESSED,
     DATA_SPLITS,
+    artifacts_dir,
 )
 
 
@@ -18,10 +18,15 @@ TRAIN_PATH = DATA_SPLITS / "train.parquet"
 VAL_PATH = DATA_SPLITS / "val.parquet"
 MOVIES_FILTERED_PATH = DATA_PROCESSED / "movies_filtered.parquet"
 
-INTERACTIONS_PATH = ARTIFACTS / "fm_interactions.npz"
-ITEM_FEATURES_PATH = ARTIFACTS / "fm_item_features.npz"
-MAPPINGS_PATH = ARTIFACTS / "fm_mappings.json"
-ITEM_FEATURE_INDEX_PATH = ARTIFACTS / "fm_item_feature_index.json"
+
+def _fm_paths():
+    r = artifacts_dir()
+    return {
+        "interactions": r / "fm_interactions.npz",
+        "item_features": r / "fm_item_features.npz",
+        "mappings": r / "fm_mappings.json",
+        "item_feature_index": r / "fm_item_feature_index.json",
+    }
 
 
 def _extract_genres(genres_value) -> Tuple[str, ...]:
@@ -104,8 +109,10 @@ def build_lightfm_data() -> None:
     )
 
     print("Saving interactions matrix...")
-    ARTIFACTS.mkdir(parents=True, exist_ok=True)
-    save_npz(INTERACTIONS_PATH, interactions)
+    paths = _fm_paths()
+    artifact_root = artifacts_dir()
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    save_npz(paths["interactions"], interactions)
 
     # Item features
     print("Loading filtered movies metadata...")
@@ -172,26 +179,25 @@ def build_lightfm_data() -> None:
     )
 
     print("Saving item features matrix and mappings...")
-    save_npz(ITEM_FEATURES_PATH, item_features)
+    save_npz(paths["item_features"], item_features)
 
     mappings = {
         "user_id_to_index": user_id_to_index,
         "movie_id_to_index": movie_id_to_index,
     }
-    with open(MAPPINGS_PATH, "w") as f:
+    with open(paths["mappings"], "w") as f:
         json.dump(mappings, f)
 
-    with open(ITEM_FEATURE_INDEX_PATH, "w") as f:
+    with open(paths["item_feature_index"], "w") as f:
         json.dump({"feature_to_index": feature_to_index}, f)
 
     print("LightFM data artifacts saved.")
 
 
 def load_lightfm_data():
-    interactions = load_npz(INTERACTIONS_PATH)
-    item_features = load_npz(ITEM_FEATURES_PATH)
-    with open(MAPPINGS_PATH, "r") as f:
+    paths = _fm_paths()
+    interactions = load_npz(paths["interactions"])
+    item_features = load_npz(paths["item_features"])
+    with open(paths["mappings"], "r") as f:
         mappings = json.load(f)
     return interactions, item_features, mappings
-
-

@@ -1,9 +1,7 @@
 # recommender/training/preprocess_ratings.py
 
-import pandas as pd
-from movie_recommender.services.recommender.paths_dev import DATA_RAW, DATA_PROCESSED
+from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED
 
-RAW_PATH = DATA_RAW / "ratings.csv"
 PROCESSED_PATH = DATA_PROCESSED / "interactions_clean.parquet"
 
 
@@ -33,51 +31,18 @@ def bucket_to_preference(bucket: int) -> int:
 
 
 def preprocess_ratings():
-    print("Loading ratings.csv (this may take ~15–25 seconds)...")
+    """
+    Build interactions_clean.parquet from MovieLens + optional swipes_from_db.parquet.
 
-    df = pd.read_csv(
-        RAW_PATH,
-        dtype={
-            "userId": "int32",
-            "movieId": "int32",
-            "rating": "float32",
-            "timestamp": "int64",
-        },
+    Delegates to unified_interactions (MovieLens-only if export file is absent).
+    """
+    from movie_recommender.services.recommender.data_processing.unified_interactions import (
+        run_unified_preprocess,
     )
 
-    # Rename columns
-    df = df.rename(
-        columns={
-            "userId": "user_id",
-            "movieId": "movie_id",
-        }
-    )
-
-    print("Mapping ratings to swipe buckets...")
-
-    # Convert ratings → 1–4 bucket
-    df["bucket"] = df["rating"].apply(map_rating_to_bucket).astype("int8")
-
-    # Convert bucket → preference scale
-    df["preference"] = df["bucket"].apply(bucket_to_preference).astype("int8")
-
-    # Keep only necessary columns
-    df = df[["user_id", "movie_id", "preference", "timestamp"]]
-
-    # Ensure output directory exists
-    PROCESSED_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    print("Saving processed interactions...")
-
-    df.to_parquet(PROCESSED_PATH, index=False)
-
-    # ---- Sanity Checks ----
-    print("Ratings preprocessing complete.")
-    print(f"Total interactions: {len(df)}")
-    print(f"Unique users: {df['user_id'].nunique()}")
-    print(f"Unique movies: {df['movie_id'].nunique()}")
-    print("Preference distribution:")
-    print(df["preference"].value_counts().sort_index())
+    print("Preprocessing ratings (unified MovieLens + optional app swipes)...")
+    meta = run_unified_preprocess()
+    return meta
 
 
 if __name__ == "__main__":

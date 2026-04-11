@@ -2,25 +2,27 @@ import json
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from movie_recommender.services.recommender.paths_dev import ARTIFACTS, DATA_SPLITS
+from movie_recommender.services.recommender.paths_dev import DATA_SPLITS, artifacts_dir
 from movie_recommender.services.recommender.learning.metrics import dcg_at_k
 
 TRAIN_PATH = DATA_SPLITS / "train.parquet"
 VAL_PATH = DATA_SPLITS / "val.parquet"
 
-USER_EMB_PATH = ARTIFACTS / "user_embeddings.npy"
-MOVIE_EMB_PATH = ARTIFACTS / "movie_embeddings.npy"
-MAPPINGS_PATH = ARTIFACTS / "mappings.json"
-
 K = 10
 
+
 def evaluate():
+    root = artifacts_dir()
+    user_emb_path = root / "user_embeddings.npy"
+    movie_emb_path = root / "movie_embeddings.npy"
+    mappings_path = root / "mappings.json"
+
     print("Loading embeddings...")
-    user_embeddings = np.load(USER_EMB_PATH)
-    movie_embeddings = np.load(MOVIE_EMB_PATH)
+    user_embeddings = np.load(user_emb_path)
+    movie_embeddings = np.load(movie_emb_path)
 
     print("Loading mappings...")
-    with open(MAPPINGS_PATH, "r") as f:
+    with open(mappings_path, "r") as f:
         mappings = json.load(f)
 
     user_id_to_index = {int(k): v for k, v in mappings["user_id_to_index"].items()}
