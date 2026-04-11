@@ -11,7 +11,7 @@
 
 #### STATEFUL APP (MySQL + firebase auth)
 - [X] Stateful sessions (adding auth)
-- [ ] CRUD for movie display
+- [X] CRUD for movie display
 - [ ] Adding user profile info accessible
 
 ### 2) NON-MVP
@@ -30,6 +30,5 @@
 - [ ] Add rate limiter
 - [ ] Deployment
 - [ ] Talk with chatbot via voice
-- [ ] Adding pay-wall
 - [ ] Benchmarking our app
-- [ ] Elasticsearch
+- [ ] Full-text search
