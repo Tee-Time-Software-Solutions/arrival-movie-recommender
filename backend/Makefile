@@ -76,3 +76,13 @@ format-check: ## Formats
 format-fix: ## Format code (for pre-commit)
 	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
 	$(VENV_ACTIVATE) && ruff format src/
+
+# Recommender closed loop (MovieLens + optional swipes). From backend/ with .env containing DB_*.
+# Set RECOMMENDER_ARTIFACT_VERSION=myrun to write under artifacts/myrun/
+# APP_USER_ID_OFFSET must exceed max MovieLens userId in your ratings.csv (default 10_000_000).
+recommender-export-swipes: ## Export Postgres swipes -> src/.../data/raw/swipes_from_db.parquet
+	$(VENV_ACTIVATE) && python scripts/export_swipes.py
+
+recommender-train-closed-loop: ## Export swipes + full ALS pipeline (use SKIP_EXPORT=1 to skip DB export)
+	$(VENV_ACTIVATE) && python -m movie_recommender.services.recommender.learning.offline_pipelines.closed_loop_pipeline \
+		$(if $(SKIP_EXPORT),--skip-export,)

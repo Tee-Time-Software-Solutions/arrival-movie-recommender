@@ -8,7 +8,7 @@ from movie_recommender.services.recommender.data_processing.preprocessing.prepro
     preprocess_ratings,
 )
 
-_MODULE = "movie_recommender.services.recommender.data_processing.preprocessing.preprocess_ratings"
+_UNIFIED = "movie_recommender.services.recommender.data_processing.unified_interactions"
 
 
 class TestMapRatingToBucket:
@@ -69,8 +69,11 @@ class TestPreprocessRatingsOrchestration:
         out_path = tmp_path / "interactions_clean.parquet"
 
         with (
-            patch(f"{_MODULE}.RAW_PATH", raw_path),
-            patch(f"{_MODULE}.PROCESSED_PATH", out_path),
+            patch(f"{_UNIFIED}.RATINGS_CSV", raw_path),
+            patch(f"{_UNIFIED}.INTERACTIONS_CLEAN_PATH", out_path),
+            patch(f"{_UNIFIED}.SKIPS_FOR_RANKING_PATH", tmp_path / "skips_for_ranking.parquet"),
+            patch(f"{_UNIFIED}.PREPROCESS_METADATA_PATH", tmp_path / "preprocess_metadata.json"),
+            patch(f"{_UNIFIED}.load_swipes_export_df", return_value=None),
         ):
             preprocess_ratings()
         return out_path

@@ -27,9 +27,7 @@ def _run_build(tmp_path, df):
 
     with (
         patch(f"{_MODULE}.TRAIN_PATH", train_path),
-        patch(f"{_MODULE}.MATRIX_PATH", artifacts_dir / "R_train.npz"),
-        patch(f"{_MODULE}.MAPPINGS_PATH", artifacts_dir / "mappings.json"),
-        patch(f"{_MODULE}.ARTIFACTS", artifacts_dir),
+        patch(f"{_MODULE}.artifacts_dir", lambda: artifacts_dir),
     ):
         build_sparse_matrix()
 

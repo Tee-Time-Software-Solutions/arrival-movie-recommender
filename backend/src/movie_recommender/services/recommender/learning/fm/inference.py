@@ -8,25 +8,30 @@ from typing import Dict
 import numpy as np
 from scipy.sparse import load_npz
 
-from movie_recommender.services.recommender.paths_dev import ARTIFACTS
-from movie_recommender.services.recommender.learning.fm.data import (
-    ITEM_FEATURES_PATH,
-    MAPPINGS_PATH,
-)
+from movie_recommender.services.recommender.paths_dev import artifacts_dir
 
 
-MODEL_PATH = ARTIFACTS / "fm_lightfm_model.pkl"
+def _fm_model_path():
+    return artifacts_dir() / "fm_lightfm_model.pkl"
+
+
+def _fm_item_features_path():
+    return artifacts_dir() / "fm_item_features.npz"
+
+
+def _fm_mappings_path():
+    return artifacts_dir() / "fm_mappings.json"
 
 
 @lru_cache(maxsize=1)
 def _load_lightfm_model():
-    with open(MODEL_PATH, "rb") as f:
+    with open(_fm_model_path(), "rb") as f:
         return pickle.load(f)
 
 
 @lru_cache(maxsize=1)
 def _load_mappings() -> Dict[str, Dict[str, int]]:
-    with open(MAPPINGS_PATH, "r") as f:
+    with open(_fm_mappings_path(), "r") as f:
         return json.load(f)
 
 @lru_cache(maxsize=1)
@@ -42,7 +47,7 @@ def _get_processed_mappings() -> tuple[dict[int, int], dict[int, int]]:
 
 @lru_cache(maxsize=1)
 def _load_item_features():
-    return load_npz(ITEM_FEATURES_PATH)
+    return load_npz(_fm_item_features_path())
 
 
 def score_user_movie(user_id: int, movie_id: int) -> float:

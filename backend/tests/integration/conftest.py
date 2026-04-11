@@ -16,11 +16,11 @@ import pytest
 
 from movie_recommender.services.recommender.main import Recommender
 from movie_recommender.services.recommender.paths_dev import (
-    ARTIFACTS,
     DATA_PROCESSED,
     DATA_RAW,
     DATA_SPLITS,
     PROJECT_ROOT,
+    artifacts_dir,
 )
 from movie_recommender.services.recommender.serving.artifact_loader import (
     RecommenderArtifacts,
@@ -86,14 +86,15 @@ def pipeline_dir():
     # Step 2: ensure directory structure
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
     DATA_SPLITS.mkdir(parents=True, exist_ok=True)
-    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    artifact_root = artifacts_dir()
+    artifact_root.mkdir(parents=True, exist_ok=True)
 
     # Step 3: run pipeline if artifacts missing
-    if (ARTIFACTS / "movie_embeddings.npy").exists():
+    if (artifact_root / "movie_embeddings.npy").exists():
         print("Artifacts already exist, skipping pipeline run.")
     else:
         print("Running offline pipeline (this takes ~5 minutes)...")
-        from movie_recommender.services.recommender.learning.offline_pipeline import (
+        from movie_recommender.services.recommender.learning.offline_pipelines.implicit_als import (
             run_pipeline,
         )
 

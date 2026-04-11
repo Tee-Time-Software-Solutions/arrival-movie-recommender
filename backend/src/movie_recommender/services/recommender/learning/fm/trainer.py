@@ -6,14 +6,10 @@ import pickle
 from lightfm import LightFM
 from tqdm import trange
 
-from movie_recommender.services.recommender.paths_dev import ARTIFACTS
+from movie_recommender.services.recommender.paths_dev import artifacts_dir
 from movie_recommender.services.recommender.learning.fm.data import (
     load_lightfm_data,
 )
-
-
-MODEL_PATH = ARTIFACTS / "fm_lightfm_model.pkl"
-MODEL_INFO_PATH = ARTIFACTS / "fm_lightfm_model_info.json"
 
 
 NO_COMPONENTS = 32
@@ -47,10 +43,13 @@ def train_fm() -> None:
             num_threads=NUM_THREADS,
         )
 
-    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    root = artifacts_dir()
+    root.mkdir(parents=True, exist_ok=True)
+    model_path = root / "fm_lightfm_model.pkl"
+    model_info_path = root / "fm_lightfm_model_info.json"
 
     print("Saving LightFM model and metadata...")
-    with open(MODEL_PATH, "wb") as f:
+    with open(model_path, "wb") as f:
         pickle.dump(model, f)
 
     model_info = {
@@ -60,7 +59,7 @@ def train_fm() -> None:
         "num_users": int(num_users),
         "num_items": int(num_items),
     }
-    with open(MODEL_INFO_PATH, "w") as f:
+    with open(model_info_path, "w") as f:
         json.dump(model_info, f, indent=4)
 
     print("LightFM model training complete and saved.")
