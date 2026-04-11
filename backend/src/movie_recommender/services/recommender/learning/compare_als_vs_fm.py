@@ -168,15 +168,12 @@ def compare_als_vs_fm() -> None:
             continue
 
         fm_top_k_indices = np.argpartition(fm_scores, -k_eff_fm)[-k_eff_fm:]
-        fm_top_k_indices = fm_top_k_indices[
-            np.argsort(-fm_scores[fm_top_k_indices])
-        ]
+        fm_top_k_indices = fm_top_k_indices[np.argsort(-fm_scores[fm_top_k_indices])]
 
         fm_recommended = {candidate_movie_ids[i] for i in fm_top_k_indices}
 
         fm_relevance = [
-            1 if candidate_movie_ids[i] in true_movies else 0
-            for i in fm_top_k_indices
+            1 if candidate_movie_ids[i] in true_movies else 0 for i in fm_top_k_indices
         ]
         fm_recall, fm_precision, fm_ndcg = _calculate_metrics(
             recommended_ids=fm_recommended,
@@ -205,4 +202,3 @@ def compare_als_vs_fm() -> None:
 
 if __name__ == "__main__":
     compare_als_vs_fm()
-

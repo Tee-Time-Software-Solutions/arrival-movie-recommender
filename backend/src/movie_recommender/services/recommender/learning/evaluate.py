@@ -10,6 +10,7 @@ VAL_PATH = DATA_SPLITS / "val.parquet"
 
 K = 10
 
+
 def evaluate():
     root = artifacts_dir()
     user_emb_path = root / "user_embeddings.npy"

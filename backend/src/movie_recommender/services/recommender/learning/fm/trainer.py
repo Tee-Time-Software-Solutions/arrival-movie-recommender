@@ -67,4 +67,3 @@ def train_fm() -> None:
 
 if __name__ == "__main__":
     train_fm()
-

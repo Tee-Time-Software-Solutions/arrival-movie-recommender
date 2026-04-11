@@ -34,6 +34,7 @@ def _load_mappings() -> Dict[str, Dict[str, int]]:
     with open(_fm_mappings_path(), "r") as f:
         return json.load(f)
 
+
 @lru_cache(maxsize=1)
 def _get_processed_mappings() -> tuple[dict[int, int], dict[int, int]]:
     """
@@ -41,7 +42,9 @@ def _get_processed_mappings() -> tuple[dict[int, int], dict[int, int]]:
     """
     mappings = _load_mappings()
     user_id_to_index = {int(k): int(v) for k, v in mappings["user_id_to_index"].items()}
-    movie_id_to_index = {int(k): int(v) for k, v in mappings["movie_id_to_index"].items()}
+    movie_id_to_index = {
+        int(k): int(v) for k, v in mappings["movie_id_to_index"].items()
+    }
     return user_id_to_index, movie_id_to_index
 
 
@@ -71,5 +74,3 @@ def score_user_movie(user_id: int, movie_id: int) -> float:
         item_features=item_features,
     )[0]
     return float(score)
-
-

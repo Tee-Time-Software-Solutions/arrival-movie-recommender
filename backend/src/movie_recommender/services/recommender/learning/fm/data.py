@@ -201,5 +201,3 @@ def load_lightfm_data():
     with open(paths["mappings"], "r") as f:
         mappings = json.load(f)
     return interactions, item_features, mappings
-
-

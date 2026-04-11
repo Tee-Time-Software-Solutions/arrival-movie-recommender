@@ -84,7 +84,9 @@ def run_pipeline() -> None:
 
     print("\nStep 5: Chronological split...")
     if _all_exist([TRAIN_PATH, VAL_PATH, TEST_PATH]):
-        print(f"Using existing artifacts on disk: {TRAIN_PATH}, {VAL_PATH}, {TEST_PATH}")
+        print(
+            f"Using existing artifacts on disk: {TRAIN_PATH}, {VAL_PATH}, {TEST_PATH}"
+        )
     else:
         run_split()
 
@@ -121,4 +123,3 @@ def run_pipeline() -> None:
 
 if __name__ == "__main__":
     run_pipeline()
-

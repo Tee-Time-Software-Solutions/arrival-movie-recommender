@@ -117,7 +117,9 @@ async def export_swipes_to_parquet(
     )
     rows = await fetch_all_swipe_rows(db)
     df = swipes_to_dataframe(rows, off)
-    path = output_path if output_path is not None else DATA_RAW / SWIPES_FROM_DB_FILENAME
+    path = (
+        output_path if output_path is not None else DATA_RAW / SWIPES_FROM_DB_FILENAME
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(path, index=False)
     return df

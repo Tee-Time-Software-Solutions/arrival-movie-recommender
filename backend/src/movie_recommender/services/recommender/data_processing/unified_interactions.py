@@ -56,7 +56,9 @@ def load_swipes_export_df(path: Path | None = None) -> pd.DataFrame | None:
     df = pd.read_parquet(p)
     required = {"user_id", "movie_id", "preference", "timestamp"}
     if not required.issubset(df.columns):
-        raise ValueError(f"Swipes export missing columns {required}, got {df.columns.tolist()}")
+        raise ValueError(
+            f"Swipes export missing columns {required}, got {df.columns.tolist()}"
+        )
     return df
 
 
@@ -104,7 +106,9 @@ def _fingerprint_df(df: pd.DataFrame) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
-def _print_interaction_snapshot(title: str, df: pd.DataFrame, *, note: str | None = None) -> None:
+def _print_interaction_snapshot(
+    title: str, df: pd.DataFrame, *, note: str | None = None
+) -> None:
     """Human-readable stats for one interaction table (MovieLens, swipes export, or merged)."""
     print()
     print(f"--- {title} ---")

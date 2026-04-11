@@ -4,7 +4,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from movie_recommender.services.recommender.paths_dev import DATA_PROCESSED, artifacts_dir
+from movie_recommender.services.recommender.paths_dev import (
+    DATA_PROCESSED,
+    artifacts_dir,
+)
 
 
 @dataclass(frozen=True)
