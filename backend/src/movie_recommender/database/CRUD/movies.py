@@ -20,6 +20,35 @@ from movie_recommender.schemas.requests.movies import (
 )
 
 
+async def get_filtered_movie_ids(
+    db: AsyncSession,
+    genre_names: list[str] | None = None,
+    min_year: int | None = None,
+    max_year: int | None = None,
+) -> set[int]:
+    """Return movie IDs from the DB that match the given genre/year filters.
+    Only considers movies that have been hydrated (have tmdb_id set)."""
+    query = select(movies.c.id).where(movies.c.tmdb_id.isnot(None))
+
+    if min_year is not None:
+        query = query.where(movies.c.release_year >= min_year)
+    if max_year is not None:
+        query = query.where(movies.c.release_year <= max_year)
+
+    if genre_names:
+        # Movie must have at least one of the specified genres
+        query = query.where(
+            movies.c.id.in_(
+                select(movies_genres.c.movie_id)
+                .join(genres, genres.c.id == movies_genres.c.genre_id)
+                .where(genres.c.name.in_(genre_names))
+            )
+        )
+
+    result = await db.execute(query)
+    return {row.id for row in result}
+
+
 async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieRow | None:
     result = await db.execute(select(movies).where(movies.c.id == movie_id))
     return result.first()

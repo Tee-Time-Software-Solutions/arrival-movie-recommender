@@ -5,7 +5,9 @@ import redis
 import asyncio
 import json
 
+from movie_recommender.database.CRUD.movies import get_filtered_movie_ids
 from movie_recommender.schemas.requests.movies import MovieDetails
+from movie_recommender.schemas.requests.users import UserPreferences
 from movie_recommender.services.hydrator.main import MovieHydrator
 from movie_recommender.services.recommender.main import Recommender
 
@@ -33,7 +35,7 @@ class FeedManager:
         self.settings = AppSettings()
 
     async def get_next_movie(
-        self, user_id: int, user_preferences: None = None
+        self, user_id: int, user_preferences: UserPreferences | None = None
     ) -> MovieDetails:
         """
         1. Extract from queue
@@ -53,12 +55,14 @@ class FeedManager:
         movie_data = await self._pop_unseen(queue_key, seen_ids)
 
         if not movie_data:
-            await self.refill_queue(user_id, queue_key)
+            await self.refill_queue(user_id, queue_key, user_preferences)
             movie_data = await self._pop_unseen(queue_key, seen_ids)
         else:
             queue_len = await self.redis_client.llen(queue_key)
             if queue_len < self.settings.app_logic.queue_min_capacity:
-                asyncio.create_task(self.refill_queue(user_id, queue_key))
+                asyncio.create_task(
+                    self.refill_queue(user_id, queue_key, user_preferences)
+                )
 
         if not movie_data:
             logger.warning("No movies available for user %s after refill", user_id)
@@ -131,15 +135,51 @@ class FeedManager:
             logger.warning("Explanation generation failed", exc_info=True)
         return movie_details
 
-    async def refill_queue(self, user_id: int, queue_key: str):
+    async def refill_queue(
+        self,
+        user_id: int,
+        queue_key: str,
+        user_preferences: UserPreferences | None = None,
+    ):
         logger.info(f"Refilling queue for user {user_id}")
 
         # Flush stale entries so the user gets fresh recommendations
         await self.redis_client.delete(queue_key)
 
+        # Invalidate the recommender's cached seen set so it reloads from Redis
+        self.recommender.user_seen_movie_ids.pop(user_id, None)
+
+        # Determine candidate movie IDs — if filters are active, narrow down
+        # to movies already in the DB that match genre/year criteria.
+        # This avoids TMDB calls entirely since filtered movies are pre-cached.
+        all_movie_ids = list(self.recommender.artifacts.movie_id_to_index.keys())
+        has_filters = user_preferences and (
+            user_preferences.included_genres
+            or user_preferences.min_release_year is not None
+            or user_preferences.max_release_year is not None
+        )
+
+        if has_filters and self.db_session_factory:
+            async with self.db_session_factory() as db:
+                matching_ids = await get_filtered_movie_ids(
+                    db,
+                    genre_names=user_preferences.included_genres or None,
+                    min_year=user_preferences.min_release_year,
+                    max_year=user_preferences.max_release_year,
+                )
+            # Intersect with recommender's known movies
+            candidate_ids = [mid for mid in all_movie_ids if mid in matching_ids]
+            logger.info(
+                "Filtered candidates: %d/%d movies match preferences",
+                len(candidate_ids),
+                len(all_movie_ids),
+            )
+        else:
+            candidate_ids = all_movie_ids
+
         ranked_movie_ids = await self.recommender.get_top_n_recommendations(
             user_id=user_id,
-            list_of_movie_ids=list(self.recommender.artifacts.movie_id_to_index.keys()),
+            list_of_movie_ids=candidate_ids,
         )
 
         movies = [
