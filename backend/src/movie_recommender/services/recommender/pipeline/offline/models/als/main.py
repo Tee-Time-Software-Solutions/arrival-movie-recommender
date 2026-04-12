@@ -1,14 +1,14 @@
 import time
 
-import movie_recommender.services.recommender.pipeline.models.base.steps.preprocess_movies as preprocess_movies
-import movie_recommender.services.recommender.pipeline.models.base.steps.preprocess_ratings as preprocess_ratings
-import movie_recommender.services.recommender.pipeline.models.base.steps.filter as filter_step
-import movie_recommender.services.recommender.pipeline.models.base.steps.prune_movies as prune_movies
-import movie_recommender.services.recommender.pipeline.models.base.steps.split as split_step
-import movie_recommender.services.recommender.pipeline.models.als.steps.matrix as matrix
-import movie_recommender.services.recommender.pipeline.models.als.steps.train_als as train_als
-import movie_recommender.services.recommender.pipeline.models.als.steps.metrics as metrics
-from movie_recommender.services.recommender.pipeline.models.base.base_pipeline import (
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_movies as preprocess_movies
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_ratings as preprocess_ratings
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.filter as filter_step
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.prune_movies as prune_movies
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.split as split_step
+import movie_recommender.services.recommender.pipeline.offline.models.als.steps.matrix as matrix
+import movie_recommender.services.recommender.pipeline.offline.models.als.steps.train_als as train_als
+import movie_recommender.services.recommender.pipeline.offline.models.als.steps.metrics as metrics
+from movie_recommender.services.recommender.pipeline.offline.models.base.base_pipeline import (
     RecommenderPipeline,
 )
 from movie_recommender.services.recommender.utils.schema import load_config

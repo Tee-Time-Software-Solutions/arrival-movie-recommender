@@ -1,12 +1,12 @@
-import logging
-
-from movie_recommender.core.settings.main import AppSettings
-import redis
 import asyncio
 import json
+import logging
 
+import redis
+
+from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.schemas.requests.movies import MovieDetails
-from movie_recommender.services.hydrator.main import MovieHydrator
+from movie_recommender.services.recommender.pipeline.hydrator.main import MovieHydrator
 from movie_recommender.services.recommender.main import Recommender
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ SEEN_KEY_PREFIX = "seen:user:"
 
 
 class FeedManager:
-    """Manages the redis queue and triggers background hydration of data (augmenting the data with TMDB)"""
+    """Manages the Redis queue and triggers background hydration of data."""
 
     def __init__(
         self,
@@ -36,25 +36,18 @@ class FeedManager:
         self, user_id: int, user_preferences: None = None
     ) -> MovieDetails:
         """
-        1. Extract from queue
-        2. Refill queue if empty (blocking refill) or below threshold
-        3. Skip any movie the user already interacted with (Redis seen set)
-        4. Hydrate movie info onto database
+        1. Pop next movie from the queue
+        2. Refill queue if empty (blocking) or below threshold (background)
+        3. Mark as seen in Redis
+        4. Hydrate and return movie details
         """
         queue_key = f"feed:user:{user_id}"
 
-        # Redis seen set is updated synchronously on every swipe,
-        # so it's always current for the active session.
-        seen_ids: set[int] = set()
-        redis_seen = await self.redis_client.smembers(f"{SEEN_KEY_PREFIX}{user_id}")
-        if redis_seen:
-            seen_ids = {int(m) for m in redis_seen}
-
-        movie_data = await self._pop_unseen(queue_key, seen_ids)
+        movie_data = await self.redis_client.lpop(queue_key)
 
         if not movie_data:
             await self.refill_queue(user_id, queue_key)
-            movie_data = await self._pop_unseen(queue_key, seen_ids)
+            movie_data = await self.redis_client.lpop(queue_key)
         else:
             queue_len = await self.redis_client.llen(queue_key)
             if queue_len < self.settings.app_logic.queue_min_capacity:
@@ -64,10 +57,7 @@ class FeedManager:
             logger.warning("No movies available for user %s after refill", user_id)
             return None
 
-        logger.info(f"Movie data from Redis: {movie_data}")
         movie_id, movie_title = json.loads(movie_data)
-
-        # Mark as seen immediately so concurrent/future requests won't serve it again
         await self.redis_client.sadd(f"{SEEN_KEY_PREFIX}{user_id}", movie_id)
 
         movie_details = await self.hydrator.get_or_fetch_movie(
@@ -78,16 +68,6 @@ class FeedManager:
             movie_details = await self._attach_explanation(user_id, movie_details)
 
         return movie_details
-
-    async def _pop_unseen(self, queue_key: str, seen_ids: set[int]) -> str | None:
-        """Pop entries from the queue, skipping any the user already interacted with."""
-        while True:
-            raw = await self.redis_client.lpop(queue_key)
-            if raw is None:
-                return None
-            movie_id, _ = json.loads(raw)
-            if int(movie_id) not in seen_ids:
-                return raw
 
     async def _attach_explanation(
         self, user_id: int, movie_details: MovieDetails
@@ -110,7 +90,7 @@ class FeedManager:
                     user_id=user_id,
                     movie_tmdb_id=movie_details.tmdb_id,
                 ),
-                timeout=0.1,  # 100ms budget
+                timeout=0.1,
             )
             if result:
                 movie_details.explanation = ExplanationResponse(
@@ -132,35 +112,33 @@ class FeedManager:
         return movie_details
 
     async def refill_queue(self, user_id: int, queue_key: str):
-        logger.info(f"Refilling queue for user {user_id}")
+        logger.info("Refilling queue for user %s", user_id)
 
-        # Flush stale entries so the user gets fresh recommendations
         await self.redis_client.delete(queue_key)
 
         ranked_movie_ids = await self.recommender.get_top_n_recommendations(
             user_id=user_id,
-            list_of_movie_ids=list(self.recommender.artifacts.movie_id_to_index.keys()),
+            n=self.settings.app_logic.batch_size,
         )
 
         movies = [
             (
                 movie_id,
-                self.recommender.artifacts.movie_id_to_title.get(
+                self.recommender.model_artifacts.movie_id_to_title.get(
                     movie_id, f"movie_{movie_id}"
                 ),
             )
-            for movie_id in ranked_movie_ids[: self.settings.app_logic.batch_size]
+            for movie_id in ranked_movie_ids
         ]
-        logger.info(
-            "Got %s recommendations from recommender",
-            len(movies),
-        )
+        logger.info("Got %s recommendations from recommender", len(movies))
 
         hydrated = await asyncio.gather(
             *(self.hydrator.get_or_fetch_movie(mid, title) for mid, title in movies)
         )
-        for (movie_id, movie_title), result in zip(movies, hydrated):
-            if result is not None:
-                await self.redis_client.rpush(
-                    queue_key, json.dumps([movie_id, movie_title])
-                )
+        items = [
+            json.dumps([movie_id, movie_title])
+            for (movie_id, movie_title), result in zip(movies, hydrated)
+            if result is not None
+        ]
+        if items:
+            await self.redis_client.rpush(queue_key, *items)

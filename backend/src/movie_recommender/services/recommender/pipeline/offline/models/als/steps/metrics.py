@@ -54,7 +54,8 @@ def run(config: Config) -> None:
         ]
         scores[seen_indices] = -np.inf
 
-        top_k = np.argpartition(scores, -k)[-k:]
+        effective_k = min(k, len(scores))
+        top_k = np.argpartition(scores, -effective_k)[-effective_k:]
         top_k = top_k[np.argsort(-scores[top_k])]
 
         recommended = {index_to_movie_id[idx] for idx in top_k}

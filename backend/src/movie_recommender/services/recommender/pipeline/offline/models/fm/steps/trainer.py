@@ -7,7 +7,7 @@ from lightfm import LightFM
 from tqdm import trange
 
 from movie_recommender.services.recommender.utils.schema import Config
-from movie_recommender.services.recommender.pipeline.models.fm.steps.data import (
+from movie_recommender.services.recommender.pipeline.offline.models.fm.steps.data import (
     load_lightfm_data,
 )
 

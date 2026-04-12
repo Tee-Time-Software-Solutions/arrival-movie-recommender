@@ -27,9 +27,10 @@ async def lifespan(app: FastAPI):
     initialize_firebase(AppSettings())
 
     redis_client = await RedisClient().get_async_client()
+    redis_binary_client = await RedisClient().get_async_binary_client()
     neo4j_driver = await Neo4jClient().get_async_driver()
     await ensure_kg_schema(neo4j_driver)
-    await init_recommender_redis(redis_client)
+    await init_recommender_redis(redis_binary_client)
     db_engine = DatabaseEngine()
     swipe_task = asyncio.create_task(
         drain_swipe_queue(redis_client, db_engine.session_factory)

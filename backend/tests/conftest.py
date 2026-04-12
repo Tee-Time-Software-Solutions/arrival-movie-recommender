@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from movie_recommender.services.recommender.main import Recommender
-from movie_recommender.services.recommender.serving.artifact_loader import (
+from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,
+)
+from movie_recommender.services.recommender.pipeline.online.serving.user_state import (
+    cold_start_vector,
 )
 
 
@@ -23,10 +27,6 @@ def synthetic_artifacts() -> RecommenderArtifacts:
         index 0 → user_id 1  "action fan"   [1, 0, 0, 0]
         index 1 → user_id 2  "comedy fan"   [0, 1, 0, 0]
         index 2 → user_id 3  "mixed"        [0.5, 0.5, 0, 0]
-
-    Dot-product scores for user 1 (action fan):
-        movie 100: 1.0,  movie 101: 0.0,  movie 102: 0.0,
-        movie 103: 1.0,  movie 104: 0.0
     """
     movie_embeddings = np.array(
         [
@@ -38,7 +38,6 @@ def synthetic_artifacts() -> RecommenderArtifacts:
         ],
         dtype=np.float32,
     )
-
     user_embeddings = np.array(
         [
             [1.0, 0.0, 0.0, 0.0],
@@ -47,7 +46,6 @@ def synthetic_artifacts() -> RecommenderArtifacts:
         ],
         dtype=np.float32,
     )
-
     return RecommenderArtifacts(
         movie_embeddings=movie_embeddings,
         user_embeddings=user_embeddings,
@@ -61,18 +59,35 @@ def synthetic_artifacts() -> RecommenderArtifacts:
             103: "Action Comedy",
             104: "Horror Movie",
         },
+        all_movie_ids=np.array([100, 101, 102, 103, 104], dtype=np.int32),
     )
 
 
 @pytest.fixture
 def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
-    """Recommender pre-loaded with synthetic artifacts (bypasses disk I/O)."""
+    """
+    Recommender pre-loaded with synthetic artifacts.
+    - _get_user_vector always returns cold start (no Redis/DB I/O)
+    - _redis is an AsyncMock with smembers returning empty set by default
+    - _persist_vector_to_db is a no-op AsyncMock
+    """
+    mock_redis = AsyncMock()
+    mock_redis.get = AsyncMock(return_value=None)
+    mock_redis.smembers = AsyncMock(return_value=set())
+    mock_redis.set = AsyncMock()
+    mock_redis.sadd = AsyncMock()
+
     rec = Recommender.__new__(Recommender)
-    rec.artifacts = synthetic_artifacts
-    rec._artifact_load_error = None
-    rec.online_user_vectors = {}
-    rec.user_seen_movie_ids = {}
-    rec.eta = 0.05
+    rec.model_artifacts = synthetic_artifacts
+    rec.learning_rate = 0.05
     rec.norm_cap = 10.0
-    rec._redis = None
+    rec._redis = mock_redis
+    rec._db_session_factory = MagicMock()
+
+    async def _get_user_vector(user_id: int) -> np.ndarray:
+        return cold_start_vector(synthetic_artifacts)
+
+    rec._get_user_vector = _get_user_vector
+    rec._persist_vector_to_db = AsyncMock()
+
     return rec

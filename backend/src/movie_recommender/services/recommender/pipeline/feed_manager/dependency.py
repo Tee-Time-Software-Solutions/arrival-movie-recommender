@@ -6,8 +6,10 @@ from movie_recommender.database.engine import DatabaseEngine
 from movie_recommender.dependencies.neo4j import get_neo4j_driver
 from movie_recommender.dependencies.recommender import get_recommender
 from movie_recommender.dependencies.redis import get_async_redis
-from movie_recommender.services.feed_manager.main import FeedManager
-from movie_recommender.services.hydrator.main import MovieHydrator
+from movie_recommender.services.recommender.pipeline.feed_manager.main import (
+    FeedManager,
+)
+from movie_recommender.services.recommender.pipeline.hydrator.main import MovieHydrator
 from movie_recommender.services.recommender.main import Recommender
 
 

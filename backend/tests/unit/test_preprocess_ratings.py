@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from movie_recommender.services.recommender.pipeline.models.base.steps.preprocess_ratings import run
+from movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_ratings import run
 from movie_recommender.services.recommender.utils.schema import Config, DataConfig
 
 

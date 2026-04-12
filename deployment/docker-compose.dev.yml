@@ -56,7 +56,8 @@ services:
       redis:
         condition: service_healthy
       neo4j:
-        condition: service_healthy
+        condition: service_started
+
       db-migration:
         condition: service_completed_successfully
     healthcheck:

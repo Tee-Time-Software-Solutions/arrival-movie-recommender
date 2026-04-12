@@ -1,84 +1,90 @@
+import asyncio
 import logging
-from typing import Dict, List, Optional
+from typing import Callable, List, Optional  # List kept for return type annotations
 
 import numpy as np
 import redis.asyncio as aioredis
 
-from movie_recommender.schemas.requests.interactions import SwipeAction
-from movie_recommender.services.recommender.serving.artifact_loader import (
-    RecommenderArtifacts,
-    load_recommender_artifacts,
+from movie_recommender.core.settings.main import AppSettings
+from movie_recommender.database.CRUD.user_vectors import (
+    get_user_vector,
+    save_user_vector,
 )
-from movie_recommender.services.recommender.serving.feedback_service import (
+from movie_recommender.schemas.requests.interactions import SwipeAction
+from movie_recommender.services.recommender.pipeline.online.artifacts import (
+    RecommenderArtifacts,
+    load_model_artifacts,
+)
+
+from movie_recommender.services.recommender.pipeline.online.learning.feedback import (
     apply_feedback_update,
 )
-from movie_recommender.services.recommender.serving.ranker import rank_movie_ids
-from movie_recommender.services.recommender.serving.user_vectors import (
-    current_user_vector,
+from movie_recommender.services.recommender.pipeline.online.serving.ranker import (
+    rank_movie_ids,
 )
-from movie_recommender.services.recommender.serving.validation import (
-    require_artifacts,
+from movie_recommender.services.recommender.pipeline.online.serving.user_state import (
+    cold_start_vector,
 )
 
 logger = logging.getLogger(__name__)
 
+USER_VECTOR_KEY_PREFIX = "user_vector:"
 SEEN_KEY_PREFIX = "seen:user:"
 
 
 class Recommender:
-    def __init__(self) -> None:
-        self.artifacts: Optional[RecommenderArtifacts] = None
-        self._artifact_load_error: Optional[str] = None
-        self.online_user_vectors: Dict[str, np.ndarray] = {}
-        self.user_seen_movie_ids: Dict[str, set[int]] = {}
-        self.eta = 0.05
-        self.norm_cap = 10.0
+    def __init__(self, db_session_factory: Callable) -> None:
+        settings = AppSettings()
+        self.learning_rate = settings.app_logic.learning_rate
+        self.norm_cap = settings.app_logic.norm_cap
+        self.model_artifacts: RecommenderArtifacts = load_model_artifacts()
+        self._db_session_factory = db_session_factory
         self._redis: Optional[aioredis.Redis] = None
-
-        try:
-            self.artifacts = load_recommender_artifacts()
-        except FileNotFoundError as exc:
-            self._artifact_load_error = str(exc)
 
     def set_redis(self, redis_client: aioredis.Redis) -> None:
         self._redis = redis_client
 
-    async def _load_seen_from_redis(self, user_id: int) -> set[int]:
-        """Load seen movie IDs from Redis into the in-memory cache."""
-        if user_id in self.user_seen_movie_ids:
-            return self.user_seen_movie_ids[user_id]
+    async def _get_user_vector(self, user_id: int) -> np.ndarray:
+        # 1. Redis hot cache
+        if self._redis:
+            raw = await self._redis.get(f"{USER_VECTOR_KEY_PREFIX}{user_id}")
+            if raw:
+                return np.frombuffer(raw, dtype=np.float32).copy()
 
-        seen = set()
+        # 2. Postgres persistent store
+        async with self._db_session_factory() as db:
+            vector = await get_user_vector(db, user_id)
+        if vector is not None:
+            if self._redis:
+                await self._redis.set(
+                    f"{USER_VECTOR_KEY_PREFIX}{user_id}", vector.tobytes()
+                )
+            return vector
+
+        # 3. Cold start
+        return cold_start_vector(self.model_artifacts)
+
+    async def _persist_vector_to_db(self, user_id: int, vector: np.ndarray) -> None:
+        try:
+            async with self._db_session_factory() as db:
+                await save_user_vector(db, user_id, vector)
+        except Exception:
+            logger.warning(
+                "Failed to persist user vector for user %s", user_id, exc_info=True
+            )
+
+    async def get_top_n_recommendations(self, user_id: int, n: int) -> List[int]:
+        user_vector = await self._get_user_vector(user_id)
+
+        seen_movie_ids: set[int] = set()
         if self._redis:
             members = await self._redis.smembers(f"{SEEN_KEY_PREFIX}{user_id}")
-            seen = {int(m) for m in members} if members else set()
-
-        self.user_seen_movie_ids[user_id] = seen
-        return seen
-
-    async def _persist_seen_to_redis(self, user_id: int, movie_id: int) -> None:
-        if self._redis:
-            await self._redis.sadd(f"{SEEN_KEY_PREFIX}{user_id}", movie_id)
-
-    async def get_top_n_recommendations(
-        self, user_id: int, list_of_movie_ids: List[int]
-    ) -> List[int]:
-        """
-        Receives a user id and a list of movie ids.
-        Returns the movie ids ranked by predicted preference for the user.
-        """
-        artifacts = require_artifacts(self.artifacts, self._artifact_load_error)
-        user_vector = current_user_vector(
-            artifacts=artifacts,
-            online_user_vectors=self.online_user_vectors,
-            user_id=user_id,
-        )
-        seen_movie_ids = await self._load_seen_from_redis(user_id)
+            seen_movie_ids = {int(m) for m in members} if members else set()
 
         return rank_movie_ids(
-            artifacts=artifacts,
+            n=n,
+            model_artifacts=self.model_artifacts,
             user_vector=user_vector,
-            movie_ids=list_of_movie_ids,
             seen_movie_ids=seen_movie_ids,
         )
 
@@ -89,21 +95,21 @@ class Recommender:
         interaction_type: SwipeAction,
         is_supercharged: bool,
     ) -> None:
-        """
-        Receives a user id, movie id, interaction type, and supercharged flag.
-        Updates the user vector based on the feedback. Returns nothing.
-        """
-        artifacts = require_artifacts(self.artifacts, self._artifact_load_error)
-        apply_feedback_update(
-            artifacts=artifacts,
-            online_user_vectors=self.online_user_vectors,
-            user_seen_movie_ids=self.user_seen_movie_ids,
-            user_id=user_id,
+        user_vector = await self._get_user_vector(user_id)
+
+        updated = apply_feedback_update(
+            model_artifacts=self.model_artifacts,
+            user_vector=user_vector,
             movie_id=movie_id,
             interaction_type=interaction_type,
             is_supercharged=is_supercharged,
-            eta=self.eta,
+            learning_rate=self.learning_rate,
             norm_cap=self.norm_cap,
-            logger=logger,
         )
-        await self._persist_seen_to_redis(user_id, movie_id)
+
+        if updated is not None:
+            if self._redis:
+                await self._redis.set(
+                    f"{USER_VECTOR_KEY_PREFIX}{user_id}", updated.tobytes()
+                )
+            asyncio.create_task(self._persist_vector_to_db(user_id, updated))

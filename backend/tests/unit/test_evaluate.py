@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from movie_recommender.services.recommender.pipeline.models.als.steps.metrics import dcg_at_k, run
+from movie_recommender.services.recommender.pipeline.offline.models.als.steps.metrics import dcg_at_k, run
 from movie_recommender.services.recommender.utils.schema import Config, DataConfig
 
 

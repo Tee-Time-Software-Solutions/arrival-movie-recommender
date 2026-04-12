@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from movie_recommender.services.recommender.pipeline.models.base.steps.filter import (
+from movie_recommender.services.recommender.pipeline.offline.models.base.steps.filter import (
     iterative_core_filter,
     run,
 )

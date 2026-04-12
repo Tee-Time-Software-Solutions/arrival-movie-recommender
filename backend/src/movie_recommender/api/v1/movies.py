@@ -12,8 +12,12 @@ from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
 from movie_recommender.schemas.requests.movies import MovieDetails
 from movie_recommender.schemas.requests.users import UserPreferences
-from movie_recommender.dependencies.feed_manager import get_feed_manager
-from movie_recommender.services.feed_manager.main import FeedManager
+from movie_recommender.services.recommender.pipeline.feed_manager.dependency import (
+    get_feed_manager,
+)
+from movie_recommender.services.recommender.pipeline.feed_manager.main import (
+    FeedManager,
+)
 
 router = APIRouter(prefix="/movies")
 

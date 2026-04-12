@@ -8,10 +8,10 @@ import pandas as pd
 from tqdm import tqdm
 
 from movie_recommender.services.recommender.utils.schema import Config
-from movie_recommender.services.recommender.pipeline.models.als.steps.metrics import (
+from movie_recommender.services.recommender.pipeline.offline.models.als.steps.metrics import (
     dcg_at_k,
 )
-from movie_recommender.services.recommender.pipeline.models.fm.steps.data import (
+from movie_recommender.services.recommender.pipeline.offline.models.fm.steps.data import (
     load_lightfm_data,
 )
 

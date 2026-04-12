@@ -9,3 +9,5 @@
 1. Why the weird unseen convention in get next movie method?
 3. Whats all the regex for the movies?
 4. When ingestint the dataste (when do you do this btw?) how do u create movie id? Do you read from csv write to db just name and id?
+5. What is the worker thing?
+6. What is `path_devs.py`

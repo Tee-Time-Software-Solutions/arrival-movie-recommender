@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from scipy.sparse import load_npz
 
-from movie_recommender.services.recommender.pipeline.models.als.steps.matrix import run
+from movie_recommender.services.recommender.pipeline.offline.models.als.steps.matrix import run
 from movie_recommender.services.recommender.utils.schema import Config, DataConfig
 
 

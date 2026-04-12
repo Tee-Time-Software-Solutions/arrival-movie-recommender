@@ -22,7 +22,7 @@ from movie_recommender.services.recommender.paths_dev import (
     DATA_SPLITS,
     PROJECT_ROOT,
 )
-from movie_recommender.services.recommender.serving.artifact_loader import (
+from movie_recommender.services.recommender.pipeline.online.artifact_loader import (
     RecommenderArtifacts,
     load_recommender_artifacts,
 )

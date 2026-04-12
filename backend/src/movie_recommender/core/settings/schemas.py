@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 class AppLogicSettings(BaseModel):
     batch_size: int
     queue_min_capacity: int
+    learning_rate: float = 0.05
+    norm_cap: float = 10.0
 
 
 class TMDBSettings(BaseModel):
