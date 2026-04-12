@@ -59,6 +59,13 @@ def synthetic_artifacts() -> RecommenderArtifacts:
             103: "Action Comedy",
             104: "Horror Movie",
         },
+        movie_id_to_genres={
+            100: ["Action"],
+            101: ["Comedy"],
+            102: ["Drama"],
+            103: ["Action", "Comedy"],
+            104: ["Horror"],
+        },
         all_movie_ids=np.array([100, 101, 102, 103, 104], dtype=np.int32),
     )
 
