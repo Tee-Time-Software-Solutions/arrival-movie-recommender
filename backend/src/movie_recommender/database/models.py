@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 
 metadata = MetaData()
 
@@ -150,6 +151,14 @@ watchlist = Table(
     Column("movie_id", Integer, ForeignKey("movies.id"), nullable=False),
     Column("added_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
     UniqueConstraint("user_id", "movie_id", name="uq_watchlist_user_movie"),
+)
+
+user_online_vectors = Table(
+    "user_online_vectors",
+    metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("vector", ARRAY(Float), nullable=False),
+    Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
 )
 
 

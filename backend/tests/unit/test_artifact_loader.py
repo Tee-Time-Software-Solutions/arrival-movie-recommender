@@ -1,68 +1,69 @@
 import pytest
-from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from movie_recommender.services.recommender.serving import artifact_loader as al
-from movie_recommender.services.recommender.serving.artifact_loader import (
-    _ensure_artifact_paths_exist,
+from movie_recommender.services.recommender.pipeline.online.artifacts import (
+    load_model_artifacts,
 )
 
 
-class TestEnsureArtifactPathsExist:
-    def _touch_embeddings_and_mappings(self, emb_root: Path):
-        (emb_root / "movie_embeddings.npy").touch()
-        (emb_root / "user_embeddings.npy").touch()
-        (emb_root / "mappings.json").touch()
+def _make_config(tmp_path):
+    mock_config = MagicMock()
+    mock_config.data_dirs.model_assets_dir = tmp_path / "assets"
+    mock_config.data_dirs.processed_dir = tmp_path / "processed"
+    return mock_config
 
-    def test_all_present_no_error(self, tmp_path):
-        emb_root = tmp_path / "emb"
-        emb_root.mkdir()
-        self._touch_embeddings_and_mappings(emb_root)
-        (tmp_path / "movies_filtered.parquet").touch()
 
-        with (
-            patch.object(al, "artifacts_dir", lambda: emb_root),
-            patch.object(al, "DATA_PROCESSED", tmp_path),
+class TestLoadModelArtifacts:
+    def test_raises_when_all_files_missing(self, tmp_path):
+        config = _make_config(tmp_path)
+        with patch(
+            "movie_recommender.services.recommender.pipeline.online.artifacts.load_config",
+            return_value=config,
         ):
-            _ensure_artifact_paths_exist()
+            with pytest.raises(FileNotFoundError):
+                load_model_artifacts()
 
-    def test_missing_file_raises(self, tmp_path):
-        emb_root = tmp_path / "emb"
-        emb_root.mkdir()
-        (emb_root / "movie_embeddings.npy").touch()
-        (emb_root / "mappings.json").touch()
-        (tmp_path / "movies_filtered.parquet").touch()
-
-        with (
-            patch.object(al, "artifacts_dir", lambda: emb_root),
-            patch.object(al, "DATA_PROCESSED", tmp_path),
-        ):
-            with pytest.raises(FileNotFoundError, match="user_embeddings"):
-                _ensure_artifact_paths_exist()
-
-    def test_multiple_missing_lists_all(self, tmp_path):
-        emb_root = tmp_path / "emb"
-        emb_root.mkdir()
-        (tmp_path / "movies_filtered.parquet").touch()
-
-        with (
-            patch.object(al, "artifacts_dir", lambda: emb_root),
-            patch.object(al, "DATA_PROCESSED", tmp_path),
+    def test_error_message_lists_missing_files(self, tmp_path):
+        config = _make_config(tmp_path)
+        with patch(
+            "movie_recommender.services.recommender.pipeline.online.artifacts.load_config",
+            return_value=config,
         ):
             with pytest.raises(FileNotFoundError) as exc_info:
-                _ensure_artifact_paths_exist()
-            msg = str(exc_info.value)
-            assert "movie_embeddings" in msg or "user_embeddings" in msg
+                load_model_artifacts()
+        msg = str(exc_info.value)
+        assert "movie_embeddings.npy" in msg
+        assert "mappings.json" in msg
 
-    def test_partial_missing_lists_only_missing(self, tmp_path):
-        emb_root = tmp_path / "emb"
-        emb_root.mkdir()
-        self._touch_embeddings_and_mappings(emb_root)
+    def test_partial_missing_lists_only_missing_files(self, tmp_path):
+        config = _make_config(tmp_path)
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        processed_dir = tmp_path / "processed"
+        processed_dir.mkdir()
 
-        with (
-            patch.object(al, "artifacts_dir", lambda: emb_root),
-            patch.object(al, "DATA_PROCESSED", tmp_path),
+        (assets_dir / "movie_embeddings.npy").touch()
+        (assets_dir / "user_embeddings.npy").touch()
+        # mappings.json and movies_filtered.parquet intentionally absent
+
+        with patch(
+            "movie_recommender.services.recommender.pipeline.online.artifacts.load_config",
+            return_value=config,
         ):
             with pytest.raises(FileNotFoundError) as exc_info:
-                _ensure_artifact_paths_exist()
-            assert "movies_filtered" in str(exc_info.value)
+                load_model_artifacts()
+        msg = str(exc_info.value)
+        assert "mappings.json" in msg
+        assert "movies_filtered.parquet" in msg
+        assert "movie_embeddings.npy" not in msg
+        assert "user_embeddings.npy" not in msg
+
+    def test_error_includes_run_pipeline_hint(self, tmp_path):
+        config = _make_config(tmp_path)
+        with patch(
+            "movie_recommender.services.recommender.pipeline.online.artifacts.load_config",
+            return_value=config,
+        ):
+            with pytest.raises(FileNotFoundError) as exc_info:
+                load_model_artifacts()
+        assert "offline pipeline" in str(exc_info.value)

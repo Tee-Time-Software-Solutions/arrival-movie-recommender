@@ -1,6 +1,6 @@
 import pandas as pd
 
-from movie_recommender.services.recommender.data_processing.unified_interactions import (
+from movie_recommender.services.recommender.pipeline.offline.models.base.steps.merge_interactions import (
     merge_and_dedupe_interactions,
 )
 

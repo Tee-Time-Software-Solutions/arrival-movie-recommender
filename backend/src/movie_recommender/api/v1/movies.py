@@ -15,7 +15,9 @@ from movie_recommender.dependencies.firebase import verify_user
 from movie_recommender.schemas.requests.movies import MovieDetails
 from movie_recommender.schemas.requests.users import UserPreferences
 from movie_recommender.dependencies.feed_manager import get_feed_manager
-from movie_recommender.services.feed_manager.main import FeedManager
+from movie_recommender.services.recommender.pipeline.feed_manager.main import (
+    FeedManager,
+)
 
 router = APIRouter(prefix="/movies")
 
@@ -45,25 +47,6 @@ async def _resolve_user_and_prefs(db: AsyncSession, firebase_uid: str):
     return user, user_prefs
 
 
-@router.get(path="/feed")
-async def fetch_movies_feed(
-    feed_manager: FeedManager = Depends(get_feed_manager),
-    db: AsyncSession = Depends(get_db),
-    auth_user=Depends(verify_user()),
-) -> MovieDetails:
-    """
-    Pop next movie from redis queue, refill if needed, return hydrated movie details.
-    """
-    user, user_prefs = await _resolve_user_and_prefs(db, auth_user["uid"])
-
-    movie = await feed_manager.get_next_movie(
-        user_id=user.id, user_preferences=user_prefs
-    )
-    if not movie:
-        raise HTTPException(status_code=404, detail="No movies found")
-    return movie
-
-
 @router.get(path="/feed/batch")
 async def fetch_movies_feed_batch(
     count: int = Query(default=5, ge=1, le=20),
@@ -71,11 +54,7 @@ async def fetch_movies_feed_batch(
     db: AsyncSession = Depends(get_db),
     auth_user=Depends(verify_user()),
 ) -> List[MovieDetails]:
-    """
-    Return up to `count` movies in a single request.
-    The first call may trigger a blocking refill (pre-hydrates & caches the batch).
-    Subsequent pops are instant DB cache hits.
-    """
+    """Return up to `count` movies in a single request."""
     user, user_prefs = await _resolve_user_and_prefs(db, auth_user["uid"])
 
     movies: list[MovieDetails] = []

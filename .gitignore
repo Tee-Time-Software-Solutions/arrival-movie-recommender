@@ -227,6 +227,10 @@ __marimo__/
 # Data folder
 data/
 
+# Pipeline artifacts (large/generated files) — keep EDA notebooks
+backend/src/movie_recommender/services/recommender/pipeline/artifacts/
+!backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/eda/
+
 # E2E Testing
 e2e-backend.log
 e2e-frontend.log
@@ -234,3 +238,6 @@ e2e-backend.pid
 e2e-frontend.pid
 
 .DS_Store
+
+
+docs/college_course/feedback.md

@@ -14,7 +14,7 @@ class TestRegisterMovieInteraction:
         new_callable=AsyncMock,
     )
     @patch(
-        "movie_recommender.api.v1.interactions.enqueue_swipe", new_callable=AsyncMock
+        "movie_recommender.api.v1.interactions.persist_swipe", new_callable=AsyncMock
     )
     @patch(
         "movie_recommender.api.v1.interactions.get_movie_by_id", new_callable=AsyncMock

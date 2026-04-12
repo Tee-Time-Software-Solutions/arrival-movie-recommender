@@ -16,15 +16,15 @@ import pytest
 
 from movie_recommender.services.recommender.main import Recommender
 from movie_recommender.services.recommender.paths_dev import (
+    ARTIFACTS,
     DATA_PROCESSED,
     DATA_RAW,
     DATA_SPLITS,
     PROJECT_ROOT,
-    artifacts_dir,
 )
-from movie_recommender.services.recommender.serving.artifact_loader import (
+from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,
-    load_recommender_artifacts,
+    load_model_artifacts,
 )
 
 # ---------------------------------------------------------------------------
@@ -86,15 +86,14 @@ def pipeline_dir():
     # Step 2: ensure directory structure
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
     DATA_SPLITS.mkdir(parents=True, exist_ok=True)
-    artifact_root = artifacts_dir()
-    artifact_root.mkdir(parents=True, exist_ok=True)
+    ARTIFACTS.mkdir(parents=True, exist_ok=True)
 
     # Step 3: run pipeline if artifacts missing
-    if (artifact_root / "movie_embeddings.npy").exists():
+    if (ARTIFACTS / "movie_embeddings.npy").exists():
         print("Artifacts already exist, skipping pipeline run.")
     else:
         print("Running offline pipeline (this takes ~5 minutes)...")
-        from movie_recommender.services.recommender.learning.offline_pipelines.implicit_als import (
+        from movie_recommender.services.recommender.learning.offline_pipeline import (
             run_pipeline,
         )
 
@@ -107,7 +106,7 @@ def pipeline_dir():
 @pytest.fixture(scope="session")
 def loaded_artifacts(pipeline_dir: Path):
     """Load artifacts from the pipeline output using the real loader."""
-    return load_recommender_artifacts()
+    return load_model_artifacts()
 
 
 @pytest.fixture

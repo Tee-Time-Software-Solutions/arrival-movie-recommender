@@ -51,12 +51,13 @@ services:
       - "8000:8000"
     volumes:
       - ../backend/src:/app/src
-    command: ["sh", "-c", "uvicorn src.movie_recommender.main:app --reload --reload-dir src --host 0.0.0.0 --port 8000"]
+    command: ["sh", "-c", "uvicorn src.movie_recommender.main:app --reload --reload-dir src --reload-exclude '**/artifacts/**' --reload-exclude '**/__pycache__/**' --host 0.0.0.0 --port 8000"]
     depends_on:
       redis:
         condition: service_healthy
       neo4j:
-        condition: service_healthy
+        condition: service_started
+
       db-migration:
         condition: service_completed_successfully
     healthcheck:

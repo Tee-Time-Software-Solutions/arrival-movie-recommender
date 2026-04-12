@@ -2,99 +2,103 @@
 Curated seed movies for onboarding.
 
 ~50 universally recognized movies, 5 per genre.
-ALL movies MUST exist in the MovieLens-25M training set (have embeddings).
-Keys are genre names; values are TMDB IDs.
+ALL movies exist in the MovieLens-25M dataset.
+Keys are genre names; values are (movielens_id, title) pairs.
+MovieLens IDs verified against ml-latest-small/movies.csv.
 """
 
 import random
 
-SEED_MOVIES: dict[str, list[int]] = {
+# (movielens_id, title_as_stored_in_movielens)
+SEED_MOVIES: dict[str, list[tuple[int, str]]] = {
     "Action": [
-        155,  # The Dark Knight
-        603,  # The Matrix
-        98,  # Gladiator
-        1891,  # The Empire Strikes Back
-        101,  # Leon: The Professional
+        (58559, "Dark Knight, The (2008)"),
+        (2571, "Matrix, The (1999)"),
+        (3578, "Gladiator (2000)"),
+        (1196, "Star Wars: Episode V - The Empire Strikes Back (1980)"),
+        (293, "Léon: The Professional (a.k.a. The Professional) (Léon) (1994)"),
     ],
     "Adventure": [
-        85,  # Raiders of the Lost Ark
-        120,  # The Lord of the Rings: The Fellowship of the Ring
-        11,  # Star Wars: A New Hope
-        105,  # Back to the Future
-        8587,  # The Lion King
+        (
+            1198,
+            "Raiders of the Lost Ark (Indiana Jones and the Raiders of the Lost Ark) (1981)",
+        ),
+        (4993, "Lord of the Rings: The Fellowship of the Ring, The (2001)"),
+        (260, "Star Wars: Episode IV - A New Hope (1977)"),
+        (1270, "Back to the Future (1985)"),
+        (364, "Lion King, The (1994)"),
     ],
     "Animation": [
-        862,  # Toy Story
-        129,  # Spirited Away
-        12,  # Finding Nemo
-        128,  # Princess Mononoke
-        4935,  # Howl's Moving Castle
+        (1, "Toy Story (1995)"),
+        (5618, "Spirited Away (Sen to Chihiro no kamikakushi) (2001)"),
+        (6377, "Finding Nemo (2003)"),
+        (3000, "Princess Mononoke (Mononoke-hime) (1997)"),
+        (31658, "Howl's Moving Castle (Hauru no ugoku shiro) (2004)"),
     ],
     "Comedy": [
-        115,  # The Big Lebowski
-        637,  # Life Is Beautiful
-        37165,  # The Truman Show
-        935,  # Dr. Strangelove
-        100,  # Lock, Stock and Two Smoking Barrels
+        (1732, "Big Lebowski, The (1998)"),
+        (2324, "Life Is Beautiful (La Vita è bella) (1997)"),
+        (1682, "Truman Show, The (1998)"),
+        (
+            750,
+            "Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb (1964)",
+        ),
+        (2542, "Lock, Stock & Two Smoking Barrels (1998)"),
     ],
     "Crime": [
-        238,  # The Godfather
-        278,  # The Shawshank Redemption
-        680,  # Pulp Fiction
-        550,  # Fight Club
-        769,  # GoodFellas
+        (858, "Godfather, The (1972)"),
+        (318, "Shawshank Redemption, The (1994)"),
+        (296, "Pulp Fiction (1994)"),
+        (2959, "Fight Club (1999)"),
+        (1213, "Goodfellas (1990)"),
     ],
     "Drama": [
-        13,  # Forrest Gump
-        424,  # Schindler's List
-        389,  # 12 Angry Men
-        497,  # The Green Mile
-        770,  # Gone with the Wind
+        (356, "Forrest Gump (1994)"),
+        (527, "Schindler's List (1993)"),
+        (1203, "12 Angry Men (1957)"),
+        (3147, "Green Mile, The (1999)"),
+        (920, "Gone with the Wind (1939)"),
     ],
     "Horror": [
-        694,  # The Shining
-        539,  # Psycho
-        348,  # Alien
-        1091,  # The Thing
-        9552,  # The Exorcist
+        (1258, "Shining, The (1980)"),
+        (1219, "Psycho (1960)"),
+        (1214, "Alien (1979)"),
+        (2288, "Thing, The (1982)"),
+        (1997, "Exorcist, The (1973)"),
     ],
     "Romance": [
-        597,  # Titanic
-        289,  # Casablanca
-        38,  # Eternal Sunshine of the Spotless Mind
-        194,  # Amelie
-        76,  # Before Sunrise
+        (1721, "Titanic (1997)"),
+        (912, "Casablanca (1942)"),
+        (7361, "Eternal Sunshine of the Spotless Mind (2004)"),
+        (4973, "Amelie (Fabuleux destin d'Amélie Poulain, Le) (2001)"),
+        (215, "Before Sunrise (1995)"),
     ],
     "Sci-Fi": [
-        185,  # A Clockwork Orange
-        280,  # Terminator 2: Judgment Day
-        19,  # Metropolis
-        601,  # E.T. the Extra-Terrestrial
-        78,  # Blade Runner
+        (1206, "Clockwork Orange, A (1971)"),
+        (589, "Terminator 2: Judgment Day (1991)"),
+        (2010, "Metropolis (1927)"),
+        (1097, "E.T. the Extra-Terrestrial (1982)"),
+        (541, "Blade Runner (1982)"),
     ],
     "Thriller": [
-        274,  # The Silence of the Lambs
-        807,  # Se7en
-        745,  # The Sixth Sense
-        1124,  # The Prestige
-        77,  # Memento
+        (593, "Silence of the Lambs, The (1991)"),
+        (47, "Seven (a.k.a. Se7en) (1995)"),
+        (2762, "Sixth Sense, The (1999)"),
+        (48780, "Prestige, The (2006)"),
+        (4226, "Memento (2000)"),
     ],
 }
 
-# Flattened set of all unique TMDB IDs for quick lookups
-ALL_SEED_TMDB_IDS: set[int] = {
-    tmdb_id for ids in SEED_MOVIES.values() for tmdb_id in ids
+ALL_SEED_ML_IDS: set[int] = {
+    ml_id for entries in SEED_MOVIES.values() for ml_id, _ in entries
 }
 
 
-def sample_onboarding_movies(per_genre: int = 3) -> list[tuple[str, int]]:
-    """Return a genre-balanced sample of (genre, tmdb_id) pairs.
-
-    Picks `per_genre` movies from each genre (randomly), giving ~30 movies total.
-    """
-    sampled: list[tuple[str, int]] = []
-    for genre, tmdb_ids in SEED_MOVIES.items():
-        n = min(per_genre, len(tmdb_ids))
-        for tmdb_id in random.sample(tmdb_ids, n):
-            sampled.append((genre, tmdb_id))
+def sample_onboarding_movies(per_genre: int = 3) -> list[tuple[str, int, str]]:
+    """Return a genre-balanced sample of (genre, ml_id, title) triples."""
+    sampled: list[tuple[str, int, str]] = []
+    for genre, entries in SEED_MOVIES.items():
+        n = min(per_genre, len(entries))
+        for ml_id, title in random.sample(entries, n):
+            sampled.append((genre, ml_id, title))
     return sampled

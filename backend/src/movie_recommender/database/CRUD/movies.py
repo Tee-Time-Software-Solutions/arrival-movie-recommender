@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from sqlalchemy import insert, select, update
+from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from movie_recommender.database.models import (
@@ -63,16 +63,14 @@ async def get_movies_by_tmdb_ids(
     return list(result)
 
 
-async def get_onboarding_movie_cards(
-    db: AsyncSession, tmdb_ids: list[int]
-) -> list[dict]:
+async def get_onboarding_movie_cards(db: AsyncSession, ml_ids: list[int]) -> list[dict]:
     """Fetch lightweight movie cards for onboarding grid display."""
-    if not tmdb_ids:
+    if not ml_ids:
         return []
 
     movie_rows = await db.execute(
         select(movies).where(
-            movies.c.tmdb_id.in_(tmdb_ids),
+            movies.c.id.in_(ml_ids),
             movies.c.poster_url.isnot(None),
         )
     )
@@ -108,9 +106,13 @@ async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieRow | None:
 
 
 async def save_hydrated_movie(
-    db: AsyncSession, movie_db_id: int, details: MovieDetails
-):
-    """Persist full TMDB metadata for a movie. Updates existing stub or creates new."""
+    db: AsyncSession, movie_db_id: int | None, details: MovieDetails
+) -> int:
+    """Persist full TMDB metadata for a movie.
+
+    If movie_db_id is None, inserts a new row (autoincrement) and returns the new ID.
+    If movie_db_id is an int, updates the existing row (or inserts with explicit ID).
+    """
     movie_values = dict(
         tmdb_id=details.tmdb_id,
         title=details.title,
@@ -123,13 +125,21 @@ async def save_hydrated_movie(
         trailer_url=str(details.trailer_url) if details.trailer_url else None,
     )
 
-    existing = await db.execute(select(movies.c.id).where(movies.c.id == movie_db_id))
-    if existing.first():
-        await db.execute(
-            update(movies).where(movies.c.id == movie_db_id).values(**movie_values)
+    if movie_db_id is None:
+        result = await db.execute(
+            insert(movies).values(**movie_values).returning(movies.c.id)
         )
+        movie_db_id = result.scalar_one()
     else:
-        await db.execute(insert(movies).values(id=movie_db_id, **movie_values))
+        existing = await db.execute(
+            select(movies.c.id).where(movies.c.id == movie_db_id)
+        )
+        if existing.first():
+            await db.execute(
+                update(movies).where(movies.c.id == movie_db_id).values(**movie_values)
+            )
+        else:
+            await db.execute(insert(movies).values(id=movie_db_id, **movie_values))
 
     for genre_name in details.genres:
         genre_id = await _get_or_create_genre(db, genre_name)
@@ -177,6 +187,7 @@ async def save_hydrated_movie(
             )
 
     await db.commit()
+    return movie_db_id
 
 
 async def movie_to_details(db: AsyncSession, movie_id: int) -> MovieDetails:
@@ -299,6 +310,19 @@ async def movies_to_details_bulk(
             )
         )
     return results
+
+
+async def count_seeded_onboarding_movies(db: AsyncSession, ml_ids: list[int]) -> int:
+    """Count how many MovieLens seed movies are already hydrated (have a poster)."""
+    result = await db.execute(
+        select(func.count())
+        .select_from(movies)
+        .where(
+            movies.c.id.in_(ml_ids),
+            movies.c.poster_url.isnot(None),
+        )
+    )
+    return result.scalar_one()
 
 
 async def _get_or_create_crew_person(db: AsyncSession, member: CastMember) -> int:

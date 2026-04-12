@@ -23,15 +23,11 @@ export async function searchOnboardingMovies(
 }
 
 export async function completeOnboarding(
-  gridMovieIds: number[],
-  searchMovieTmdbIds: number[],
+  movieDbIds: number[],
 ): Promise<OnboardingCompleteResponse> {
   const { data } = await apiClient.post<OnboardingCompleteResponse>(
     "onboarding/complete",
-    {
-      grid_movie_ids: gridMovieIds,
-      search_movie_tmdb_ids: searchMovieTmdbIds,
-    },
+    { movie_db_ids: movieDbIds },
   );
   return data;
 }

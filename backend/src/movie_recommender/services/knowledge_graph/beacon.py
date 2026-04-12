@@ -114,34 +114,39 @@ async def build_beacon_map(
 async def _get_movie_entities(
     neo4j_driver: AsyncDriver, movie_tmdb_id: int
 ) -> list[tuple[str, int, str]]:
-    """Get all entities connected to a movie in the KG."""
+    """Get all entities connected to a movie in the KG. Returns [] if Neo4j is unavailable."""
     entities = []
-    async with neo4j_driver.session() as session:
-        result = await session.run(
-            """
-            MATCH (m:Movie {tmdb_id: $tmdb_id})
-            OPTIONAL MATCH (m)-[:DIRECTED_BY]->(d:Person)
-            OPTIONAL MATCH (a:Person)-[:ACTED_IN]->(m)
-            OPTIONAL MATCH (m)-[:HAS_GENRE]->(g:Genre)
-            OPTIONAL MATCH (m)-[:WRITTEN_BY]->(w:Person)
-            OPTIONAL MATCH (m)-[:HAS_KEYWORD]->(k:Keyword)
-            RETURN
-                collect(DISTINCT {type: 'Director', id: d.tmdb_id, name: d.name}) AS directors,
-                collect(DISTINCT {type: 'Actor', id: a.tmdb_id, name: a.name}) AS actors,
-                collect(DISTINCT {type: 'Genre', id: g.tmdb_id, name: g.name}) AS genres,
-                collect(DISTINCT {type: 'Writer', id: w.tmdb_id, name: w.name}) AS writers,
-                collect(DISTINCT {type: 'Keyword', id: k.tmdb_id, name: k.name}) AS keywords
-            """,
-            tmdb_id=movie_tmdb_id,
-        )
-        record = await result.single()
-        if not record:
-            return entities
+    try:
+        async with neo4j_driver.session() as session:
+            result = await session.run(
+                """
+                MATCH (m:Movie {tmdb_id: $tmdb_id})
+                OPTIONAL MATCH (m)-[:DIRECTED_BY]->(d:Person)
+                OPTIONAL MATCH (a:Person)-[:ACTED_IN]->(m)
+                OPTIONAL MATCH (m)-[:HAS_GENRE]->(g:Genre)
+                OPTIONAL MATCH (m)-[:WRITTEN_BY]->(w:Person)
+                OPTIONAL MATCH (m)-[:HAS_KEYWORD]->(k:Keyword)
+                RETURN
+                    collect(DISTINCT {type: 'Director', id: d.tmdb_id, name: d.name}) AS directors,
+                    collect(DISTINCT {type: 'Actor', id: a.tmdb_id, name: a.name}) AS actors,
+                    collect(DISTINCT {type: 'Genre', id: g.tmdb_id, name: g.name}) AS genres,
+                    collect(DISTINCT {type: 'Writer', id: w.tmdb_id, name: w.name}) AS writers,
+                    collect(DISTINCT {type: 'Keyword', id: k.tmdb_id, name: k.name}) AS keywords
+                """,
+                tmdb_id=movie_tmdb_id,
+            )
+            record = await result.single()
+            if not record:
+                return entities
 
-        for group_key in ["directors", "actors", "genres", "writers", "keywords"]:
-            for item in record[group_key]:
-                if item["id"] is not None:
-                    entities.append((item["type"], item["id"], item["name"]))
+            for group_key in ["directors", "actors", "genres", "writers", "keywords"]:
+                for item in record[group_key]:
+                    if item["id"] is not None:
+                        entities.append((item["type"], item["id"], item["name"]))
+    except Exception:
+        logger.warning(
+            "Neo4j unavailable — skipping entity fetch for tmdb_id=%s", movie_tmdb_id
+        )
 
     return entities
 
@@ -155,6 +160,29 @@ async def update_beacon_on_swipe(
     is_supercharged: bool,
 ) -> None:
     """Incrementally update the beacon map in Redis after a swipe."""
+    try:
+        await _update_beacon_on_swipe(
+            neo4j_driver,
+            redis_client,
+            user_id,
+            movie_tmdb_id,
+            action_type,
+            is_supercharged,
+        )
+    except Exception:
+        logger.warning(
+            "Beacon update failed (Neo4j unavailable?), skipping", exc_info=True
+        )
+
+
+async def _update_beacon_on_swipe(
+    neo4j_driver: AsyncDriver,
+    redis_client,
+    user_id: int,
+    movie_tmdb_id: int,
+    action_type: str,
+    is_supercharged: bool,
+) -> None:
     score = SWIPE_SCORES.get((action_type, is_supercharged), 0.0)
     if score == 0.0:
         return
@@ -296,20 +324,23 @@ async def get_top_people(
 async def _batch_fetch_person_images(
     neo4j_driver: AsyncDriver, tmdb_ids: list[int]
 ) -> dict[int, str | None]:
-    """Batch-fetch image_url for Person nodes from Neo4j."""
+    """Batch-fetch image_url for Person nodes from Neo4j. Returns {} if unavailable."""
     image_map: dict[int, str | None] = {}
-    async with neo4j_driver.session() as session:
-        result = await session.run(
-            """
-            UNWIND $tmdb_ids AS tid
-            MATCH (p:Person {tmdb_id: tid})
-            RETURN p.tmdb_id AS tmdb_id, p.image_url AS image_url
-            """,
-            tmdb_ids=tmdb_ids,
-        )
-        records = await result.data()
-        for record in records:
-            image_map[record["tmdb_id"]] = record["image_url"]
+    try:
+        async with neo4j_driver.session() as session:
+            result = await session.run(
+                """
+                UNWIND $tmdb_ids AS tid
+                MATCH (p:Person {tmdb_id: tid})
+                RETURN p.tmdb_id AS tmdb_id, p.image_url AS image_url
+                """,
+                tmdb_ids=tmdb_ids,
+            )
+            records = await result.data()
+            for record in records:
+                image_map[record["tmdb_id"]] = record["image_url"]
+    except Exception:
+        logger.warning("Neo4j unavailable — skipping person image fetch")
     return image_map
 
 
@@ -360,22 +391,26 @@ async def _batch_fetch_linked_movies(
     """
     # Query Neo4j for person-movie connections within liked movies
     person_movies: dict[int, list[dict]] = {}
-    async with neo4j_driver.session() as session:
-        result = await session.run(
-            """
-            UNWIND $person_tmdb_ids AS pid
-            MATCH (p:Person {tmdb_id: pid})
-            MATCH (p)-[:ACTED_IN|DIRECTED_BY|WRITTEN_BY]-(m:Movie)
-            WHERE m.tmdb_id IN $liked_tmdb_ids
-            RETURN pid AS person_tmdb_id,
-                   collect(DISTINCT {tmdb_id: m.tmdb_id, title: m.title}) AS movies
-            """,
-            person_tmdb_ids=person_tmdb_ids,
-            liked_tmdb_ids=liked_tmdb_ids,
-        )
-        records = await result.data()
-        for record in records:
-            person_movies[record["person_tmdb_id"]] = record["movies"]
+    try:
+        async with neo4j_driver.session() as session:
+            result = await session.run(
+                """
+                UNWIND $person_tmdb_ids AS pid
+                MATCH (p:Person {tmdb_id: pid})
+                MATCH (p)-[:ACTED_IN|DIRECTED_BY|WRITTEN_BY]-(m:Movie)
+                WHERE m.tmdb_id IN $liked_tmdb_ids
+                RETURN pid AS person_tmdb_id,
+                       collect(DISTINCT {tmdb_id: m.tmdb_id, title: m.title}) AS movies
+                """,
+                person_tmdb_ids=person_tmdb_ids,
+                liked_tmdb_ids=liked_tmdb_ids,
+            )
+            records = await result.data()
+            for record in records:
+                person_movies[record["person_tmdb_id"]] = record["movies"]
+    except Exception:
+        logger.warning("Neo4j unavailable — skipping linked movies fetch")
+        return {}
 
     # Collect all unique movie tmdb_ids to batch-fetch poster_urls from PostgreSQL
     all_movie_tmdb_ids = set()

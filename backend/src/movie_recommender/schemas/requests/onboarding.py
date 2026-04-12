@@ -14,6 +14,7 @@ class OnboardingMovieCard(BaseModel):
 
 
 class OnboardingSearchResult(BaseModel):
+    movie_db_id: Optional[int] = None  # set if the movie is already in the DB
     tmdb_id: int
     title: str
     poster_url: Optional[str] = None
@@ -21,10 +22,8 @@ class OnboardingSearchResult(BaseModel):
 
 
 class OnboardingSubmission(BaseModel):
-    grid_movie_ids: List[int] = Field(..., min_length=5, max_length=30)
-    search_movie_tmdb_ids: List[int] = Field(..., min_length=1, max_length=3)
+    movie_db_ids: List[int] = Field(..., min_length=5, max_length=33)
 
 
 class OnboardingCompleteResponse(BaseModel):
     onboarding_completed: bool
-    movies_with_embeddings: int

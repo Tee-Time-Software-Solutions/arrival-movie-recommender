@@ -2,12 +2,18 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
-from unittest.mock import patch
 
-from movie_recommender.services.recommender.learning.evaluate import evaluate
-from movie_recommender.services.recommender.learning.metrics import dcg_at_k
+from movie_recommender.services.recommender.pipeline.offline.models.als.steps.metrics import dcg_at_k, run
+from movie_recommender.services.recommender.utils.schema import Config, DataConfig
 
-_MODULE = "movie_recommender.services.recommender.learning.evaluate"
+
+def _make_config(tmp_path):
+    return Config(data_dirs=DataConfig(
+        source_dir=tmp_path,
+        processed_dir=tmp_path,
+        splits_dir=tmp_path,
+        model_assets_dir=tmp_path,
+    ))
 
 
 class TestDcgAtK:
@@ -21,31 +27,22 @@ class TestDcgAtK:
         assert dcg_at_k([0, 0, 0]) == 0.0
 
     def test_single_relevant_at_position_zero(self):
-        result = dcg_at_k([1])
-        expected = 1 / np.log2(2)
-        assert result == pytest.approx(expected)
+        assert dcg_at_k([1]) == pytest.approx(1 / np.log2(2))
 
     def test_later_items_score_less(self):
-        dcg_first = dcg_at_k([1, 0, 0])
-        dcg_last = dcg_at_k([0, 0, 1])
-        assert dcg_first > dcg_last
+        assert dcg_at_k([1, 0, 0]) > dcg_at_k([0, 0, 1])
 
     def test_empty_relevance(self):
         assert dcg_at_k([]) == 0
 
 
 class TestEvaluateOrchestration:
-    """Integration-style tests for the evaluate() orchestration wrapper."""
-
     def _setup_artifacts(self, tmp_path, extra_val_users=None):
         n_users, n_movies, dim = 3, 5, 4
         rng = np.random.default_rng(42)
 
-        user_emb = rng.standard_normal((n_users, dim)).astype(np.float32)
-        movie_emb = rng.standard_normal((n_movies, dim)).astype(np.float32)
-
-        np.save(tmp_path / "user_embeddings.npy", user_emb)
-        np.save(tmp_path / "movie_embeddings.npy", movie_emb)
+        np.save(tmp_path / "user_embeddings.npy", rng.standard_normal((n_users, dim)).astype(np.float32))
+        np.save(tmp_path / "movie_embeddings.npy", rng.standard_normal((n_movies, dim)).astype(np.float32))
 
         mappings = {
             "user_id_to_index": {"1": 0, "2": 1, "3": 2},
@@ -65,17 +62,11 @@ class TestEvaluateOrchestration:
                 val_users.append(uid)
                 val_movies.append(mid)
 
-        val_df = pd.DataFrame({"user_id": val_users, "movie_id": val_movies})
-        val_df.to_parquet(tmp_path / "val.parquet", index=False)
+        pd.DataFrame({"user_id": val_users, "movie_id": val_movies}).to_parquet(tmp_path / "val.parquet", index=False)
 
     def _run(self, tmp_path):
-        with (
-            patch(f"{_MODULE}.artifacts_dir", lambda: tmp_path),
-            patch(f"{_MODULE}.TRAIN_PATH", tmp_path / "train.parquet"),
-            patch(f"{_MODULE}.VAL_PATH", tmp_path / "val.parquet"),
-            patch(f"{_MODULE}.K", 3),
-        ):
-            evaluate()
+        config = _make_config(tmp_path)
+        run(config)
 
     def test_runs_without_error(self, tmp_path):
         self._setup_artifacts(tmp_path)

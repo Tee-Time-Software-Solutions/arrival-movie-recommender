@@ -16,7 +16,7 @@ import asyncio
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.core.clients.neo4j import Neo4jClient
 from movie_recommender.database.engine import DatabaseEngine
-from movie_recommender.services.hydrator.main import TMDBFetcher
+from movie_recommender.services.recommender.pipeline.hydrator.main import TMDBFetcher
 from movie_recommender.services.knowledge_graph.schema import ensure_kg_schema
 from movie_recommender.services.knowledge_graph.writer import upsert_movie_to_kg
 

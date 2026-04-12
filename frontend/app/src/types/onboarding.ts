@@ -9,6 +9,7 @@ export interface OnboardingMovieCard {
 }
 
 export interface OnboardingSearchResult {
+  movie_db_id: number | null;
   tmdb_id: number;
   title: string;
   poster_url: string | null;
@@ -17,5 +18,4 @@ export interface OnboardingSearchResult {
 
 export interface OnboardingCompleteResponse {
   onboarding_completed: boolean;
-  movies_with_embeddings: number;
 }

@@ -105,10 +105,11 @@ export function OnboardingPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await completeOnboarding(
-        Array.from(selectedGridIds),
-        selectedSearchMovies.map((m) => m.tmdb_id),
-      );
+      const searchDbIds = selectedSearchMovies
+        .map((m) => m.movie_db_id)
+        .filter((id): id is number => id !== null);
+      const allMovieDbIds = [...Array.from(selectedGridIds), ...searchDbIds];
+      await completeOnboarding(allMovieDbIds);
       setNeedsOnboarding(false);
       navigate("/", { replace: true });
     } catch (err) {

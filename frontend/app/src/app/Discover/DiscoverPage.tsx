@@ -150,8 +150,12 @@ export function DiscoverPage() {
   const hasActiveFilters =
     preferences &&
     (preferences.included_genres.length > 0 ||
+      preferences.excluded_genres.length > 0 ||
       preferences.min_release_year !== null ||
-      preferences.max_release_year !== null);
+      preferences.max_release_year !== null ||
+      preferences.min_rating !== null ||
+      preferences.include_adult ||
+      preferences.movie_providers.length > 0);
 
   if (exhausted && !currentMovie) {
     return (

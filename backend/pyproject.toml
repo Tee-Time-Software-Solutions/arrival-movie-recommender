@@ -29,12 +29,14 @@ dependencies = [
       "implicit",
       "cython",
       "tqdm",
+      "sqlalchemy[asyncio]", # asyncio extra pulls in greenlet
       "alembic", # db
       "asyncpg", #db --  async postgres driver (used by the app)
-      "greenlet>=3.0.0", # sqlalchemy async session (export_swipes, app)
       "psycopg2-binary", # db -- sync postgres driver (for migrations)
       "python-dotenv",
       "neo4j>=5.0.0",
+      "httpx>=0.27.0", # async HTTP client (TMDBFetcher)
+      "apscheduler>=3.11.2",
 ]
 
 [dependency-groups]
@@ -42,7 +44,6 @@ dev = [
     "watchfiles>=1.1.1",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
-    "httpx>=0.27.0",
 ]
 tests = [
     "pytest>=8.0",
