@@ -19,6 +19,9 @@ from movie_recommender.services.recommender.pipeline.online.artifacts import (
 from movie_recommender.services.recommender.pipeline.online.learning.feedback import (
     apply_feedback_update,
 )
+from movie_recommender.services.recommender.pipeline.online.exploration import (
+    get_genre_impression_counts,
+)
 from movie_recommender.services.recommender.pipeline.online.serving.ranker import (
     rank_movie_ids,
 )
@@ -38,6 +41,7 @@ class Recommender:
         settings = AppSettings()
         self.learning_rate = settings.app_logic.learning_rate
         self.norm_cap = settings.app_logic.norm_cap
+        self.exploration_weight = settings.app_logic.exploration_weight
         self.model_artifacts: RecommenderArtifacts = load_model_artifacts()
         self._db_session_factory = db_session_factory
         self._redis: Optional[aioredis.Redis] = None
@@ -79,15 +83,21 @@ class Recommender:
         user_vector = await self._get_user_vector(user_id)
 
         seen_movie_ids: set[int] = set()
+        genre_impression_counts: dict[str, int] = {}
         if self._redis:
             members = await self._redis.smembers(f"{SEEN_KEY_PREFIX}{user_id}")
             seen_movie_ids = {int(m) for m in members} if members else set()
+            genre_impression_counts = await get_genre_impression_counts(
+                self._redis, user_id
+            )
 
         return rank_movie_ids(
             n=n,
             model_artifacts=self.model_artifacts,
             user_vector=user_vector,
             seen_movie_ids=seen_movie_ids,
+            genre_impression_counts=genre_impression_counts,
+            exploration_weight=self.exploration_weight,
         )
 
     async def set_user_feedback(

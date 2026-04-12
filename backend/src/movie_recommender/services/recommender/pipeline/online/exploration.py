@@ -25,3 +25,21 @@ async def record_genre_impressions(
         await redis_client.hincrby(key, genre, 1)
 
     await redis_client.expire(key, ttl_seconds)
+
+
+async def get_genre_impression_counts(redis_client, user_id: int) -> dict[str, int]:
+    """Load per-genre impression counts for a user from Redis."""
+    raw_counts = await redis_client.hgetall(genre_impression_key(user_id))
+    if not raw_counts:
+        return {}
+
+    counts: dict[str, int] = {}
+    for raw_genre, raw_count in raw_counts.items():
+        genre = (
+            raw_genre.decode("utf-8")
+            if isinstance(raw_genre, (bytes, bytearray))
+            else str(raw_genre)
+        )
+        counts[genre] = int(raw_count)
+
+    return counts

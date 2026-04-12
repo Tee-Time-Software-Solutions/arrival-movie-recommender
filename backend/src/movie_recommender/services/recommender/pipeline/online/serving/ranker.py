@@ -10,12 +10,10 @@ def rank_movie_ids(
     model_artifacts: RecommenderArtifacts,
     user_vector: np.ndarray,
     seen_movie_ids: set[int],
+    genre_impression_counts: dict[str, int] | None = None,
+    exploration_weight: float = 0.0,
 ) -> list[int]:
-    """Rank all known movies by dot-product score, excluding seen ones.
-
-    Fully vectorised: uses the pre-built all_movie_ids array so there are no
-    Python-level per-movie loops or dict lookups on the hot path.
-    """
+    """Rank all known movies by score, excluding seen ones."""
     if n == 0:
         return []
 
@@ -33,12 +31,39 @@ def rank_movie_ids(
 
     candidate_embeddings = model_artifacts.movie_embeddings[mask]
     scores = candidate_embeddings @ user_vector
+    final_scores = scores.copy()
 
-    if n >= len(scores):
-        ranked = scores.argsort()[::-1]
+    if exploration_weight > 0:
+        candidate_bonus = np.array(
+            [
+                _genre_exploration_bonus(
+                    model_artifacts.movie_id_to_genres.get(int(movie_id), []),
+                    genre_impression_counts or {},
+                )
+                for movie_id in candidate_ids
+            ],
+            dtype=np.float32,
+        )
+        final_scores = final_scores + (exploration_weight * candidate_bonus)
+
+    if n >= len(final_scores):
+        ranked = final_scores.argsort()[::-1]
     else:
-        # argpartition is O(N) vs argsort's O(N log N) — significant for large n
-        top = np.argpartition(scores, -n)[-n:]
-        ranked = top[scores[top].argsort()[::-1]]
+        top = np.argpartition(final_scores, -n)[-n:]
+        ranked = top[final_scores[top].argsort()[::-1]]
 
     return candidate_ids[ranked].tolist()
+
+
+def _genre_exploration_bonus(
+    genres: list[str], genre_impression_counts: dict[str, int]
+) -> float:
+    """Higher bonus for genres we have shown less often to this user."""
+    if not genres:
+        return 0.0
+
+    bonuses = [
+        1.0 / np.sqrt(1.0 + float(genre_impression_counts.get(genre, 0)))
+        for genre in genres
+    ]
+    return float(max(bonuses, default=0.0))

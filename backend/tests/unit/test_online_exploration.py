@@ -6,6 +6,7 @@ from movie_recommender.schemas.requests.movies import MovieDetails
 from movie_recommender.services.recommender.pipeline.feed_manager.main import FeedManager
 from movie_recommender.services.recommender.pipeline.online.exploration import (
     EXPLORATION_STATE_TTL_SECONDS,
+    get_genre_impression_counts,
     genre_impression_key,
     record_genre_impressions,
 )
@@ -38,6 +39,15 @@ class TestExplorationState:
 
         redis_client.hincrby.assert_not_called()
         redis_client.expire.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_genre_impression_counts_decodes_redis_payload(self):
+        redis_client = AsyncMock()
+        redis_client.hgetall.return_value = {b"Action": b"3", "Comedy": 1}
+
+        counts = await get_genre_impression_counts(redis_client, user_id=7)
+
+        assert counts == {"Action": 3, "Comedy": 1}
 
 
 class TestFeedManagerGenreTracking:

@@ -59,12 +59,14 @@ class AppSettings:
         learning_rate = float(os.getenv("LEARNING_RATE", "0.05"))
         norm_cap = float(os.getenv("NORM_CAP", "10.0"))
         over_fetch_factor = int(os.getenv("OVER_FETCH_FACTOR", "2"))
+        exploration_weight = float(os.getenv("EXPLORATION_WEIGHT", "0.01"))
         return AppLogicSettings(
             batch_size=batch_size,
             queue_min_capacity=queue_min_capacity,
             learning_rate=learning_rate,
             norm_cap=norm_cap,
             over_fetch_factor=over_fetch_factor,
+            exploration_weight=exploration_weight,
         )
 
     def _load_tmdb_settings(self) -> TMDBSettings:
