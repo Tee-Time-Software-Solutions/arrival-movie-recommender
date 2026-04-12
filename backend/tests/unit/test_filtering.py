@@ -61,7 +61,7 @@ class TestIterativeCoreFilter:
 
 class TestRunFilteringOrchestration:
     def _run(self, tmp_path, df):
-        input_path = tmp_path / "ratings_clean.parquet"
+        input_path = tmp_path / "ratings_unified.parquet"
         df.to_parquet(input_path, index=False)
         config = _make_config(tmp_path)
         run(config)
