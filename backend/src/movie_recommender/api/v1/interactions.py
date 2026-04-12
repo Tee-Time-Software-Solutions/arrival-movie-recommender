@@ -19,7 +19,7 @@ from movie_recommender.schemas.requests.interactions import (
 )
 from movie_recommender.services.knowledge_graph.beacon import update_beacon_on_swipe
 from movie_recommender.services.recommender.main import Recommender
-from movie_recommender.services.swipe_worker.main import enqueue_swipe
+from movie_recommender.services.swipe_worker.main import persist_swipe
 
 router = APIRouter(prefix="/interactions")
 
@@ -36,7 +36,7 @@ async def register_movie_interaction(
 ) -> RegisteredFeedback:
     """
     1. Validate movie exists in DB
-    2. Enqueue swipe event to Redis (background worker persists to DB)
+    2. Fire-and-forget swipe persistence to DB
     3. Trigger recommender update
     """
     if swipe_data.action_type == SwipeAction.SKIP and swipe_data.is_supercharged:
@@ -52,12 +52,13 @@ async def register_movie_interaction(
     if movie_row is None:
         raise HTTPException(status_code=404, detail="Movie not found")
 
-    await enqueue_swipe(
-        redis_client=redis_client,
-        user_id=user_row.id,
-        movie_id=movie_id,
-        action_type=swipe_data.action_type.value,
-        is_supercharged=swipe_data.is_supercharged,
+    asyncio.create_task(
+        persist_swipe(
+            user_id=user_row.id,
+            movie_id=movie_id,
+            action_type=swipe_data.action_type.value,
+            is_supercharged=swipe_data.is_supercharged,
+        )
     )
 
     await recommender.set_user_feedback(
