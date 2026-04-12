@@ -2,68 +2,84 @@
 
 ## Offline pipeline (ALS)
 
-Run once to produce embeddings. Re-run when retraining.
+Run once to produce embeddings. Re-runs nightly via cron job.
 
 ```
-data/raw/
+pipeline/artifacts/dataset/source/small/
   movies.csv
   ratings.csv
       │
       ▼
-preprocess_movies()                         [preprocess_movies.py]
-  extract year, clean title, split genres
-  → data/processed/movies_clean.parquet
-
-preprocess_ratings()                        [preprocess_ratings.py]
-  rating (0.5–5.0)
-  → bucket {1,2,3,4}
-  → preference {-2,-1,+1,+2}
-  → data/processed/interactions_clean.parquet
+fetch_app_swipes()                          [base/steps/fetch_app_swipes.py]
+  query Postgres for all swipes
+  map action_type + is_supercharged → preference score {-2,-1,0,+1,+2}
+  shift app user_ids by APP_USER_ID_OFFSET (default 10_000_000)
+    — prevents collision with MovieLens user IDs (max ~162k)
+  → pipeline/artifacts/dataset/raw/swipes_from_db.parquet
+  skip: SKIP_DB_SWIPE_EXPORT=1
       │
       ▼
-filtering()                                 [filtering.py]
+preprocess_movies()                         [base/steps/preprocess_movies.py]
+  extract year, clean title, split genres
+  → dataset/processed/movies_clean.parquet
+
+preprocess_ratings()                        [base/steps/preprocess_ratings.py]
+  rating (0.5–5.0) → bucket {1,2,3,4} → preference {-2,-1,+1,+2}
+  → dataset/processed/ratings_clean.parquet
+      │
+      ▼
+merge_interactions()                        [base/steps/merge_interactions.py]
+  concat MovieLens ratings + app swipes
+  dedupe: keep latest timestamp per (user_id, movie_id)
+  drop skips (preference == 0) — no directional signal for ALS
+  → dataset/processed/ratings_unified.parquet
+      │
+      ▼
+filter()                                    [base/steps/filter.py]
   iterative core filter until stable:
     remove movies  < 20 interactions
     remove users   < 10 interactions
-  26k movies → ~13k | 138k users remain
-  → data/processed/interactions_filtered.parquet
+  → dataset/processed/ratings_filtered.parquet
 
-prune_movies()                              [prune_movies.py]
+prune_movies()                              [base/steps/prune_movies.py]
   keep only movies that survived filtering
-  → data/processed/movies_filtered.parquet
+  → dataset/processed/movies_filtered.parquet
       │
       ▼
-split()                                     [split.py]
+split()                                     [base/steps/split.py]
   per-user chronological split (no leakage)
   80% train / 10% val / 10% test
-  → data/splits/train.parquet
-  → data/splits/val.parquet
-  → data/splits/test.parquet
+  → dataset/splits/train.parquet  val.parquet  test.parquet
       │
       ▼
-build_sparse_matrix()                       [build_matrix.py]
-  CSR matrix R_train (users × movies)
-  values = preference score
+build_sparse_matrix()                       [als/steps/matrix.py]
+  CSR matrix R_train (users × movies), values = preference score
   + contiguous ID mappings
-  → artifacts/R_train.npz
-  → artifacts/mappings.json
+  → model_assets/R_train.npz
+  → model_assets/mappings.json
       │
       ▼
-train()                                     [train_als.py]
+train_als()                                 [als/steps/train_als.py]
   confidence: C = 1 + α·|preference|, α=15
-  implicit.ALS(factors=64, reg=0.1, iters=15)
-  → artifacts/user_embeddings.npy   shape (138k, 64)
-  → artifacts/movie_embeddings.npy  shape (13k, 64)
-  → artifacts/model_info.json
+  implicit.ALS(factors=16, reg=0.1, iters=15)
+  → model_assets/user_embeddings.npy
+  → model_assets/movie_embeddings.npy
+  → model_assets/model_info.json
       │
       ▼
-evaluate()                                  [evaluate.py]
+evaluate()                                  [als/steps/metrics.py]
   for each val user:
     scores = movie_embeddings @ user_vector
     mask seen movies → take top 10
     compute Precision@10, Recall@10, NDCG@10
-  baseline results: P=0.055, R=0.081, NDCG=0.183
+  → model_assets/als_metrics.json
 ```
+
+### Nightly rerun
+
+APScheduler fires `run_pipeline_cron_job()` at midnight.
+Redis lock (`ml_pipeline_lock`, TTL 1h) prevents concurrent runs across workers.
+The lock is always released in `finally`.
 
 ---
 
@@ -81,20 +97,22 @@ swipe_to_preference(action, is_supercharged)
   SKIP    →  0 (no update)
       │
       ▼
-current_user_vector(artifacts, online_cache, user_id)
-  known user     → artifacts.user_embeddings[index]   ← from offline training
-  new user       → mean(all user embeddings)           ← cold start
-  returning user → online_user_vectors[user_id]        ← overrides base
+get_user_vector(user_id)  — three-tier lookup:
+  1. Redis hot cache        (key: user_vector:{id}, binary float32)
+  2. Postgres persistent    (user_online_vectors table, survives restart)
+  3. ALS base embedding     (from offline training, if user was in training set)
+  4. Cold start             (mean of all user embeddings, for new users)
       │
       ▼
-update_user_vector(u, v_movie, preference, η=0.05, cap=10.0)
-  u_new = u + η · preference · v_movie
-  if ‖u_new‖ > cap: u_new *= cap / ‖u_new‖
+apply_feedback_update(u, v_movie, preference)
+  u_new = u + η · preference · v_movie    (η = 0.05)
+  if ‖u_new‖ > cap: u_new *= cap / ‖u_new‖  (cap = 10.0)
       │
       ▼
-store → online_user_vectors[user_id]   (in-process, lost on restart)
-store → Redis seen set                 (persisted, survives restart)
-fire  → Neo4j beacon update            (async, fire-and-forget)
+  → Redis: user_vector:{id}         (hot cache, immediate)
+  → Postgres: user_online_vectors   (async fire-and-forget, upsert on conflict)
+  → Redis: seen:user:{id}           (set, persisted across restarts)
+  → Neo4j beacon map                (async fire-and-forget, max 3 concurrent writes)
 ```
 
 ### GET /feed → serve next movie
@@ -103,27 +121,32 @@ fire  → Neo4j beacon update            (async, fire-and-forget)
 GET /api/v1/movies/feed
       │
       ▼
-FeedManager.get_next_movie(user_id)
-  1. load seen set from Redis
-  2. pop from Redis queue (feed:user:{id}), skip seen movies
-  3. if queue empty or below threshold → refill_queue()
+FeedManager.get_next_movie(user_id, user_preferences)
+  1. lpop from Redis queue (feed:user:{id})
+  2. if empty → refill_queue() (blocking)
+     if below threshold (5) → refill_queue() (background task)
           │
           ▼
-       Recommender.get_top_n_recommendations(user_id, all_movie_ids)
-         scores = movie_embeddings[candidates] @ user_vector  ← dot product
-         filter seen → rank → return ordered movie_ids
-          │
-          ▼
-       hydrate top N with TMDB (async, parallel)
-       push JSON [movie_id, title] entries to Redis queue
-  4. attach KG explanation (100ms timeout, silent fail if missing)
+       refill_queue(user_id, user_preferences)
+         fetch_n = batch_size (15) [× over_fetch_factor (2) if filters active]
+         loop until queue filled or max_candidates (300) exhausted:
+           Recommender.get_top_n_recommendations(user_id, n=fetch_n)
+             scores = movie_embeddings[candidates] @ user_vector
+             exclude seen → rank by score → return movie_ids
+           hydrate new candidates with TMDB (parallel asyncio.gather)
+           filter by user_preferences (_matches_preferences)
+           if items found → break
+           else fetch_n *= 2, retry with deeper ranked list
+         push [movie_id, title] JSON entries to Redis queue
+  3. mark movie as seen: sadd seen:user:{id}
+  4. attach KG explanation (100ms timeout, silent fail)
   5. return MovieDetails
 ```
 
 ### Neo4j knowledge graph (explainability layer)
 
 ```
-On each swipe (fire-and-forget):
+On each swipe (fire-and-forget, semaphore max 3 concurrent):
   update_beacon_on_swipe()
     query Neo4j: Movie → Director/Actor/Genre/Writer/Keyword
     update Redis beacon map:
@@ -132,7 +155,7 @@ On each swipe (fire-and-forget):
 
 On feed request (100ms budget):
   explain_recommendation()
-    load beacon map from Redis (or rebuild from DB + Neo4j)
+    load beacon map from Redis (or rebuild from Postgres + Neo4j)
     find_explanation_paths(movie_tmdb_id, beacon_map)
     score paths → render best as text
     attach to MovieDetails.explanation
@@ -141,20 +164,20 @@ On feed request (100ms budget):
 Entity weights: Director×1.5, Actor×1.0, Genre×0.8, Writer×0.7, Keyword×0.5
 Recency decay: 0.95 per day
 
-**Requirement:** Neo4j must be seeded via `scripts/seed_kg.py` before explanations work.
-If the graph is empty, the system silently serves recommendations without explanations.
+All Neo4j calls are resilient — connection failures return empty results,
+never propagate to the API response.
 
 ---
 
 ## Data flow summary
 
 ```
-MovieLens 20M (offline)
+MovieLens CSV + Postgres swipes (offline)
       ↓
-embeddings (user_embeddings.npy, movie_embeddings.npy)
+ALS embeddings (user_embeddings.npy, movie_embeddings.npy, mappings.json)
       ↓
-Recommender loads on startup (artifact_loader.py)
+Recommender loads on startup via load_model_artifacts()
       ↓
-per-swipe: online_user_vectors updated in-process
-per-feed:  dot product → ranked list → Redis queue → TMDB hydration → response
+per-swipe : online vector update → Redis + Postgres (upsert)
+per-feed  : dot product → ranked list → Redis queue → TMDB hydration → response
 ```

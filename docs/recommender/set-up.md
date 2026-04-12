@@ -2,19 +2,25 @@
 
 ## 1. Get the dataset
 
-Download **MovieLens 20M** from https://grouplens.org/datasets/movielens/20m/
+Download **MovieLens (small)** from https://grouplens.org/datasets/movielens/latest/
+Note: you can use the big version that contain 10M, but need to update from small extension in the file paths to big.
 
 Place only these two files here:
 
 ```
-backend/src/movie_recommender/services/recommender/data/raw/movies.csv
-backend/src/movie_recommender/services/recommender/data/raw/ratings.csv
+backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/source/small/
+  movies.csv
+  ratings.csv
 ```
 
 Create the folder if it doesn't exist:
 ```bash
-mkdir -p backend/src/movie_recommender/services/recommender/data/raw
+mkdir -p backend/src/movie_recommender/services/recommender/pipeline/artifacts/dataset/source/small
 ```
+
+> Paths are configured in `config.yaml` (see step 4). The `small` dataset is enough for local dev.
+
+---
 
 ## 2. Install dependencies
 
@@ -23,44 +29,77 @@ From repo root:
 cd backend && uv sync
 ```
 
-## 3. Run the offline pipeline (ALS only — FM is broken)
+---
 
-From repo root, with the backend venv active:
+## 3. Run the offline pipeline
+
+From the repo root with the backend venv active:
+
 ```bash
 cd backend
-uv run python src/movie_recommender/services/recommender/learning/offline_pipelines/implicit_als.py
+uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 ```
 
-This runs the full 8-step pipeline and writes artifacts to:
+This runs the 10-step pipeline:
+
+| Step | What it does | Output |
+|------|-------------|--------|
+| 1 | Preprocess movies | `processed/movies_clean.parquet` |
+| 2 | Preprocess ratings | `processed/ratings_clean.parquet` |
+| 3 | Fetch app swipes from Postgres | `raw/swipes_from_db.parquet` |
+| 4 | Merge MovieLens + app swipes | `processed/ratings_unified.parquet` |
+| 5 | Filter sparse users/movies | `processed/ratings_filtered.parquet` |
+| 6 | Prune movies to interaction set | `processed/movies_filtered.parquet` |
+| 7 | Chronological train/val/test split | `splits/train.parquet` etc. |
+| 8 | Build sparse CSR matrix | `model_assets/R_train.npz`, `mappings.json` |
+| 9 | Train ALS | `model_assets/user_embeddings.npy`, `movie_embeddings.npy` |
+| 10 | Evaluate | `model_assets/als_metrics.json` |
+
+All artifacts land under:
 ```
-backend/src/movie_recommender/services/recommender/artifacts/
-  movie_embeddings.npy
-  user_embeddings.npy
-  mappings.json
-  R_train.npz
-  model_info.json
+backend/src/movie_recommender/services/recommender/pipeline/artifacts/
+  dataset/
+    source/small/      ← place MovieLens CSVs here
+    raw/               ← swipes_from_db.parquet (auto-generated)
+    processed/
+    splits/
+  model_assets/
 ```
 
-And processed data to:
-```
-backend/src/movie_recommender/services/recommender/data/
-  processed/
-    movies_clean.parquet
-    interactions_clean.parquet
-    interactions_filtered.parquet
-    movies_filtered.parquet
-  splits/
-    train.parquet
-    val.parquet
-    test.parquet
+**To skip the Postgres swipe export** (no DB needed):
+```bash
+SKIP_DB_SWIPE_EXPORT=1 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 ```
 
-Expected runtime on M1: ~15–25 min (ratings preprocessing dominates).
+Expected runtime on M1 (small dataset): ~2–5 min.
 
-## 4. FM pipeline — skip for now
+---
 
-`factorization_machines.py` is broken because `lightfm` can't be correctly installed.
-Acknowledge in the report; ALS is the production serving model.
+## 4. Pipeline config
+
+All paths and hyperparameters live in:
+```
+backend/src/movie_recommender/services/recommender/config.yaml
+```
+
+Paths are relative to the `recommender/` root. Override with absolute paths if needed.
+
+```yaml
+data_dirs:
+  source_dir: "pipeline/artifacts/dataset/source/small"
+  processed_dir: "pipeline/artifacts/dataset/processed"
+  splits_dir: "pipeline/artifacts/dataset/splits"
+  model_assets_dir: "pipeline/artifacts/model_assets"
+
+models:
+  als:
+    factors: 16
+    regularization: 0.1
+    iterations: 15
+    alpha: 15        # C(u,i) = 1 + alpha * |preference|
+```
+
+---
 
 ## 5. Run unit tests (no dataset needed)
 
@@ -69,16 +108,12 @@ cd backend
 uv run pytest tests/unit/ -v
 ```
 
-Uses synthetic in-memory fixtures. No data on disk required.
+Uses synthetic in-memory fixtures — no data on disk required.
 
-## 6. Known artifact paths
+---
 
-All paths are resolved relative to `paths_dev.py`:
+## 6. Nightly rerun (cron)
 
-```python
-PROJECT_ROOT = backend/src/movie_recommender/services/recommender/
-DATA_RAW      = PROJECT_ROOT/data/raw
-DATA_PROCESSED = PROJECT_ROOT/data/processed
-DATA_SPLITS   = PROJECT_ROOT/data/splits
-ARTIFACTS     = PROJECT_ROOT/artifacts
-```
+`run_pipeline_cron_job()` in `pipeline/offline/models/als/main.py` is registered with APScheduler at midnight.
+It acquires a Redis lock (`ml_pipeline_lock`, TTL 1h) before running and releases it in `finally`.
+No manual action needed — runs automatically when the backend is up.
