@@ -1,5 +1,7 @@
 *.env*
 !.env.dev.example
+!.env.staging.example
+!.env.production.example
 .dev_token
 
 # Node
