@@ -24,13 +24,22 @@ logger = logging.getLogger(__name__)
 # Regex for cleaning movie titles from the MovieLens dataset
 _AKA_RE = re.compile(r"\s*\(a\.k\.a\..*?\)")
 _ARTICLE_SUFFIX_RE = re.compile(r"^(.+),\s*(The|A|An)$")
+_YEAR_RE = re.compile(r"\s*\((\d{4})\)\s*$")
 
 
-def _clean_title(title: str) -> str:
-    """Strip '(a.k.a. ...)' and fix trailing articles: 'Matrix, The' → 'The Matrix'."""
-    cleaned = _AKA_RE.sub("", title)
-    cleaned = _ARTICLE_SUFFIX_RE.sub(r"\2 \1", cleaned)
-    return cleaned.strip()
+def _parse_ml_title(title: str) -> tuple[str, int | None]:
+    """Parse a MovieLens-formatted title into (clean_title, year).
+
+    'Prestige, The (2006)' → ('The Prestige', 2006)
+    'Matrix, The (1999)'   → ('The Matrix', 1999)
+    'Amélie (2001)'        → ('Amélie', 2001)
+    """
+    m = _YEAR_RE.search(title)
+    year = int(m.group(1)) if m else None
+    without_year = title[: m.start()].strip() if m else title
+    without_aka = _AKA_RE.sub("", without_year)
+    clean = _ARTICLE_SUFFIX_RE.sub(r"\2 \1", without_aka).strip()
+    return clean, year
 
 
 class TMDBFetcher:
@@ -41,57 +50,53 @@ class TMDBFetcher:
         self.IMG_URL = settings.tmdb.img_url
         self._client = httpx.AsyncClient(timeout=10.0)
 
-    async def get_or_fetch_movie(self, movie_database_id: int, movie_title: str):
-        """
-        Get movie from DB or fetch from TMDB and store if not found.
-        """
-        logger.info(f"Hydrating movie: id={movie_database_id}, title={movie_title}")
+    async def search_movies(self, query: str) -> list[dict]:
+        """Search TMDB for movies by title. Returns raw TMDB result items."""
+        response = await self._client.get(
+            f"{self.BASE_URL}/search/movie",
+            params={"api_key": self.TMDB_API_KEY, "query": query},
+        )
+        return response.json().get("results", [])[:10]
 
-        movie = await self._fetch_tmdb_metadata(movie_database_id, movie_title)
-        logger.info(f"Fetched movie from TMDB: {movie.title if movie else None}")
-        return movie
-
-    async def _fetch_tmdb_metadata(
-        self, movie_database_id: int, movie_title: str
-    ) -> MovieDetails | None:
-        clean = _clean_title(movie_title)
-        logger.info(f"Searching TMDB for: {clean}")
-
-        search_res = (
-            await self._client.get(
-                f"{self.BASE_URL}/search/movie",
-                params={"api_key": self.TMDB_API_KEY, "query": clean},
-            )
-        ).json()
-
-        if not search_res["results"]:
+    async def fetch_detail_by_id(self, tmdb_id: int) -> dict | None:
+        """Fetch full movie detail from TMDB by ID. Returns None if not found."""
+        try:
+            res = (
+                await self._client.get(
+                    f"{self.BASE_URL}/movie/{tmdb_id}",
+                    params={
+                        "api_key": self.TMDB_API_KEY,
+                        "append_to_response": "credits,videos,watch/providers,keywords",
+                    },
+                )
+            ).json()
+        except Exception:
+            logger.warning(f"TMDB fetch failed for tmdb_id={tmdb_id}", exc_info=True)
             return None
+        return res if "id" in res else None
 
-        tmdb_id = search_res["results"][0]["id"]
-        detail_res = (
-            await self._client.get(
-                f"{self.BASE_URL}/movie/{tmdb_id}",
-                params={
-                    "api_key": self.TMDB_API_KEY,
-                    "append_to_response": "credits,videos,watch/providers,keywords",
-                },
-            )
+    async def fetch_detail_by_title(self, movie_title: str) -> dict | None:
+        """Search TMDB by title, then fetch full detail for the top result."""
+        clean, year = _parse_ml_title(movie_title)
+        params: dict = {"api_key": self.TMDB_API_KEY, "query": clean}
+        if year:
+            params["year"] = year
+        search_res = (
+            await self._client.get(f"{self.BASE_URL}/search/movie", params=params)
         ).json()
+        if not search_res.get("results"):
+            return None
+        tmdb_id = search_res["results"][0]["id"]
+        return await self.fetch_detail_by_id(tmdb_id)
 
-        trailer_url = self._extract_trailer_url(detail_res)
-        providers = self._extract_providers(detail_res)
-        cast_members = self._extract_cast_and_crew(detail_res)
-        keywords = self._extract_keywords(detail_res)
-        collection = self._extract_collection(detail_res)
-        production_companies = self._extract_production_companies(detail_res)
-
+    def parse_detail_response(self, movie_db_id: int, detail_res: dict) -> MovieDetails:
+        """Build a MovieDetails from a raw TMDB /movie/{id} response dict."""
         poster_path = detail_res.get("poster_path")
         release_date = detail_res.get("release_date", "")
-
         return MovieDetails(
-            movie_db_id=movie_database_id,
+            movie_db_id=movie_db_id,
             tmdb_id=detail_res["id"],
-            title=detail_res["original_title"],
+            title=detail_res.get("original_title", ""),
             poster_url=f"{self.IMG_URL}{poster_path}" if poster_path else "",
             release_year=int(release_date[:4]) if release_date else 0,
             rating=detail_res.get("vote_average", 0.0),
@@ -99,12 +104,12 @@ class TMDBFetcher:
             is_adult=detail_res.get("adult", False),
             synopsis=detail_res.get("overview", ""),
             runtime=detail_res.get("runtime", 0),
-            trailer_url=trailer_url,
-            cast=cast_members,
-            movie_providers=providers,
-            keywords=keywords,
-            collection=collection,
-            production_companies=production_companies,
+            trailer_url=self._extract_trailer_url(detail_res),
+            cast=self._extract_cast_and_crew(detail_res),
+            movie_providers=self._extract_providers(detail_res),
+            keywords=self._extract_keywords(detail_res),
+            collection=self._extract_collection(detail_res),
+            production_companies=self._extract_production_companies(detail_res),
             genre_tmdb_ids=[g["id"] for g in detail_res.get("genres", [])],
         )
 
@@ -136,7 +141,7 @@ class TMDBFetcher:
         credits = detail_res.get("credits", {})
         members: list[CastMember] = []
 
-        for i, c in enumerate(credits.get("cast", [])[:5]):
+        for c in credits.get("cast", [])[:5]:
             members.append(
                 CastMember(
                     name=c["name"],
@@ -222,10 +227,18 @@ class MovieHydrator:
         self.db_session_factory = db_session_factory
         self.neo4j_driver = neo4j_driver
         self.tmdb = TMDBFetcher()
+        self._kg_semaphore: asyncio.Semaphore | None = None
+
+    def _get_kg_semaphore(self) -> asyncio.Semaphore:
+        # Lazy init — asyncio.Semaphore must be created inside a running loop
+        if self._kg_semaphore is None:
+            self._kg_semaphore = asyncio.Semaphore(3)
+        return self._kg_semaphore
 
     async def get_or_fetch_movie(
         self, movie_db_id: int, movie_title: str
     ) -> MovieDetails | None:
+        """Get movie from DB by internal ID, or search TMDB by title and persist."""
         logger.info(f"Hydrating movie: id={movie_db_id}, title={movie_title}")
 
         async with self.db_session_factory() as db:
@@ -234,35 +247,41 @@ class MovieHydrator:
                 logger.info(f"Movie found in DB: {movie.title}")
                 return await movie_to_details(db, movie_db_id)
 
-        movie_details = await self.tmdb._fetch_tmdb_metadata(movie_db_id, movie_title)
-        if not movie_details:
+        detail_res = await self.tmdb.fetch_detail_by_title(movie_title)
+        if not detail_res:
             logger.warning(f"Could not find movie on TMDB: {movie_title}")
             return None
 
-        logger.info(f"Fetched movie from TMDB: {movie_details.title}")
+        details = self.tmdb.parse_detail_response(movie_db_id, detail_res)
+        logger.info(f"Fetched movie from TMDB: {details.title}")
+
         async with self.db_session_factory() as db:
             try:
-                await save_hydrated_movie(db, movie_db_id, movie_details)
+                await save_hydrated_movie(db, movie_db_id, details)
             except Exception:
                 logger.debug(
                     f"Movie {movie_db_id} already saved by another task, skipping"
                 )
 
         if self.neo4j_driver:
-            asyncio.create_task(self._enrich_kg(movie_details))
+            asyncio.create_task(self._enrich_kg(details))
 
-        return movie_details
+        return details
 
     async def _enrich_kg(self, movie_details: MovieDetails) -> None:
-        """Fire-and-forget KG enrichment. Never blocks the feed."""
-        try:
-            from movie_recommender.services.knowledge_graph.writer import (
-                upsert_movie_to_kg,
-            )
+        """Fire-and-forget KG enrichment. Never blocks the feed.
 
-            await upsert_movie_to_kg(self.neo4j_driver, movie_details)
-        except Exception:
-            logger.warning(
-                f"KG enrichment failed for {movie_details.title}, continuing",
-                exc_info=True,
-            )
+        Semaphore (max 3 concurrent) prevents Neo4j deadlocks that occur when
+        many movies concurrently MERGE the same shared nodes (actors, genres).
+        """
+        async with self._get_kg_semaphore():
+            try:
+                from movie_recommender.services.knowledge_graph.writer import (
+                    upsert_movie_to_kg,
+                )
+
+                await upsert_movie_to_kg(self.neo4j_driver, movie_details)
+            except Exception:
+                logger.warning(
+                    "KG enrichment failed for %s, continuing", movie_details.title
+                )

@@ -19,7 +19,7 @@ def iterative_core_filter(
 
 
 def run(config: Config) -> None:
-    input_path = config.data_dirs.processed_dir / "ratings_clean.parquet"
+    input_path = config.data_dirs.processed_dir / "ratings_unified.parquet"
     output_path = config.data_dirs.processed_dir / "ratings_filtered.parquet"
 
     df = pd.read_parquet(input_path)

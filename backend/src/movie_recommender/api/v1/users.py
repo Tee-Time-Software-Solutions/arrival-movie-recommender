@@ -171,4 +171,5 @@ async def register_new_user(
         email=user.email,
         created_at=user.created_at,
         updated_at=user.updated_at,
+        onboarding_completed=user.onboarding_completed,
     )

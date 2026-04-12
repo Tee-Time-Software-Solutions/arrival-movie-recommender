@@ -20,7 +20,7 @@ import pytest
 
 from movie_recommender.schemas.interactions import SwipeAction
 from movie_recommender.services.recommender.main import Recommender
-from movie_recommender.services.recommender.pipeline.online.artifact_loader import (
+from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,
 )
 

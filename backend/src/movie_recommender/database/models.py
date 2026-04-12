@@ -33,6 +33,12 @@ users = Table(
     Column("email", String(256), nullable=False),
     Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
     Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    Column(
+        "onboarding_completed",
+        Boolean,
+        nullable=False,
+        server_default=text("FALSE"),
+    ),
 )
 
 preferences = Table(
@@ -166,6 +172,7 @@ class UserRow(TypedDict):
     email: str
     created_at: datetime
     updated_at: datetime
+    onboarding_completed: bool
 
 
 class MovieRow(TypedDict):

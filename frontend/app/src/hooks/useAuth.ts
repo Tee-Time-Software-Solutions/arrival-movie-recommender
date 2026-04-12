@@ -11,8 +11,17 @@ import { useAuthStore } from "@/stores/authStore";
 import { registerUser } from "@/services/api/user";
 
 export function useAuth() {
-  const { user, loading, setUser, setLoading, setToken, setFirebaseUid, clear } =
-    useAuthStore();
+  const {
+    user,
+    loading,
+    needsOnboarding,
+    setUser,
+    setLoading,
+    setToken,
+    setFirebaseUid,
+    setNeedsOnboarding,
+    clear,
+  } = useAuthStore();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -55,34 +64,40 @@ export function useAuth() {
     clear();
   };
 
+  async function tryRegisterUser(
+    firebaseUid: string,
+    email: string,
+    profileImageUrl: string,
+  ) {
+    try {
+      const response = await registerUser({
+        firebase_uid: firebaseUid,
+        email,
+        profile_image_url: profileImageUrl,
+      });
+      // New user — check if onboarding is needed
+      if (!response.onboarding_completed) {
+        setNeedsOnboarding(true);
+      }
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response
+        ?.status;
+      if (status === 409) {
+        // User already registered — safe to ignore
+        return;
+      }
+      console.error("Failed to register user in backend:", err);
+      throw err;
+    }
+  }
+
   return {
     user,
     loading,
+    needsOnboarding,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
     signOut,
   };
-}
-
-async function tryRegisterUser(
-  firebaseUid: string,
-  email: string,
-  profileImageUrl: string,
-) {
-  try {
-    await registerUser({
-      firebase_uid: firebaseUid,
-      email,
-      profile_image_url: profileImageUrl,
-    });
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status;
-    if (status === 409) {
-      // User already registered — safe to ignore
-      return;
-    }
-    console.error("Failed to register user in backend:", err);
-    throw err;
-  }
 }

@@ -6,7 +6,7 @@ import { ArrowRight, ArrowLeft, ArrowUp, ArrowDown } from "lucide-react";
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuthStore();
+  const { user, loading, needsOnboarding } = useAuthStore();
   const { signInWithGoogle } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
@@ -23,11 +23,13 @@ export function LandingPage() {
     }
   };
 
+  // Navigate once auth + registration are fully resolved
   useEffect(() => {
-    if (!loading && user) {
-      navigate("/", { replace: true });
+    if (!loading && user && !signingIn) {
+      const { needsOnboarding: needs } = useAuthStore.getState();
+      navigate(needs ? "/onboarding" : "/", { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, signingIn, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">

@@ -23,6 +23,7 @@ from movie_recommender.services.recommender.pipeline.online.serving.ranker impor
     rank_movie_ids,
 )
 from movie_recommender.services.recommender.pipeline.online.serving.user_state import (
+    base_user_vector,
     cold_start_vector,
 )
 
@@ -51,7 +52,7 @@ class Recommender:
             if raw:
                 return np.frombuffer(raw, dtype=np.float32).copy()
 
-        # 2. Postgres persistent store
+        # 2. Postgres persistent store (updated vectors from online learning)
         async with self._db_session_factory() as db:
             vector = await get_user_vector(db, user_id)
         if vector is not None:
@@ -61,8 +62,9 @@ class Recommender:
                 )
             return vector
 
-        # 3. Cold start
-        return cold_start_vector(self.model_artifacts)
+        # 3. ALS-trained embedding for users who were in the training set
+        # 4. Cold start (mean of all users) for genuinely new users
+        return base_user_vector(self.model_artifacts, user_id)
 
     async def _persist_vector_to_db(self, user_id: int, vector: np.ndarray) -> None:
         try:

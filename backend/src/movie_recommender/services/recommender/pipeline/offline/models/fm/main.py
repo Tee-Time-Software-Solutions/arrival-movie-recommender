@@ -5,6 +5,8 @@ import time
 
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_movies as preprocess_movies
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_ratings as preprocess_ratings
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.fetch_app_swipes as fetch_app_swipes
+import movie_recommender.services.recommender.pipeline.offline.models.base.steps.merge_interactions as merge_interactions
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.filter as filter_step
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.prune_movies as prune_movies
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.split as split_step
@@ -40,22 +42,28 @@ class FMPipeline(RecommenderPipeline):
         print("\nStep 2: Preprocessing ratings...")
         preprocess_ratings.run(config)
 
-        print("\nStep 3: Filtering sparse users/movies...")
+        print("\nStep 3: Fetching app swipes from Postgres → raw parquet...")
+        fetch_app_swipes.run(config)
+
+        print("\nStep 4: Merging MovieLens ratings with app swipes...")
+        merge_interactions.run(config)
+
+        print("\nStep 5: Filtering sparse users/movies...")
         filter_step.run(config)
 
-        print("\nStep 4: Pruning movie metadata to interaction set...")
+        print("\nStep 6: Pruning movie metadata to interaction set...")
         prune_movies.run(config)
 
-        print("\nStep 5: Chronological split...")
+        print("\nStep 7: Chronological split...")
         split_step.run(config)
 
-        print("\nStep 6: Building LightFM data artifacts...")
+        print("\nStep 8: Building LightFM data artifacts...")
         fm_data.run(config)
 
-        print("\nStep 7: Training LightFM (BPR)...")
+        print("\nStep 9: Training LightFM (BPR)...")
         trainer.run(config)
 
-        print("\nStep 8: Evaluating LightFM...")
+        print("\nStep 10: Evaluating LightFM...")
         evaluator.run(config)
 
         elapsed = time.time() - start

@@ -11,6 +11,7 @@ class AppLogicSettings(BaseModel):
     queue_min_capacity: int
     learning_rate: float = 0.05
     norm_cap: float = 10.0
+    over_fetch_factor: int = 2
 
 
 class TMDBSettings(BaseModel):
