@@ -1,6 +1,7 @@
 from .health import router as health_router
 from .interactions import router as interactions_router
 from .movies import router as movies_router
+from .onboarding import router as onboarding_router
 from .people import router as people_router
 from .users import router as users_router
 from .watchlist import router as watchlist_router
@@ -9,6 +10,7 @@ routers = [
     health_router,
     interactions_router,
     movies_router,
+    onboarding_router,
     people_router,
     users_router,
     watchlist_router,

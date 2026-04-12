@@ -43,6 +43,7 @@ export interface UserCreatedResponse {
   email: string;
   created_at: string;
   updated_at: string;
+  onboarding_completed: boolean;
 }
 
 export interface LinkedMovie {

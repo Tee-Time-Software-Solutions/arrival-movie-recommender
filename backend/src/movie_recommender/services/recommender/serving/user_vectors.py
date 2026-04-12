@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -24,6 +24,22 @@ def base_user_vector(artifacts: RecommenderArtifacts, user_id: str) -> np.ndarra
         user_index = artifacts.user_id_to_index[parsed_user_id]
         return artifacts.user_embeddings[user_index].astype(np.float32, copy=False)
     return cold_start_vector(artifacts)
+
+
+def warm_start_vector(
+    artifacts: RecommenderArtifacts, movie_ids: List[int]
+) -> np.ndarray:
+    """Compute a user vector from a set of liked movie IDs (onboarding picks)."""
+    indices = [
+        artifacts.movie_id_to_index[mid]
+        for mid in movie_ids
+        if mid in artifacts.movie_id_to_index
+    ]
+    if not indices:
+        return cold_start_vector(artifacts)
+    return (
+        artifacts.movie_embeddings[indices].mean(axis=0).astype(np.float32, copy=False)
+    )
 
 
 def current_user_vector(
