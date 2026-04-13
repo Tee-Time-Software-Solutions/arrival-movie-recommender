@@ -37,7 +37,11 @@ From the repo root with the backend venv active:
 
 ```bash
 cd backend
+# ALS (current online-serving model)
 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
+
+# SVM baseline (offline-only)
+uv run python -m movie_recommender.services.recommender.pipeline.offline.models.svm.main
 ```
 
 This runs the 10-step pipeline:
@@ -55,6 +59,14 @@ This runs the 10-step pipeline:
 | 9 | Train ALS | `model_assets/user_embeddings.npy`, `movie_embeddings.npy` |
 | 10 | Evaluate | `model_assets/als_metrics.json` |
 
+SVM uses the same first 7 shared steps and then writes:
+
+| Step | What it does | Output |
+|------|-------------|--------|
+| 8 | Build SVM sparse train artifacts | `model_assets/svm_train_features.npz`, `svm_train_labels.npy`, `svm_feature_mappings.json` |
+| 9 | Train `LinearSVC` | `model_assets/svm_linear_model.joblib`, `svm_model_info.json` |
+| 10 | Evaluate ranking metrics | `model_assets/svm_metrics.json` |
+
 All artifacts land under:
 ```
 backend/src/movie_recommender/services/recommender/pipeline/artifacts/
@@ -70,6 +82,13 @@ backend/src/movie_recommender/services/recommender/pipeline/artifacts/
 ```bash
 SKIP_DB_SWIPE_EXPORT=1 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 ```
+
+SVM can be run with the same flag:
+```bash
+SKIP_DB_SWIPE_EXPORT=1 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.svm.main
+```
+
+Note: online serving still consumes ALS artifacts (`movie_embeddings.npy`, `user_embeddings.npy`, `mappings.json`) unless the online loader is extended.
 
 Expected runtime on M1 (small dataset): ~2–5 min.
 
@@ -97,6 +116,17 @@ models:
     regularization: 0.1
     iterations: 15
     alpha: 15        # C(u,i) = 1 + alpha * |preference|
+  fm:
+    no_components: 32
+    epochs: 15
+    num_threads: 4
+  svm:
+    c: 1.0
+    max_iter: 2000
+    negative_sampling_ratio: 3.0
+    random_state: 42
+    use_metadata_features: true
+    release_year_bucket_size: 10
 ```
 
 ---
