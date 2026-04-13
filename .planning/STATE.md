@@ -3,8 +3,8 @@
 ## Current Position
 - Phase 2 in progress: Additive CI Expansion
 - Branch: ci
-- **Completed plans:** 02-05 (backend coverage report workflow), 02-03 (backend integration CI workflow - commit `18aa637`, new `.github/workflows/ci-backend-integration.yml` runs against Postgres 16 + Redis 7.2 service containers), 02-01 (additive backend unit tests — 44 new tests across feed_manager, swipe_worker, api/health, api/movies, api/watchlist; commits `c204004` + `312d10d`; backend unit suite now 227 passing)
-- **Next Action:** Execute remaining Phase 2 plan 02-02 (or confirm it is already landed — see recent commits `ea90edd`/`dc51f0d`)
+- **Completed plans:** 02-05 (backend coverage report workflow), 02-03 (backend integration CI workflow - commit `18aa637`, new `.github/workflows/ci-backend-integration.yml` runs against Postgres 16 + Redis 7.2 service containers), 02-01 (additive backend unit tests — 44 new tests across feed_manager, swipe_worker, api/health, api/movies, api/watchlist; commits `c204004` + `312d10d`; backend unit suite now 227 passing), 02-02 (backend integration test expansion — new `conftest_integration.py` helper + `test_api_smoke.py` 3 tests + `test_feed_manager_redis.py` 5 tests; 5 FeedManager tests verified passing against real Redis locally, API smoke tests skip cleanly when Postgres unavailable; commits `ea90edd` + `dc51f0d`; zero edits to existing files)
+- **Next Action:** Phase 2 required plans 02-01, 02-02, 02-03, 02-05 all complete. 02-04 (frontend tests) remains deferred. Phase 2 can be marked complete pending any CI workflow smoke runs.
 
 ## Accumulated Context
 
