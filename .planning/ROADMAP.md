@@ -7,17 +7,17 @@
 - API endpoint testing with FastAPI TestClient
 - Test consolidation and cleanup
 
-### Phase 2: Additive CI Expansion
+### Phase 2: Additive CI Expansion ✓ (backend-priority complete 2026-04-13)
 
 **Goal:** Additively expand CI coverage — backend-first, frontend deferred.
 **Depends on:** Phase 1
-**Plans:** 5 plans (4 backend-priority + 1 deferred frontend)
+**Plans:** 5 plans (4 backend-priority ✓ + 1 deferred frontend)
 
 Plans:
-- [ ] 02-01 — Backend unit test expansion (Wave 1, priority)
-- [ ] 02-02 — Backend integration tests (Wave 1, priority)
-- [ ] 02-03 — Integration-test CI workflow (Wave 1, priority)
-- [ ] 02-05 — Backend coverage CI workflow (Wave 1, priority)
+- [x] 02-01 — Backend unit test expansion (Wave 1, priority)
+- [x] 02-02 — Backend integration tests (Wave 1, priority)
+- [x] 02-03 — Integration-test CI workflow (Wave 1, priority)
+- [x] 02-05 — Backend coverage CI workflow (Wave 1, priority)
 - [ ] 02-04 — Frontend test bootstrap + ci-frontend.yml **(DEFERRED — optional, only if time permits after 01/02/03/05)**
 
 **Priority note:** Frontend tests are deprioritized. Phase 2 is considered complete once 02-01, 02-02, 02-03, and 02-05 are done. 02-04 is a stretch/bonus plan.
