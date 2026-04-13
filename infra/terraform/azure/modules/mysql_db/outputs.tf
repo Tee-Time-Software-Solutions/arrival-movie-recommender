@@ -1,6 +1,6 @@
 output "database_fqdn" {
-  description = "Fully qualified domain name of the MySQL server"
-  value       = azurerm_mysql_flexible_server.database.fqdn
+  description = "Fully qualified domain name of the PostgreSQL server"
+  value       = azurerm_postgresql_flexible_server.database.fqdn
 }
 
 output "key_vault_id" {

@@ -103,8 +103,9 @@ class AppSettings:
     def _load_database_settings(self) -> DatabaseSettings:
         """Load database settings.
 
-        In production: user + password come from AWS Secrets Manager
-        (key name is injected into env by the sync script as SECRETS_MANAGER_DB_CREDENTIALS_KEY).
+        In production: user + password come from the cloud secrets store.
+          AWS  → Secrets Manager (boto3, IAM role on EC2)
+          Azure → Key Vault (DefaultAzureCredential, managed identity on VM)
         In dev: user + password are read directly from the env file.
         """
         check_required(
@@ -117,9 +118,24 @@ class AppSettings:
                 raise ValueError(
                     "SECRETS_MANAGER_DB_CREDENTIALS_KEY is required in production"
                 )
-            from movie_recommender.services.infra.aws import fetch_db_credentials
+            cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
+            if cloud_provider == "aws":
+                from movie_recommender.services.infra.aws import fetch_db_credentials
 
-            creds = fetch_db_credentials(secret_key)
+                creds = fetch_db_credentials(secret_key)
+            elif cloud_provider == "azure":
+                key_vault_name = os.getenv("AZURE_KEY_VAULT_NAME")
+                if not key_vault_name:
+                    raise ValueError(
+                        "AZURE_KEY_VAULT_NAME is required in production on Azure"
+                    )
+                from movie_recommender.services.infra.azure import fetch_db_credentials
+
+                creds = fetch_db_credentials(secret_key, key_vault_name)
+            else:
+                raise ValueError(
+                    f"Unsupported CLOUD_PROVIDER '{cloud_provider}'. Use 'aws' or 'azure'"
+                )
             user = creds["username"]
             password = creds["password"]
         else:

@@ -15,8 +15,8 @@ output "azure_storage_container_name" {
 # ========================================
 # MYSQL DATABASE
 # ========================================
-output "mysql_host" {
-  description = "Fully qualified domain name of the MySQL server"
+output "db_host" {
+  description = "Fully qualified domain name of the PostgreSQL server"
   value       = module.mysql_db.database_fqdn
 }
 

@@ -21,11 +21,11 @@ resource "azurerm_subnet" "private_subnet" {
   virtual_network_name = azurerm_virtual_network.main_vnet.name
   address_prefixes     = ["10.0.2.0/24"]
 
-  # Delegate this subnet for MySQL Flexible Server
+  # Delegate this subnet for PostgreSQL Flexible Server
   delegation {
-    name = "mysql-delegation"
+    name = "postgres-delegation"
     service_delegation {
-      name = "Microsoft.DBforMySQL/flexibleServers"
+      name = "Microsoft.DBforPostgreSQL/flexibleServers"
       actions = [
         "Microsoft.Network/virtualNetworks/subnets/join/action",
       ]
@@ -125,16 +125,16 @@ resource "azurerm_network_security_group" "database_nsg" {
   location            = var.location
   resource_group_name = var.resource_group_name
 
-  # Allow MySQL (3306) only from web app ASG
+  # Allow PostgreSQL (5432) only from web app ASG
   # This is the Azure equivalent of AWS security_groups = [aws_security_group.web_app_sg.id]
   security_rule {
-    name                                  = "AllowMySQL-From-WebApp"
+    name                                  = "AllowPostgreSQL-From-WebApp"
     priority                              = 100
     direction                             = "Inbound"
     access                                = "Allow"
     protocol                              = "Tcp"
     source_port_range                     = "*"
-    destination_port_range                = "3306"
+    destination_port_range                = "5432"
     source_application_security_group_ids = [azurerm_application_security_group.web_app_asg.id]
     destination_address_prefix            = "*"
   }

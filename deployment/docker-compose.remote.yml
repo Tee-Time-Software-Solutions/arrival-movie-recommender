@@ -7,6 +7,7 @@ services:
       - ${BACKEND_ENV_FILE}
     environment:
       ENVIRONMENT: production
+      CLOUD_PROVIDER: ${CLOUD_PROVIDER:-aws}
     depends_on:
       db-migration:
         condition: service_completed_successfully

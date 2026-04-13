@@ -162,21 +162,21 @@ class ConnectionEstabisher():
       def _handle_db_connection(self):
             if self.environment == "production":
                   if self.cloud_provider == "AWS":
-                        MYSQL_HOST = self.terraform_outputs.RDS_MYSQL_HOST
+                        MYSQL_HOST = self.terraform_outputs.DB_HOST
                   elif self.cloud_provider == "AZURE":
                         MYSQL_HOST = self.terraform_outputs.MYSQL_HOST
 
                   self._handle_port_connection(
-                        local_port_to_send_from=3307,
-                        local_port_to_receive_from=3306,
+                        local_port_to_send_from=5433,
+                        local_port_to_receive_from=5432,
                         target_host=MYSQL_HOST,
                         connection_name="database"
                   )
             elif self.environment == "staging":
                   RDS_MYSQL_HOST = self.terraform_outputs.RDS_MYSQL_HOST
                   self._handle_port_connection(
-                        local_port_to_send_from=3307,
-                        local_port_to_receive_from=3306,
+                        local_port_to_send_from=5433,
+                        local_port_to_receive_from=5432,
                         target_host=RDS_MYSQL_HOST,
                         connection_name="database"
                   )

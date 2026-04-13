@@ -102,8 +102,8 @@ resource "aws_security_group" "database_sg" {
 
   name = "Database Security Group"
   ingress {
-    from_port       = 3306
-    to_port         = 3306
+    from_port       = 5432
+    to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.web_app_sg.id]
   }
