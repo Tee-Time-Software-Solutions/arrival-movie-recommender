@@ -52,8 +52,19 @@ def _build_movie_metadata_features(
     if not use_metadata_features:
         return {}, {}, {}
 
-    genre_to_index: dict[str, int] = {}
-    year_bucket_to_index: dict[str, int] = {}
+    all_genres: set[str] = set()
+    all_year_buckets: set[str] = set()
+    for _, row in movies_df.iterrows():
+        all_genres.update(_extract_genres(row.get("genres")))
+        bucket = _year_bucket(row.get("release_year"), year_bucket_size)
+        if bucket is not None:
+            all_year_buckets.add(bucket)
+
+    genre_to_index = {genre: idx for idx, genre in enumerate(sorted(all_genres))}
+    year_start = len(genre_to_index)
+    year_bucket_to_index = {
+        bucket: year_start + idx for idx, bucket in enumerate(sorted(all_year_buckets))
+    }
     movie_metadata_feature_indices: dict[int, list[int]] = {}
 
     for _, row in movies_df.iterrows():
@@ -61,16 +72,10 @@ def _build_movie_metadata_features(
         local_indices: list[int] = []
 
         for genre in _extract_genres(row.get("genres")):
-            if genre not in genre_to_index:
-                genre_to_index[genre] = len(genre_to_index) + len(year_bucket_to_index)
             local_indices.append(genre_to_index[genre])
 
         bucket = _year_bucket(row.get("release_year"), year_bucket_size)
-        if bucket is not None:
-            if bucket not in year_bucket_to_index:
-                year_bucket_to_index[bucket] = len(genre_to_index) + len(
-                    year_bucket_to_index
-                )
+        if bucket is not None and bucket in year_bucket_to_index:
             local_indices.append(year_bucket_to_index[bucket])
 
         movie_metadata_feature_indices[movie_id] = sorted(set(local_indices))
@@ -207,7 +212,11 @@ def run(config: Config) -> None:
             row_idx += 1
 
         available_negatives = all_movies[~np.isin(all_movies, list(user_positives))]
-        requested_negatives = int(len(user_positives) * svm_cfg.negative_sampling_ratio)
+        requested_negatives = (
+            int(np.ceil(len(user_positives) * svm_cfg.negative_sampling_ratio))
+            if svm_cfg.negative_sampling_ratio > 0
+            else 0
+        )
         negative_count = min(len(available_negatives), requested_negatives)
         if negative_count <= 0:
             continue
