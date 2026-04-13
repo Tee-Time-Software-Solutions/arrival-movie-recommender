@@ -3,8 +3,8 @@
 ## Current Position
 - Phase 2 in progress: Additive CI Expansion
 - Branch: ci
-- **Completed plans:** 02-05 (backend coverage report workflow), 02-03 (backend integration CI workflow - commit `18aa637`, new `.github/workflows/ci-backend-integration.yml` runs against Postgres 16 + Redis 7.2 service containers)
-- **Next Action:** Execute remaining Phase 2 plans (02-01, 02-02)
+- **Completed plans:** 02-05 (backend coverage report workflow), 02-03 (backend integration CI workflow - commit `18aa637`, new `.github/workflows/ci-backend-integration.yml` runs against Postgres 16 + Redis 7.2 service containers), 02-01 (additive backend unit tests — 44 new tests across feed_manager, swipe_worker, api/health, api/movies, api/watchlist; commits `c204004` + `312d10d`; backend unit suite now 227 passing)
+- **Next Action:** Execute remaining Phase 2 plan 02-02 (or confirm it is already landed — see recent commits `ea90edd`/`dc51f0d`)
 
 ## Accumulated Context
 
