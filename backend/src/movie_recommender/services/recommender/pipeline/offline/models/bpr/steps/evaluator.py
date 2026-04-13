@@ -40,7 +40,10 @@ def run(config: Config) -> None:
 
     user_factors = np.load(assets_dir / "bpr_user_factors.npy")
     item_factors = np.load(assets_dir / "bpr_item_factors.npy")
-    if user_factors.shape[0] != interactions.shape[0] or item_factors.shape[0] != interactions.shape[1]:
+    if (
+        user_factors.shape[0] != interactions.shape[0]
+        or item_factors.shape[0] != interactions.shape[1]
+    ):
         raise ValueError(
             "BPR factor shapes do not match interactions matrix. "
             f"user_factors={user_factors.shape}, item_factors={item_factors.shape}, "
