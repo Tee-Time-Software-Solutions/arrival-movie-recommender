@@ -4,6 +4,7 @@ from typing import List
 
 from movie_recommender.core.settings.schemas import (
     AppLogicSettings,
+    DiscordSettings,
     FirebaseSettings,
     Neo4jSettings,
     RedisSettings,
@@ -41,6 +42,7 @@ class AppSettings:
         self.neo4j = self._load_neo4j_settings()
         self.firebase = self._load_firebase_settings()
         self.database = self._load_database_settings()
+        self.discord = self._load_discord_settings()
         # self.storage = self._load_storage_settings() # TODO: implement storage
 
         logger.info(f"Settings initialized for environment: {self.environment}")
@@ -156,6 +158,9 @@ class AppSettings:
             raise ValueError(
                 f"Unsupported CLOUD_PROVIDER: {provider}. Use 'aws' or 'azure'"
             )
+
+    def _load_discord_settings(self) -> DiscordSettings:
+        return DiscordSettings(webhook_url=os.getenv("DISCORD_WEBHOOK"))
 
     def _load_firebase_settings(self) -> FirebaseSettings:
         check_required(

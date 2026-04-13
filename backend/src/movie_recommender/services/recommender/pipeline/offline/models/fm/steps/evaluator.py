@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import datetime
 import pickle
 from typing import Dict, Set
 
@@ -16,7 +18,7 @@ from movie_recommender.services.recommender.pipeline.offline.models.fm.steps.dat
 )
 
 
-def run(config: Config) -> None:
+def run(config: Config) -> dict:
     """Evaluate LightFM on the validation split using Recall@K, Precision@K, NDCG@K."""
     assets_dir = config.data_dirs.model_assets_dir
     k = 10
@@ -92,3 +94,30 @@ def run(config: Config) -> None:
         print(f"NDCG@{k}:      {np.mean(ndcg_scores):.4f}")
     else:
         print("No users were evaluated.")
+
+    report = {
+        "evaluated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "model": "fm",
+        "k": k,
+        "config": {
+            "min_user_ratings": config.pipeline.min_user_ratings,
+            "min_movie_ratings": config.pipeline.min_movie_ratings,
+            "train_ratio": config.pipeline.train_ratio,
+            "val_ratio": config.pipeline.val_ratio,
+        },
+        "metrics": {
+            f"recall@{k}": float(np.mean(recall_scores)) if recall_scores else 0.0,
+            f"precision@{k}": float(np.mean(precision_scores))
+            if precision_scores
+            else 0.0,
+            f"ndcg@{k}": float(np.mean(ndcg_scores)) if ndcg_scores else 0.0,
+        },
+        "num_users_evaluated": len(recall_scores),
+    }
+
+    report_path = assets_dir / "fm_metrics.json"
+    with open(report_path, "w") as f:
+        json.dump(report, f, indent=2)
+    print(f"Metrics saved to {report_path}")
+
+    return report

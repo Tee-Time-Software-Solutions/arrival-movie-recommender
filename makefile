@@ -26,10 +26,12 @@ install: ## Install projet-wide dependencies
 
 dev-start: ## Start dev (no rebuild, fast). Use dev-rebuild if deps changed
 	$(MAKE) check-enviroment-variables
+	$(MAKE) -C backend recommender-train-als
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up
 
 dev-rebuild: ## Rebuild images then start dev (use when deps change)
 	$(MAKE) check-enviroment-variables
+	$(MAKE) -C backend recommender-train-als
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build -V
 
 dev-stop: ## Stop development environment

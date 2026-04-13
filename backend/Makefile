@@ -17,7 +17,7 @@ APP_PATH = src.movie_recommender.main:app
 
 # 0) Set-up
 install: ## Install packages with uv
-	uv venv $(VENV) --python 3.11
+	uv venv $(VENV) --python 3.12
 	uv sync --group dev
 
 help:

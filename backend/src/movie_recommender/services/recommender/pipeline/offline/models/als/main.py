@@ -61,10 +61,12 @@ class ALSPipeline(RecommenderPipeline):
         train_als.run(config)
 
         print("\nStep 10: Evaluating model...")
-        metrics.run(config)
+        report = metrics.run(config)
 
         elapsed = time.time() - start
         print(f"\n===== PIPELINE COMPLETE ({elapsed / 60:.2f} min) =====")
+
+        self._notify("ALS", report, elapsed)
 
 
 if __name__ == "__main__":

@@ -64,10 +64,12 @@ class FMPipeline(RecommenderPipeline):
         trainer.run(config)
 
         print("\nStep 10: Evaluating LightFM...")
-        evaluator.run(config)
+        report = evaluator.run(config)
 
         elapsed = time.time() - start
         print(f"\n===== PIPELINE COMPLETE ({elapsed / 60:.2f} min) =====")
+
+        self._notify("LightFM (BPR)", report, elapsed)
 
 
 if __name__ == "__main__":
