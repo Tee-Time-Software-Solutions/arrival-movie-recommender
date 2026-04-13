@@ -1,30 +1,12 @@
 from __future__ import annotations
 
 import json
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, save_npz, load_npz
 
 from movie_recommender.services.recommender.utils.schema import Config
-
-
-def _extract_genres(genres_value) -> Tuple[str, ...]:
-    if genres_value is None:
-        return ()
-    if isinstance(genres_value, float) and pd.isna(genres_value):
-        return ()
-    if isinstance(genres_value, (list, tuple, np.ndarray, pd.Series)):
-        return tuple(
-            str(g).strip()
-            for g in genres_value
-            if g and not (isinstance(g, float) and pd.isna(g)) and str(g).strip()
-        )
-    if isinstance(genres_value, str):
-        return tuple(g.strip() for g in genres_value.split("|") if g.strip())
-    s = str(genres_value).strip()
-    return (s,) if s else ()
 
 
 def run(config: Config) -> None:

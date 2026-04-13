@@ -78,7 +78,8 @@ def run(config: Config) -> None:
         u = user_factors[uidx]
         scores = item_factors[candidate_indices] @ u
 
-        top_k = np.argpartition(scores, -k)[-k:]
+        actual_k = min(k, len(scores))
+        top_k = np.argpartition(scores, -actual_k)[-actual_k:]
         top_k = top_k[np.argsort(-scores[top_k])]
 
         recommended = {candidate_ids[i] for i in top_k}
@@ -88,7 +89,7 @@ def run(config: Config) -> None:
         idcg = dcg_at_k(sorted(relevance, reverse=True))
 
         recall_scores.append(len(hits) / len(true_movies))
-        precision_scores.append(len(hits) / k)
+        precision_scores.append(len(hits) / actual_k)
         ndcg_scores.append(dcg / idcg if idcg > 0 else 0.0)
 
     print(f"\n=== BPR Evaluation Results (K={k}) ===")
