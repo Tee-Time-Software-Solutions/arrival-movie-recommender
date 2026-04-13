@@ -7,24 +7,24 @@ import numpy as np
 from implicit.bpr import BayesianPersonalizedRanking
 
 from movie_recommender.services.recommender.utils.schema import Config
-from movie_recommender.services.recommender.pipeline.offline.models.fm.steps.data import (
-    load_lightfm_data,
+from movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.data import (
+    load_bpr_data,
 )
 
 
 def run(config: Config) -> None:
     """Train an implicit BPR matrix factorization model."""
     assets_dir = config.data_dirs.model_assets_dir
-    fm = config.models.fm
+    bpr = config.models.bpr
 
-    interactions, _, _ = load_lightfm_data(config)
+    interactions, _ = load_bpr_data(config)
     num_users, num_items = interactions.shape
-    print(f"FM interactions: users={num_users}, items={num_items}")
+    print(f"BPR interactions: users={num_users}, items={num_items}")
 
     model = BayesianPersonalizedRanking(
-        factors=fm.no_components,
-        iterations=fm.epochs,
-        num_threads=fm.num_threads,
+        factors=bpr.factors,
+        iterations=bpr.iterations,
+        num_threads=bpr.num_threads,
     )
 
     print("Training implicit BPR...")
@@ -32,23 +32,23 @@ def run(config: Config) -> None:
     model.fit(interactions)
 
     # Persist the fitted model for offline inspection/reuse.
-    with open(assets_dir / "fm_bpr_model.pkl", "wb") as f:
+    with open(assets_dir / "bpr_model.pkl", "wb") as f:
         pickle.dump(model, f)
 
     # Export factors explicitly for serving-time dot-product scoring.
     # Shapes:
     # - user_factors: (num_users, factors)
     # - item_factors: (num_items, factors)
-    np.save(assets_dir / "fm_user_factors.npy", model.user_factors)
-    np.save(assets_dir / "fm_item_factors.npy", model.item_factors)
+    np.save(assets_dir / "bpr_user_factors.npy", model.user_factors)
+    np.save(assets_dir / "bpr_item_factors.npy", model.item_factors)
 
-    with open(assets_dir / "fm_bpr_model_info.json", "w") as f:
+    with open(assets_dir / "bpr_model_info.json", "w") as f:
         json.dump(
             {
                 "model": "implicit.bpr.BayesianPersonalizedRanking",
-                "factors": fm.no_components,
-                "iterations": fm.epochs,
-                "num_threads": fm.num_threads,
+                "factors": bpr.factors,
+                "iterations": bpr.iterations,
+                "num_threads": bpr.num_threads,
                 "num_users": int(num_users),
                 "num_items": int(num_items),
             },

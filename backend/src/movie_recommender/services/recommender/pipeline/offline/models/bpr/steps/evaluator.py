@@ -10,8 +10,8 @@ from movie_recommender.services.recommender.utils.schema import Config
 from movie_recommender.services.recommender.pipeline.offline.models.als.steps.metrics import (
     dcg_at_k,
 )
-from movie_recommender.services.recommender.pipeline.offline.models.fm.steps.data import (
-    load_lightfm_data,
+from movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.data import (
+    load_bpr_data,
 )
 
 
@@ -30,7 +30,7 @@ def run(config: Config) -> None:
         val_df.groupby("user_id")["movie_id"].apply(set).to_dict()
     )
 
-    interactions, _, mappings = load_lightfm_data(config)
+    interactions, mappings = load_bpr_data(config)
     user_id_to_index = {
         int(k_): int(v) for k_, v in mappings["user_id_to_index"].items()
     }
@@ -38,11 +38,11 @@ def run(config: Config) -> None:
         int(k_): int(v) for k_, v in mappings["movie_id_to_index"].items()
     }
 
-    user_factors = np.load(assets_dir / "fm_user_factors.npy")
-    item_factors = np.load(assets_dir / "fm_item_factors.npy")
+    user_factors = np.load(assets_dir / "bpr_user_factors.npy")
+    item_factors = np.load(assets_dir / "bpr_item_factors.npy")
     if user_factors.shape[0] != interactions.shape[0] or item_factors.shape[0] != interactions.shape[1]:
         raise ValueError(
-            "FM factor shapes do not match interactions matrix. "
+            "BPR factor shapes do not match interactions matrix. "
             f"user_factors={user_factors.shape}, item_factors={item_factors.shape}, "
             f"interactions={interactions.shape}"
         )

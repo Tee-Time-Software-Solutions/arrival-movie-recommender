@@ -10,16 +10,16 @@ import movie_recommender.services.recommender.pipeline.offline.models.base.steps
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.filter as filter_step
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.prune_movies as prune_movies
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.split as split_step
-import movie_recommender.services.recommender.pipeline.offline.models.fm.steps.data as fm_data
-import movie_recommender.services.recommender.pipeline.offline.models.fm.steps.trainer as trainer
-import movie_recommender.services.recommender.pipeline.offline.models.fm.steps.evaluator as evaluator
+import movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.data as bpr_data
+import movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.trainer as trainer
+import movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.evaluator as evaluator
 from movie_recommender.services.recommender.pipeline.offline.models.base.base_pipeline import (
     RecommenderPipeline,
 )
 from movie_recommender.services.recommender.utils.schema import load_config
 
 
-class FMPipeline(RecommenderPipeline):
+class BPRPipeline(RecommenderPipeline):
     """
     Second offline model pipeline using implicit BPR (matrix factorization).
 
@@ -56,8 +56,8 @@ class FMPipeline(RecommenderPipeline):
         print("\nStep 7: Chronological split...")
         split_step.run(config)
 
-        print("\nStep 8: Building FM data artifacts...")
-        fm_data.run(config)
+        print("\nStep 8: Building BPR data artifacts...")
+        bpr_data.run(config)
 
         print("\nStep 9: Training implicit BPR...")
         trainer.run(config)
@@ -70,4 +70,4 @@ class FMPipeline(RecommenderPipeline):
 
 
 if __name__ == "__main__":
-    FMPipeline().run_pipeline()
+    BPRPipeline().run_pipeline()

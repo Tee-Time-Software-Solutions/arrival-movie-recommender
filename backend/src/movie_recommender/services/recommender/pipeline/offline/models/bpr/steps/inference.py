@@ -15,7 +15,7 @@ def score_user_movie(user_id: int, movie_id: int, config: Config) -> float:
     user_factors = _load_user_factors(config)
     item_factors = _load_item_factors(config)
 
-    with open(assets_dir / "fm_mappings.json") as f:
+    with open(assets_dir / "bpr_mappings.json") as f:
         mappings = json.load(f)
 
     user_id_to_index = {int(k): int(v) for k, v in mappings["user_id_to_index"].items()}
@@ -34,10 +34,10 @@ def score_user_movie(user_id: int, movie_id: int, config: Config) -> float:
 @lru_cache(maxsize=1)
 def _load_user_factors(config: Config) -> np.ndarray:
     assets_dir = config.data_dirs.model_assets_dir
-    return np.load(assets_dir / "fm_user_factors.npy")
+    return np.load(assets_dir / "bpr_user_factors.npy")
 
 
 @lru_cache(maxsize=1)
 def _load_item_factors(config: Config) -> np.ndarray:
     assets_dir = config.data_dirs.model_assets_dir
-    return np.load(assets_dir / "fm_item_factors.npy")
+    return np.load(assets_dir / "bpr_item_factors.npy")
