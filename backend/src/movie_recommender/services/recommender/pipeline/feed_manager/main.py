@@ -78,14 +78,14 @@ class FeedManager:
             movie_db_id=movie_id, movie_title=movie_title
         )
         if movie_details:
-            await self._record_genre_impression(user_id, movie_id, movie_details)
+            await self.track_served_movie_genres(user_id, movie_id, movie_details)
 
         if movie_details and movie_details.tmdb_id and self.neo4j_driver:
             movie_details = await self._attach_explanation(user_id, movie_details)
 
         return movie_details
 
-    async def _record_genre_impression(
+    async def track_served_movie_genres(
         self, user_id: int, movie_id: int, movie_details: MovieDetails
     ) -> None:
         genres = self.recommender.model_artifacts.movie_id_to_genres.get(
