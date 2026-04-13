@@ -1,5 +1,5 @@
-# NOTE: LightFM (pip install lightfm) must be installed for this pipeline to run.
-# lightfm currently fails to build on some platforms due to Cython/compiler issues.
+# NOTE: This pipeline previously used LightFM, but LightFM can fail to build on
+# some platforms due to Cython/compiler issues. We now use `implicit` BPR.
 
 import time
 
@@ -21,13 +21,12 @@ from movie_recommender.services.recommender.utils.schema import load_config
 
 class FMPipeline(RecommenderPipeline):
     """
-    Factorization Machine pipeline using LightFM (BPR loss).
+    Second offline model pipeline using implicit BPR (matrix factorization).
 
     Math:
-        ŷ(x) = w₀ + Σ wⱼxⱼ + Σᵢ Σⱼ₍ᵢ₎ ⟨vᵢ, vⱼ⟩ xᵢ xⱼ
-        Loss: BPR (Bayesian Personalised Ranking)
-
-    Requires: pip install lightfm
+        Train embeddings with BPR (Bayesian Personalized Ranking) on implicit
+        positive-only user↔item interactions. Serve by scoring dot-products
+        between user/item latent vectors.
     """
 
     def run_pipeline(self) -> None:
@@ -57,13 +56,13 @@ class FMPipeline(RecommenderPipeline):
         print("\nStep 7: Chronological split...")
         split_step.run(config)
 
-        print("\nStep 8: Building LightFM data artifacts...")
+        print("\nStep 8: Building FM data artifacts...")
         fm_data.run(config)
 
-        print("\nStep 9: Training LightFM (BPR)...")
+        print("\nStep 9: Training implicit BPR...")
         trainer.run(config)
 
-        print("\nStep 10: Evaluating LightFM...")
+        print("\nStep 10: Evaluating BPR model...")
         evaluator.run(config)
 
         elapsed = time.time() - start

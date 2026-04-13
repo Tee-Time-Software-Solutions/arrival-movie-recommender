@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pickle
 from typing import Dict, Set
 
 import numpy as np
@@ -17,7 +16,7 @@ from movie_recommender.services.recommender.pipeline.offline.models.fm.steps.dat
 
 
 def run(config: Config) -> None:
-    """Evaluate LightFM on the validation split using Recall@K, Precision@K, NDCG@K."""
+    """Evaluate BPR factors on the validation split using Recall@K, Precision@K, NDCG@K."""
     assets_dir = config.data_dirs.model_assets_dir
     k = 10
 
@@ -31,10 +30,7 @@ def run(config: Config) -> None:
         val_df.groupby("user_id")["movie_id"].apply(set).to_dict()
     )
 
-    with open(assets_dir / "fm_lightfm_model.pkl", "rb") as f:
-        model = pickle.load(f)
-
-    interactions, item_features, mappings = load_lightfm_data(config)
+    interactions, _, mappings = load_lightfm_data(config)
     user_id_to_index = {
         int(k_): int(v) for k_, v in mappings["user_id_to_index"].items()
     }
@@ -42,10 +38,19 @@ def run(config: Config) -> None:
         int(k_): int(v) for k_, v in mappings["movie_id_to_index"].items()
     }
 
+    user_factors = np.load(assets_dir / "fm_user_factors.npy")
+    item_factors = np.load(assets_dir / "fm_item_factors.npy")
+    if user_factors.shape[0] != interactions.shape[0] or item_factors.shape[0] != interactions.shape[1]:
+        raise ValueError(
+            "FM factor shapes do not match interactions matrix. "
+            f"user_factors={user_factors.shape}, item_factors={item_factors.shape}, "
+            f"interactions={interactions.shape}"
+        )
+
     all_movie_ids = sorted(train_df["movie_id"].unique())
     recall_scores, precision_scores, ndcg_scores = [], [], []
 
-    print("Evaluating LightFM on validation users...")
+    print("Evaluating BPR on validation users...")
     for user_id in tqdm(val_lookup.keys()):
         if user_id not in user_id_to_index:
             continue
@@ -66,11 +71,9 @@ def run(config: Config) -> None:
         candidate_indices = np.array(
             [idx for _, idx in candidate_pairs], dtype=np.int32
         )
-        scores = model.predict(
-            user_ids=user_id_to_index[user_id],
-            item_ids=candidate_indices,
-            item_features=item_features,
-        )
+        uidx = user_id_to_index[user_id]
+        u = user_factors[uidx]
+        scores = item_factors[candidate_indices] @ u
 
         top_k = np.argpartition(scores, -k)[-k:]
         top_k = top_k[np.argsort(-scores[top_k])]
@@ -85,7 +88,7 @@ def run(config: Config) -> None:
         precision_scores.append(len(hits) / k)
         ndcg_scores.append(dcg / idcg if idcg > 0 else 0.0)
 
-    print(f"\n=== LightFM Evaluation Results (K={k}) ===")
+    print(f"\n=== BPR Evaluation Results (K={k}) ===")
     if recall_scores:
         print(f"Recall@{k}:    {np.mean(recall_scores):.4f}")
         print(f"Precision@{k}: {np.mean(precision_scores):.4f}")
