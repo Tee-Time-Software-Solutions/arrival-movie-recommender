@@ -10,6 +10,7 @@ class AppLogicSettings(BaseModel):
     batch_size: int
     queue_min_capacity: int
     learning_rate: float = 0.05
+    adaptive_learning_strength: float = 0.2
     norm_cap: float = 10.0
     over_fetch_factor: int = 2
     exploration_weight: float = 0.01

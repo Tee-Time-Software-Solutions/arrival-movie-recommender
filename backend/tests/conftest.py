@@ -82,12 +82,15 @@ def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
     mock_redis.get = AsyncMock(return_value=None)
     mock_redis.smembers = AsyncMock(return_value=set())
     mock_redis.hgetall = AsyncMock(return_value={})
+    mock_redis.incr = AsyncMock(return_value=1)
+    mock_redis.expire = AsyncMock()
     mock_redis.set = AsyncMock()
     mock_redis.sadd = AsyncMock()
 
     rec = Recommender.__new__(Recommender)
     rec.model_artifacts = synthetic_artifacts
     rec.learning_rate = 0.05
+    rec.adaptive_learning_strength = 0.0
     rec.norm_cap = 10.0
     rec.exploration_weight = 0.0
     rec._redis = mock_redis

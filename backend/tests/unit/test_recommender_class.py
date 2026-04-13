@@ -142,3 +142,51 @@ class TestUpdateUser:
             user_id=1, movie_id=100, interaction_type=SwipeAction.LIKE, is_supercharged=False
         )
         recommender._persist_vector_to_db.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_skip_does_not_increment_feedback_count(self, recommender):
+        await recommender.set_user_feedback(
+            user_id=1,
+            movie_id=100,
+            interaction_type=SwipeAction.SKIP,
+            is_supercharged=False,
+        )
+        recommender._redis.incr.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_fresh_user_gets_larger_update_when_adaptive_learning_enabled(
+        self, recommender, synthetic_artifacts
+    ):
+        recommender.adaptive_learning_strength = 0.2
+
+        movie_idx = synthetic_artifacts.movie_id_to_index[100]
+        movie_vec = synthetic_artifacts.movie_embeddings[movie_idx]
+        cold = cold_start_vector(synthetic_artifacts)
+        recommender._redis.get.side_effect = [None, None]
+
+        await recommender.set_user_feedback(
+            user_id=1,
+            movie_id=100,
+            interaction_type=SwipeAction.LIKE,
+            is_supercharged=False,
+        )
+        fresh_bytes = recommender._redis.set.call_args[0][1]
+        fresh_vec = np.frombuffer(fresh_bytes, dtype=np.float32)
+        fresh_delta = float(movie_vec @ (fresh_vec - cold))
+
+        recommender._redis.set.reset_mock()
+        recommender._redis.incr.reset_mock()
+        recommender._redis.expire.reset_mock()
+        recommender._redis.get.side_effect = [None, b"100"]
+
+        await recommender.set_user_feedback(
+            user_id=1,
+            movie_id=100,
+            interaction_type=SwipeAction.LIKE,
+            is_supercharged=False,
+        )
+        mature_bytes = recommender._redis.set.call_args[0][1]
+        mature_vec = np.frombuffer(mature_bytes, dtype=np.float32)
+        mature_delta = float(movie_vec @ (mature_vec - cold))
+
+        assert fresh_delta > mature_delta

@@ -57,6 +57,9 @@ class AppSettings:
         batch_size = int(os.getenv("BATCH_SIZE", "15"))
         queue_min_capacity = int(os.getenv("QUEUE_MIN_CAPACITY", "5"))
         learning_rate = float(os.getenv("LEARNING_RATE", "0.05"))
+        adaptive_learning_strength = float(
+            os.getenv("ADAPTIVE_LEARNING_STRENGTH", "0.2")
+        )
         norm_cap = float(os.getenv("NORM_CAP", "10.0"))
         over_fetch_factor = int(os.getenv("OVER_FETCH_FACTOR", "2"))
         exploration_weight = float(os.getenv("EXPLORATION_WEIGHT", "0.01"))
@@ -64,6 +67,7 @@ class AppSettings:
             batch_size=batch_size,
             queue_min_capacity=queue_min_capacity,
             learning_rate=learning_rate,
+            adaptive_learning_strength=adaptive_learning_strength,
             norm_cap=norm_cap,
             over_fetch_factor=over_fetch_factor,
             exploration_weight=exploration_weight,
