@@ -3,8 +3,8 @@
 ## Current Position
 - Phase 2 in progress: Additive CI Expansion
 - Branch: ci
-- **Completed plans:** 02-05 (backend coverage report workflow)
-- **Next Action:** Execute remaining Phase 2 plans (02-01, 02-02, 02-03)
+- **Completed plans:** 02-05 (backend coverage report workflow), 02-03 (backend integration CI workflow - commit `18aa637`, new `.github/workflows/ci-backend-integration.yml` runs against Postgres 16 + Redis 7.2 service containers)
+- **Next Action:** Execute remaining Phase 2 plans (02-01, 02-02)
 
 ## Accumulated Context
 
