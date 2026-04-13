@@ -1,0 +1,117 @@
+name: CI - Backend Integration
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend-integration.yml'
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend-integration.yml'
+
+env:
+  PYTHON_VERSION: '3.11'
+  WORKING_DIR: ./backend
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: db-dev-user
+          POSTGRES_PASSWORD: db-dev-password
+          POSTGRES_DB: dev-db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U db-dev-user -d dev-db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
+
+      redis:
+        image: redis:7.2
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 5s
+
+    env:
+      # Database connection (matches deployment/docker-compose.dev.yml defaults)
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_NAME: dev-db
+      DB_USER: db-dev-user
+      DB_PASSWORD: db-dev-password
+      DB_SYNC_DRIVER: postgresql+psycopg2
+      DB_ASYNC_DRIVER: postgresql+asyncpg
+      DATABASE_URL: postgresql+asyncpg://db-dev-user:db-dev-password@localhost:5432/dev-db
+
+      # Redis connection
+      REDIS_URL: redis://localhost:6379/0
+      REDIS_MAX_CONNECTIONS: '10'
+
+      # Environment
+      ENVIRONMENT: dev
+
+      # App logic
+      BATCH_SIZE: '15'
+      QUEUE_MIN_CAPACITY: '5'
+
+      # TMDB stubs (AppSettings requires these to construct TMDBSettings)
+      TMDB_API_KEY: ci-fake-tmdb-key
+      TMDB_IMG_URL: https://example.invalid/img
+      TMDB_BASE_URL: https://example.invalid/api
+
+      # Neo4j stubs (defaults exist but set explicitly so nothing tries real bolt://neo4j)
+      NEO4J_URI: bolt://localhost:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: ci-fake-neo4j
+      NEO4J_DATABASE: neo4j
+
+      # Firebase stubs (AppSettings check_required will fail without these)
+      FIREBASE_PROJECT_ID: ci-fake-project
+      FIREBASE_PRIVATE_KEY_ID: ci-fake-key-id
+      FIREBASE_PRIVATE_KEY: ci-fake-private-key
+      FIREBASE_CLIENT_EMAIL: ci@example.invalid
+      FIREBASE_CLIENT_ID: ci-fake-client-id
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/pyproject.toml"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Run Alembic migrations
+        run: .venv/bin/alembic upgrade head
+
+      - name: Run marked integration tests (API + Redis smoke)
+        run: .venv/bin/python -m pytest tests/integration/ -v -m integration
+
+      - name: Run legacy unmarked integration tests (ML pipeline)
+        run: .venv/bin/python -m pytest tests/integration/test_full_pipeline.py tests/integration/test_online_recommender.py -v
