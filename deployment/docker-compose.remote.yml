@@ -1,70 +1,36 @@
-# Docker Compose overrides for remote deployments (staging & production)
-# Includes: nginx reverse proxy, backend services, telemetry stack (Prometheus/Grafana)
+services:
+  backend:
+    image: javidsegura/movie_recommender:${BACKEND_IMAGE_TAG}
+    ports:
+      - "8000:8000"
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    environment:
+      ENVIRONMENT: production
+    depends_on:
+      db-migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/dependencies"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
-# services:
-#   nginx:
-#     volumes:
-#       - ./reverse-proxy-config/nginx.remote.conf:/etc/nginx/conf.d/default.conf:ro
-#       - ../frontend/app/dist:/usr/share/nginx/html:ro
-#     depends_on:
-#       redis:
-#         condition: service_started
-#       backend:
-#         condition: service_started
-#   backend:
-#       image: javidsegura/ai_ticket_platform:${BACKEND_IMAGE_TAG}
-#       ports:
-#         - "8000:8000"
-#       healthcheck:
-#         test: ["CMD", "curl", "-f", "http://${SERVER_PUBLIC_IP}:8000/api/health/dependencies"]
-#         interval: 30s
-#         timeout: 5s
-#         retries: 5
-#         start_period: 5s
-#       env_file:
-#         - ${BACKEND_ENV_FILE}
-#       environment:
-#         ENVIRONMENT: ${ENVIRONMENT}
-#       depends_on:
-#         - db-migration
-#   db-migration:
-#       image: javidsegura/ai_ticket_platform:${BACKEND_IMAGE_TAG}
+  db-migration:
+    image: javidsegura/movie_recommender:${BACKEND_IMAGE_TAG}
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    environment:
+      ENVIRONMENT: production
 
-#   worker:
-#       image: javidsegura/ai_ticket_platform:${BACKEND_IMAGE_TAG}
-#       env_file:
-#         - ${BACKEND_ENV_FILE}
-#       environment:
-#         ENVIRONMENT: ${ENVIRONMENT}
-
-#   # Telemetry section
-#   prometheus:
-#     image: prom/prometheus:latest
-#     ports:
-#       - "9090:9090"
-#     volumes:
-#       - ./telemetry/prometheus.yml:/etc/prometheus/prometheus.yml
-#       - prometheus_data:/prometheus
-#     command:
-#       - '--config.file=/etc/prometheus/prometheus.yml'
-#       - '--storage.tsdb.path=/prometheus'
-
-#   grafana:
-#     image: grafana/grafana
-#     ports:
-#       - "3000:3000"
-#     environment:
-#       - GF_SECURITY_ADMIN_PASSWORD=admin
-#       - GF_SECURITY_ADMIN_USER=admin
-#     volumes:
-#       - grafana_data:/var/lib/grafana
-#       - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-#       - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-#       - ./telemetry/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
-#     depends_on:
-#       prometheus:
-#         condition: service_started
-
-# volumes:
-#   prometheus_data:
-#   grafana_data:
+  nginx:
+    volumes:
+      - ./reverse-proxy-config/nginx.remote.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../frontend/app/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend

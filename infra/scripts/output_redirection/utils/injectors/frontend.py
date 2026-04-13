@@ -25,7 +25,7 @@ class FrontendInjector:
             elif self.environment == "staging":
                   return {"VITE_BASE_URL": "http://localhost:8080/api/"}
             elif self.environment == "production":
-                  return {"VITE_BASE_URL": f"http://{server_ip}/api/"}
+                  return {"VITE_BASE_URL": f"http://{server_ip}/api/v1"}
             else:
                   raise ValueError(f"Environment can only be dev, production or staging. Currently you have: '{self.environment}'")
 

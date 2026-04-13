@@ -101,22 +101,35 @@ class AppSettings:
         )
 
     def _load_database_settings(self) -> DatabaseSettings:
-        """Load database settings."""
+        """Load database settings.
+
+        In production: user + password come from AWS Secrets Manager
+        (key name is injected into env by the sync script as SECRETS_MANAGER_DB_CREDENTIALS_KEY).
+        In dev: user + password are read directly from the env file.
+        """
         check_required(
-            [
-                "DB_HOST",
-                "DB_PORT",
-                "DB_NAME",
-                "DB_USER",
-                "DB_PASSWORD",
-                "DB_SYNC_DRIVER",
-                "DB_ASYNC_DRIVER",
-            ]
+            ["DB_HOST", "DB_PORT", "DB_NAME", "DB_SYNC_DRIVER", "DB_ASYNC_DRIVER"]
         )
 
+        if self.environment == "production":
+            secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
+            if not secret_key:
+                raise ValueError(
+                    "SECRETS_MANAGER_DB_CREDENTIALS_KEY is required in production"
+                )
+            from movie_recommender.services.infra.aws import fetch_db_credentials
+
+            creds = fetch_db_credentials(secret_key)
+            user = creds["username"]
+            password = creds["password"]
+        else:
+            check_required(["DB_USER", "DB_PASSWORD"])
+            user = os.getenv("DB_USER")
+            password = os.getenv("DB_PASSWORD")
+
         return DatabaseSettings(
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
+            user=user,
+            password=password,
             host=os.getenv("DB_HOST"),
             port=os.getenv("DB_PORT"),
             database=os.getenv("DB_NAME"),

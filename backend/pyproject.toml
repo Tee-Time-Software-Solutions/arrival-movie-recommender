@@ -11,7 +11,7 @@ allow-direct-references = true
 [project]
 name = "movie-recommender"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
       "fastapi",
       "uvicorn",
@@ -38,6 +38,9 @@ dependencies = [
       "httpx>=0.27.0", # async HTTP client (TMDBFetcher)
       "apscheduler>=3.11.2",
       "matplotlib",
+      "prometheus-fastapi-instrumentator>=7.0.0",
+      "boto3>=1.34.0",
+      "mlflow>=3.11.1",
 ]
 
 [dependency-groups]

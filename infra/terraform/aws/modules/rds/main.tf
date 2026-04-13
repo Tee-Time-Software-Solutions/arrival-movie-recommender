@@ -17,7 +17,7 @@ resource "random_string" "name" {
 
 resource "aws_secretsmanager_secret" "database_credentials" {
   name                    = "db-credentials-${var.environment}-${random_string.name.result}"
-  description             = "RDS credentials for url-shortener"
+  description             = "RDS credentials for movie-recommender"
   recovery_window_in_days = 7
 }
 
@@ -32,8 +32,9 @@ resource "aws_secretsmanager_secret_version" "database_credentials_var" {
 
 resource "aws_db_instance" "database" {
   identifier             = "app-db"
-  engine                 = "mysql"
-  engine_version         = "8.0"
+  engine                 = "postgres"
+  engine_version         = "16.3"
+  db_name                = "app_db"
   instance_class         = "db.t3.small"
   allocated_storage      = 10
   username               = var.db_username

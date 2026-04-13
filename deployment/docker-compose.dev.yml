@@ -84,37 +84,10 @@ services:
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost/nginx-health"]
 
-  #Telemetry section
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./telemetry/prometheus.yml:/etc/prometheus/prometheus.yml
-  #     - prometheus_data:/prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-
-  # grafana:
-  #   image: grafana/grafana
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - GF_SECURITY_ADMIN_USER=admin
-  #     - GF_UNIFIED_ALERTING_ENABLED=true
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-  #     - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-  #     - ./telemetry/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
-  #   depends_on:
-  #     prometheus:
-  #       condition: service_started
-  #   env_file:
-  #     - ${BACKEND_ENV_FILE}
+  # Expose prometheus port locally for dev debugging
+  prometheus:
+    ports:
+      - "9090:9090"
 
 volumes:
   postgres-data:
-  #prometheus_data:
-  #grafana_data:

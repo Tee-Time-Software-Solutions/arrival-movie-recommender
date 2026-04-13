@@ -21,6 +21,7 @@ from movie_recommender.services.recommender.pipeline.offline.models.als.main imp
 )
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from prometheus_fastapi_instrumentator import Instrumentator
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
@@ -63,3 +64,5 @@ app.add_middleware(
 
 for router in routers:
     app.include_router(router, prefix="/api/v1")
+
+Instrumentator().instrument(app).expose(app)

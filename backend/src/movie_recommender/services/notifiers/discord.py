@@ -7,13 +7,14 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
-_ENV_PATH = Path(__file__).parents[4] / "env_config" / "synced" / ".env.dev"
-load_dotenv(_ENV_PATH)
+if os.getenv("ENVIRONMENT") == "dev":
+    _ENV_PATH = Path(__file__).parents[4] / "env_config" / "synced" / ".env.dev"
+    load_dotenv(_ENV_PATH)
 
 
 class DiscordNotifier:
     def __init__(self):
-        self.webhook_url = os.getenv("DISCORD_WEBHOOK")
+        self.webhook_url = os.getenv("DISCORD_WEBHOOK_PIPELINE")
 
     def send_discord_notification(self, msg: str, file_path: str = None):
         if not self.webhook_url:

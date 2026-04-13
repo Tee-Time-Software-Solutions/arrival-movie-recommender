@@ -3,22 +3,21 @@ apiVersion: 1
 # 1. Define where to send the alerts
 contactPoints:
   - orgId: 1
-    name: slack-alerts
+    name: discord-alerts
     receivers:
-      - uid: slack-notifier
-        type: slack
+      - uid: discord-notifier
+        type: discord
         settings:
-          url: $SLACK_WEBHOOK_URL
-          title: "🚨 Application Alert"
+          url: $DISCORD_WEBHOOK_GRAFANA
           message: |
             **Alert:** {{ .Status }}
             **Summary:** {{ .CommonAnnotations.summary }}
             **Description:** {{ .CommonAnnotations.description }}
 
-# 2. Define the routing (Send everything to Slack)
+# 2. Define the routing (Send everything to Discord)
 policies:
   - orgId: 1
-    receiver: slack-alerts
+    receiver: discord-alerts
     group_by: ['alertname']
     group_wait: 10s
     group_interval: 30s

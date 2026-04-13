@@ -4,7 +4,7 @@ output "s3_main_bucket_name" {
   value = module.s3.s3_bucket_name
 }
 
-output "rds_mysql_host" {
+output "db_host" {
   value = module.rds.rds_address
 }
 

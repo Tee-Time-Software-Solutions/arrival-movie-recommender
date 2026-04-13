@@ -1,7 +1,7 @@
 
 resource "aws_instance" "web_app" {
   ami                    = "ami-08982f1c5bf93d976"
-  instance_type          = "t3.small"
+  instance_type          = "t3.medium"
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [var.web_app_sg_id]
   key_name               = aws_key_pair.key_pair_ssh.key_name

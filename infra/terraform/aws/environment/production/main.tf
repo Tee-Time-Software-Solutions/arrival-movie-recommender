@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  backend "s3" {
+  backend "s3" { # Update after starting remote state +9
     bucket  = "ai-ticket-platform-remote-state-bucket-zxmluk37"
     key     = "remote-state/production/terraform.tfstate"
     region  = "us-east-1"

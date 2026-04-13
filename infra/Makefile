@@ -42,13 +42,13 @@ destroy-remote-state: ## Stops remote state for terraform (S3)
 	cd $(TERRAFORM_SET_UP_PATH) && terraform destroy
 
 install: ## Initialize Terraform (Local Dev)
-	$(UV) venv $(VENV) --python 3.11
+	$(UV) venv $(VENV) --python 3.12
 	$(UV) pip install -r ./requirements.txt
 	$(MAKE) check_enviroment_variables
 	cd $(TERRAFORM_ENVIRONMENT_PATH) && terraform init
 	brew install ansible
 	$(UV) pip install ansible
-	$(PYTHON) -m ansible.galaxy collection install -r ./ansible/dependencies.yml
+	$(PYTHON) -m ansible galaxy collection install -r ./ansible/dependencies.yml
 
 install-ci-cd: ## CI/CD Installation
 	$(UV) venv $(VENV) --python 3.11

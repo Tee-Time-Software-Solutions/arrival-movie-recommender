@@ -5,7 +5,7 @@ class ProdConnectionModelAWS(BaseModel):
     EC2_APP_SERVER_SSH_USER: str
     EC2_APP_SERVER_PUBLIC_IP: str
     SSH_KEY_SECRET_NAME: str  # Fetched from AWS Secrets Manager
-    RDS_MYSQL_HOST: str
+    DB_HOST: str
 
 
 class ProdConnectionModelAzure(BaseModel):
