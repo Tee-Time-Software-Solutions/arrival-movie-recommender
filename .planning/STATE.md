@@ -1,8 +1,20 @@
 # State
 
 ## Current Position
-- Planning Phase 1: ML Pipeline Testing
-- Branch: ml-pipeline-testing
+- Phase 2 planned: Additive CI Expansion
+- Branch: ci
+- **Next Action:** Execute Phase 2 (run `/gsd:execute-phase 2`)
+
+## Accumulated Context
+
+### Roadmap Evolution
+- Phase 2 added: Additive CI Expansion — additive-only expansion of CI (new unit/integration tests, integration-test workflow, frontend test suite + workflow, coverage reporting). No edits to existing source/tests/workflows/Makefile/pre-commit.
+
+### Phase 2 Priority Decision (2026-04-13)
+- **Frontend tests are DEPRIORITIZED.** Plan 02-04 (frontend Vitest+RTL bootstrap + ci-frontend.yml) is marked `priority: deferred` and only executes after all backend-focused plans (02-01, 02-02, 02-03, 02-05) land — and only if there is remaining time/capacity.
+- Plan 02-05 was narrowed to backend coverage only; frontend coverage moved into the deferred 02-04 bundle.
+- Phase 2 is considered complete once 02-01, 02-02, 02-03, and 02-05 are done. 02-04 is optional/bonus.
+- Execution order: Wave 1 parallel = 02-01, 02-02, 02-03, 02-05 (all backend). Wave 2 = 02-04 only if pursued.
 
 ## Existing Test Coverage (122 tests passing)
 ### Unit Tests (8 files, ~48 tests):
