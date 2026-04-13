@@ -37,9 +37,19 @@ class FMConfig(BaseModel):
     num_threads: int = 4
 
 
+class SVMConfig(BaseModel):
+    c: float = 1.0
+    max_iter: int = 2000
+    negative_sampling_ratio: float = 3.0
+    random_state: int = 42
+    use_metadata_features: bool = True
+    release_year_bucket_size: int = 10
+
+
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
     fm: FMConfig = FMConfig()
+    svm: SVMConfig = SVMConfig()
 
 
 class Config(BaseModel):

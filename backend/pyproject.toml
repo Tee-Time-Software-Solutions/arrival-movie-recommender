@@ -26,6 +26,7 @@ dependencies = [
       "pandas",
       "pyarrow",
       "scipy",
+      "scikit-learn",
       "implicit",
       "cython",
       "tqdm",

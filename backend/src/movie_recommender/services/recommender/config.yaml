@@ -25,3 +25,10 @@ models:
     no_components: 32
     epochs: 15
     num_threads: 4
+  svm:
+    c: 1.0
+    max_iter: 2000
+    negative_sampling_ratio: 3.0
+    random_state: 42
+    use_metadata_features: true
+    release_year_bucket_size: 10
