@@ -9,6 +9,10 @@ from .movies import (
     movie_to_details as movie_to_details,
     save_hydrated_movie as save_hydrated_movie,
 )
+from .chatbot import (
+    get_user_taste_profile as get_user_taste_profile,
+    search_movies_by_criteria as search_movies_by_criteria,
+)
 from .users import (
     create_user as create_user,
     get_user_analytics as get_user_analytics,

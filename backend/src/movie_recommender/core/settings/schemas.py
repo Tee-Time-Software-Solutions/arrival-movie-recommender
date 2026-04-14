@@ -57,6 +57,12 @@ class Neo4jSettings(BaseModel):
     database: str = "neo4j"
 
 
+class OpenRouterSettings(BaseModel):
+    api_key: str
+    base_url: str = "https://openrouter.ai/api/v1"
+    model_name: str = "google/gemini-2.5-flash-preview"
+
+
 class FirebaseSettings(BaseModel):
     firebase_project_id: str
     firebase_private_key_id: str
