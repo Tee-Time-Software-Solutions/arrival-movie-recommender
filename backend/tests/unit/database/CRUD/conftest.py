@@ -26,7 +26,15 @@ class MockResult:
     def scalar_one(self):
         if self._scalar_value is not None:
             return self._scalar_value
-        return self._rows[0] if self._rows else None
+        if not self._rows:
+            from sqlalchemy.exc import NoResultFound
+
+            raise NoResultFound()
+        if len(self._rows) > 1:
+            from sqlalchemy.exc import MultipleResultsFound
+
+            raise MultipleResultsFound()
+        return self._rows[0]
 
     def scalar(self):
         return self._scalar_value

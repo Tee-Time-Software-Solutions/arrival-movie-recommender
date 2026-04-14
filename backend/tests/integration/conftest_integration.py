@@ -56,18 +56,23 @@ def _load_dev_env_file() -> None:
         if key and key not in os.environ:
             os.environ[key] = value
 
-    # Rewrite Docker-network hostnames to host-facing localhost. Compose maps
-    # the service ports to the same numbers on localhost, so this "just works"
-    # while `make dev-start` is running.
-    _host_overrides = {
-        "DB_HOST": "localhost",
-        "REDIS_URL": "redis://localhost:6379",
-        "NEO4J_URI": "bolt://localhost:7687",
+    # Rewrite *known* Docker-network hostnames to host-facing localhost so
+    # `make dev-start` + `pytest` on the host "just works". We deliberately
+    # only translate the compose service names used by this project — any
+    # other value (a real private-network host, a remote staging DB, etc.)
+    # is left alone.
+    _docker_host_translations = {
+        "DB_HOST": {"database": "localhost", "db": "localhost"},
+        "REDIS_URL": {
+            "redis://redis:6379": "redis://localhost:6379",
+            "redis://redis:6379/0": "redis://localhost:6379/0",
+        },
+        "NEO4J_URI": {"bolt://neo4j:7687": "bolt://localhost:7687"},
     }
-    for key, host_value in _host_overrides.items():
-        current = os.environ.get(key, "")
-        if "localhost" not in current and "127.0.0.1" not in current:
-            os.environ[key] = host_value
+    for key, translations in _docker_host_translations.items():
+        current = os.environ.get(key)
+        if current in translations:
+            os.environ[key] = translations[current]
 
 
 _load_dev_env_file()
