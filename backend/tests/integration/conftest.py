@@ -22,9 +22,9 @@ from movie_recommender.services.recommender.paths_dev import (
     DATA_SPLITS,
     PROJECT_ROOT,
 )
-from movie_recommender.services.recommender.pipeline.online.artifacts import (
+from movie_recommender.services.recommender.serving.artifact_loader import (
     RecommenderArtifacts,
-    load_model_artifacts,
+    load_recommender_artifacts,
 )
 
 # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ def pipeline_dir():
 @pytest.fixture(scope="session")
 def loaded_artifacts(pipeline_dir: Path):
     """Load artifacts from the pipeline output using the real loader."""
-    return load_model_artifacts()
+    return load_recommender_artifacts()
 
 
 @pytest.fixture

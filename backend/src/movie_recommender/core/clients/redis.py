@@ -12,7 +12,6 @@ class RedisClient:
 
     _instance = None
     _async_client = None
-    _async_binary_client = None
     _sync_client = None
 
     def __new__(cls, settings: AppSettings = None):
@@ -22,7 +21,7 @@ class RedisClient:
         return cls._instance
 
     async def get_async_client(self) -> async_redis.Redis:
-        """Get async Redis client for string/JSON operations (decode_responses=True)."""
+        """Get async Redis client (for async operations)."""
         if not self._async_client:
             self._async_client = async_redis.from_url(
                 url=self.settings.redis.url,
@@ -32,19 +31,6 @@ class RedisClient:
             )
             logger.debug(f"Created async Redis client: {id(self._async_client)}")
         return self._async_client
-
-    async def get_async_binary_client(self) -> async_redis.Redis:
-        """Get async Redis client for raw binary operations (decode_responses=False)."""
-        if not self._async_binary_client:
-            self._async_binary_client = async_redis.from_url(
-                url=self.settings.redis.url,
-                decode_responses=False,
-                max_connections=self.settings.redis.max_connections,
-            )
-            logger.debug(
-                f"Created async binary Redis client: {id(self._async_binary_client)}"
-            )
-        return self._async_binary_client
 
     def get_sync_client(self) -> sync_redis.Redis:
         """Get sync Redis client (for sync operations like RQ)."""
@@ -62,10 +48,6 @@ class RedisClient:
             await self._async_client.aclose()
             self._async_client = None
             logger.debug("Closed async Redis client")
-        if self._async_binary_client:
-            await self._async_binary_client.aclose()
-            self._async_binary_client = None
-            logger.debug("Closed async binary Redis client")
         if self._sync_client:
             self._sync_client.close()
             self._sync_client = None

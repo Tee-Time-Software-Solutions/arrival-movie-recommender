@@ -25,15 +25,15 @@ repos:
         pass_filenames: false
         always_run: false
   # Backend: Unit tests using Makefile
-  # - repo: local
-  #   hooks:
-  #     - id: backend-unit-tests
-  #       name: Backend unit tests (make backend-tests)
-  #       entry: bash -c 'make backend-tests'
-  #       language: system
-  #       files: ^backend/.*\.py$
-  #       pass_filenames: false
-  #       always_run: false
+  - repo: local
+    hooks:
+      - id: backend-unit-tests
+        name: Backend unit tests (make backend-tests)
+        entry: bash -c 'make backend-tests'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        always_run: false
 
   # Secrets: scanning
   - repo: https://github.com/gitleaks/gitleaks

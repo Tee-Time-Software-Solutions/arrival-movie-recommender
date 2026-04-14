@@ -1,9 +1,8 @@
 FROM python:3.11-slim
 
-# 1. Install system dependencies
-# libgomp1: OpenMP runtime required by the `implicit` ALS library
+# 1. Install curl (for healthcheck)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl libgomp1 && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
 # 2. Install uv using pip

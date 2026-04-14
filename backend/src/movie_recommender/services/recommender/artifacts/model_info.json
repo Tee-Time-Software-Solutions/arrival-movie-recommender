@@ -1,9 +1,0 @@
-{
-    "factors": 64,
-    "regularization": 0.1,
-    "iterations": 15,
-    "alpha": 15,
-    "num_movies": 13131,
-    "num_users": 138493,
-    "embedding_dim": 64
-}

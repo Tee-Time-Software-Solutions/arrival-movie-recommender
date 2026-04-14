@@ -48,4 +48,24 @@ class UserCreatedResponse(BaseModel):
     email: str
     created_at: datetime
     updated_at: datetime
-    onboarding_completed: bool
+
+
+class LinkedMovie(BaseModel):
+    tmdb_id: int
+    title: str
+    poster_url: Optional[str] = None
+
+
+class TopPerson(BaseModel):
+    tmdb_id: int
+    name: str
+    entity_type: str
+    weight: float
+    image_url: Optional[str] = None
+    linked_movies: List[LinkedMovie] = Field(default_factory=list)
+
+
+class TopPeopleResponse(BaseModel):
+    directors: List[TopPerson]
+    actors: List[TopPerson]
+    writers: List[TopPerson]

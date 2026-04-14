@@ -1,25 +1,11 @@
 from sqlalchemy import and_, case, insert, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from movie_recommender.database.models import SwipeRow, swipes
+from movie_recommender.database.models import swipes
 
 SUPERCHARGED_SCORE = 2
 LIKE_SCORE = 1
 DISLIKE_SCORE = -1
-
-
-async def get_all_swipes(db: AsyncSession) -> list[SwipeRow]:
-    """Return every swipe row for offline pipeline export."""
-    result = await db.execute(
-        select(
-            swipes.c.user_id,
-            swipes.c.movie_id,
-            swipes.c.action_type,
-            swipes.c.is_supercharged,
-            swipes.c.created_at,
-        )
-    )
-    return [row._asdict() for row in result]
 
 
 async def create_swipe(
@@ -41,31 +27,6 @@ async def create_swipe(
     )
     await db.commit()
     return result.first()
-
-
-async def create_swipes_bulk(
-    db: AsyncSession,
-    user_id: int,
-    movie_ids: list[int],
-    action_type: str,
-    is_supercharged: bool = False,
-) -> None:
-    """Insert multiple swipe records in a single statement. Caller must commit."""
-    if not movie_ids:
-        return
-    await db.execute(
-        insert(swipes).values(
-            [
-                {
-                    "user_id": user_id,
-                    "movie_id": mid,
-                    "action_type": action_type,
-                    "is_supercharged": is_supercharged,
-                }
-                for mid in movie_ids
-            ]
-        )
-    )
 
 
 async def get_user_liked_movies(

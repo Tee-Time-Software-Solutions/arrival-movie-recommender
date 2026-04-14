@@ -6,14 +6,11 @@ interface MovieState {
   currentIndex: number;
   loading: boolean;
   error: string | null;
-  exhausted: boolean;
 
   addToQueue: (movies: MovieDetails[]) => void;
   nextMovie: () => void;
-  resetQueue: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  setExhausted: (exhausted: boolean) => void;
   getCurrentMovie: () => MovieDetails | undefined;
 }
 
@@ -22,7 +19,6 @@ export const useMovieStore = create<MovieState>((set, get) => ({
   currentIndex: 0,
   loading: false,
   error: null,
-  exhausted: false,
 
   addToQueue: (movies) =>
     set((state) => {
@@ -34,11 +30,8 @@ export const useMovieStore = create<MovieState>((set, get) => ({
   nextMovie: () =>
     set((state) => ({ currentIndex: state.currentIndex + 1 })),
 
-  resetQueue: () => set({ queue: [], currentIndex: 0, exhausted: false }),
-
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
-  setExhausted: (exhausted) => set({ exhausted }),
   getCurrentMovie: () => {
     const { queue, currentIndex } = get();
     return queue[currentIndex];

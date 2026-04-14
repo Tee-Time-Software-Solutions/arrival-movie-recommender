@@ -1,22 +1,15 @@
 import pandas as pd
 import pytest
+from unittest.mock import patch
 
-from movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_movies import (
+from movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies import (
     extract_year,
     clean_title,
     split_genres,
-    run,
+    preprocess_movies,
 )
-from movie_recommender.services.recommender.utils.schema import Config, DataConfig
 
-
-def _make_config(tmp_path):
-    return Config(data_dirs=DataConfig(
-        source_dir=tmp_path,
-        processed_dir=tmp_path,
-        splits_dir=tmp_path,
-        model_assets_dir=tmp_path,
-    ))
+_MODULE = "movie_recommender.services.recommender.data_processing.preprocessing.preprocess_movies"
 
 
 class TestExtractYear:
@@ -27,6 +20,7 @@ class TestExtractYear:
         assert extract_year("Some Movie Without Year") is None
 
     def test_multiple_parenthesized_groups_takes_trailing(self):
+        # regex anchors to end with $, so only trailing (YYYY) matches
         assert extract_year("Movie (Special) (2001)") == 2001
 
     def test_year_not_at_end_returns_none(self):
@@ -66,12 +60,19 @@ class TestSplitGenres:
 
 
 class TestPreprocessMoviesOrchestration:
+    """Integration-style tests for the preprocess_movies() orchestration wrapper."""
+
     def _run(self, tmp_path, csv_content):
         raw_path = tmp_path / "movies.csv"
         raw_path.write_text(csv_content)
-        config = _make_config(tmp_path)
-        run(config)
-        return tmp_path / "movies_clean.parquet"
+        out_path = tmp_path / "movies_clean.parquet"
+
+        with (
+            patch(f"{_MODULE}.RAW_PATH", raw_path),
+            patch(f"{_MODULE}.PROCESSED_PATH", out_path),
+        ):
+            preprocess_movies()
+        return out_path
 
     def test_output_created(self, tmp_path):
         csv = "movieId,title,genres\n1,Toy Story (1995),Animation|Comedy\n"
@@ -91,6 +92,4 @@ class TestPreprocessMoviesOrchestration:
         row = df.iloc[0]
         assert row["release_year"] == 1995
         assert row["title"] == "Toy Story"
-        # Genres stored as pipe-separated string
-        assert "Animation" in row["genres"]
-        assert "Comedy" in row["genres"]
+        assert list(row["genres"]) == ["Animation", "Comedy"]

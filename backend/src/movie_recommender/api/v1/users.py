@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from neo4j import AsyncDriver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from movie_recommender.database.CRUD.users import (
@@ -17,6 +18,8 @@ from movie_recommender.database.CRUD.interactions import (
 from movie_recommender.database.CRUD.movies import movies_to_details_bulk
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.firebase import verify_user
+from movie_recommender.dependencies.neo4j import get_neo4j_driver
+from movie_recommender.dependencies.redis import get_async_redis
 from movie_recommender.schemas.requests.movies import PaginatedMovieDetails
 from movie_recommender.schemas.requests.users import (
     UserAnalytics,
@@ -25,7 +28,9 @@ from movie_recommender.schemas.requests.users import (
     UserPreferences,
     UserProfileSummary,
     UserCreate,
+    TopPeopleResponse,
 )
+from movie_recommender.services.knowledge_graph.beacon import get_top_people
 
 router = APIRouter(prefix="/users")
 
@@ -129,6 +134,24 @@ async def update_preferences(
     return updated_preferences
 
 
+@router.get(path="/{user_id}/top-people")
+async def get_user_top_people(
+    user_id: str,
+    limit: int = 5,
+    db: AsyncSession = Depends(get_db),
+    redis_client=Depends(get_async_redis),
+    neo4j_driver: AsyncDriver = Depends(get_neo4j_driver),
+    auth_user=Depends(verify_user(user_private_route=True)),
+) -> TopPeopleResponse:
+    """Return the user's most liked directors, actors, and writers from the knowledge graph."""
+    user = await get_user_by_firebase_uid(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    result = await get_top_people(redis_client, neo4j_driver, db, user.id, limit)
+    return TopPeopleResponse(**result)
+
+
 @router.post(path="/register")
 async def register_new_user(
     user_info: UserCreate,
@@ -148,5 +171,4 @@ async def register_new_user(
         email=user.email,
         created_at=user.created_at,
         updated_at=user.updated_at,
-        onboarding_completed=user.onboarding_completed,
     )

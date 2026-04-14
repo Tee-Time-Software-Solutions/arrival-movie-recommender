@@ -1,27 +1,22 @@
 import asyncio
 from contextlib import asynccontextmanager
 import logging
-
+from movie_recommender.core.logger.main import initialize_logger
+from movie_recommender.core.settings.main import AppSettings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from movie_recommender.api.v1 import routers
+from movie_recommender.core.clients.neo4j import Neo4jClient
 from movie_recommender.core.clients.redis import RedisClient
 from movie_recommender.core.clients.firebase import initialize_firebase
-from movie_recommender.core.logger.main import initialize_logger
-from movie_recommender.core.settings.main import AppSettings
+from movie_recommender.database.engine import DatabaseEngine
 from movie_recommender.dependencies.recommender import init_recommender_redis
-from movie_recommender.services.onboarding.seed_onboarding_movies import (
-    seed_onboarding_movies,
-)
-from movie_recommender.services.recommender.pipeline.offline.models.als.main import (
-    run_pipeline_cron_job,
-)
+from movie_recommender.services.knowledge_graph.schema import ensure_kg_schema
+from movie_recommender.services.swipe_worker.main import drain_swipe_queue
 
-from apscheduler.schedulers.background import BackgroundScheduler
 
 logger = logging.getLogger(__name__)
-scheduler = BackgroundScheduler()
 
 
 @asynccontextmanager
@@ -31,19 +26,25 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up application...")
     initialize_firebase(AppSettings())
 
-    redis_binary_client = await RedisClient().get_async_binary_client()
-    await init_recommender_redis(redis_binary_client)
-
-    asyncio.create_task(seed_onboarding_movies())
-
-    # Register cron job to rerun pipeline
-    scheduler.add_job(run_pipeline_cron_job, "cron", hour=0, minute=0)
-    scheduler.start()
+    redis_client = await RedisClient().get_async_client()
+    neo4j_driver = await Neo4jClient().get_async_driver()
+    await ensure_kg_schema(neo4j_driver)
+    await init_recommender_redis(redis_client)
+    db_engine = DatabaseEngine()
+    swipe_task = asyncio.create_task(
+        drain_swipe_queue(redis_client, db_engine.session_factory)
+    )
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
+    swipe_task.cancel()
+    try:
+        await swipe_task
+    except asyncio.CancelledError:
+        pass
+    await Neo4jClient().close()
     await RedisClient().close()
 
 

@@ -1,7 +1,7 @@
 import pytest
 
 from movie_recommender.schemas.requests.interactions import SwipeAction
-from movie_recommender.services.recommender.pipeline.online.learning.feedback import (
+from movie_recommender.services.recommender.serving.feedback_mapping import (
     swipe_to_preference,
 )
 
@@ -35,6 +35,7 @@ class TestSkipPreference:
         assert swipe_to_preference(SwipeAction.SKIP, False) == 0
 
     def test_skip_supercharged_still_zero(self):
+        """Supercharged flag is irrelevant for skip — should still return 0."""
         assert swipe_to_preference(SwipeAction.SKIP, True) == 0
 
     def test_skip_return_type_is_int(self):
@@ -47,19 +48,24 @@ class TestEdgeCases:
         for action in SwipeAction:
             for supercharged in [True, False]:
                 result = swipe_to_preference(action, supercharged)
-                assert isinstance(result, int)
+                assert isinstance(result, int), (
+                    f"Failed for {action}, supercharged={supercharged}"
+                )
 
     def test_preference_symmetry(self):
+        """Like and dislike should be symmetric in magnitude."""
         like = swipe_to_preference(SwipeAction.LIKE, False)
         dislike = swipe_to_preference(SwipeAction.DISLIKE, False)
         assert abs(like) == abs(dislike)
 
     def test_supercharged_symmetry(self):
+        """Supercharged like and dislike should be symmetric in magnitude."""
         like = swipe_to_preference(SwipeAction.LIKE, True)
         dislike = swipe_to_preference(SwipeAction.DISLIKE, True)
         assert abs(like) == abs(dislike)
 
     def test_supercharged_magnitude_greater_than_regular(self):
+        """Supercharged should always have greater magnitude than regular."""
         assert abs(swipe_to_preference(SwipeAction.LIKE, True)) > abs(
             swipe_to_preference(SwipeAction.LIKE, False)
         )

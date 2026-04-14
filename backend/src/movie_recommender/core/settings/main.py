@@ -5,7 +5,7 @@ from typing import List
 from movie_recommender.core.settings.schemas import (
     AppLogicSettings,
     FirebaseSettings,
-    OpenRouterSettings,
+    Neo4jSettings,
     RedisSettings,
     DatabaseSettings,
     StorageSettings,
@@ -38,9 +38,9 @@ class AppSettings:
         self.app_logic = self._load_app_logic_settings()
         self.tmdb = self._load_tmdb_settings()
         self.redis = self._load_redis_settings()
+        self.neo4j = self._load_neo4j_settings()
         self.firebase = self._load_firebase_settings()
         self.database = self._load_database_settings()
-        self.openrouter = self._load_openrouter_settings()
         # self.storage = self._load_storage_settings() # TODO: implement storage
 
         logger.info(f"Settings initialized for environment: {self.environment}")
@@ -56,15 +56,8 @@ class AppSettings:
     def _load_app_logic_settings(self) -> AppLogicSettings:
         batch_size = int(os.getenv("BATCH_SIZE", "15"))
         queue_min_capacity = int(os.getenv("QUEUE_MIN_CAPACITY", "5"))
-        learning_rate = float(os.getenv("LEARNING_RATE", "0.05"))
-        norm_cap = float(os.getenv("NORM_CAP", "10.0"))
-        over_fetch_factor = int(os.getenv("OVER_FETCH_FACTOR", "2"))
         return AppLogicSettings(
-            batch_size=batch_size,
-            queue_min_capacity=queue_min_capacity,
-            learning_rate=learning_rate,
-            norm_cap=norm_cap,
-            over_fetch_factor=over_fetch_factor,
+            batch_size=batch_size, queue_min_capacity=queue_min_capacity
         )
 
     def _load_tmdb_settings(self) -> TMDBSettings:
@@ -82,6 +75,20 @@ class AppSettings:
 
         return RedisSettings(
             url=url, max_connections=int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
+        )
+
+    def _load_neo4j_settings(self) -> Neo4jSettings:
+        """Load Neo4j settings."""
+        uri = os.getenv("NEO4J_URI", "bolt://neo4j:7687")
+        username = os.getenv("NEO4J_USERNAME", "neo4j")
+        password = os.getenv("NEO4J_PASSWORD", "dev-password")
+        database = os.getenv("NEO4J_DATABASE", "neo4j")
+
+        return Neo4jSettings(
+            uri=uri,
+            username=username,
+            password=password,
+            database=database,
         )
 
     def _load_database_settings(self) -> DatabaseSettings:
@@ -106,18 +113,6 @@ class AppSettings:
             database=os.getenv("DB_NAME"),
             sync_driver=os.getenv("DB_SYNC_DRIVER"),
             async_driver=os.getenv("DB_ASYNC_DRIVER"),
-        )
-
-    def _load_openrouter_settings(self) -> OpenRouterSettings:
-        """Load OpenRouter LLM settings."""
-        api_key = os.getenv("OPENROUTER_API_KEY", "")
-        return OpenRouterSettings(
-            api_key=api_key,
-            base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-            model_name=os.getenv(
-                "OPENROUTER_MODEL",
-                "google/gemini-2.5-flash",
-            ),
         )
 
     def _load_storage_settings(self) -> StorageSettings:
