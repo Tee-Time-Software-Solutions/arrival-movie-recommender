@@ -53,6 +53,9 @@ tests = [
     "pytest>=8.0",
 ]
 
+[tool.ruff]
+extend-exclude = ["*.ipynb"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

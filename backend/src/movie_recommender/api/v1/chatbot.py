@@ -58,19 +58,37 @@ async def stream_chat(
 
                 if kind == "on_chat_model_stream":
                     chunk = event["data"]["chunk"]
-                    if hasattr(chunk, "content") and chunk.content:
+                    # Extract text content — may be str or list of content blocks
+                    content = ""
+                    if hasattr(chunk, "content"):
+                        if isinstance(chunk.content, str):
+                            content = chunk.content
+                        elif isinstance(chunk.content, list):
+                            for block in chunk.content:
+                                if isinstance(block, str):
+                                    content += block
+                                elif isinstance(block, dict) and block.get("type") == "text":
+                                    content += block.get("text", "")
+                    if content:
                         yield {
                             "event": "token",
-                            "data": json.dumps({"token": chunk.content}),
+                            "data": json.dumps({"token": content}),
                         }
 
                 elif kind == "on_tool_end":
                     tool_name = event["name"]
-                    tool_output = event["data"].get("output", "")
+                    raw_output = event["data"].get("output", "")
+                    # output can be a ToolMessage object or a plain string
+                    tool_output = (
+                        raw_output.content
+                        if hasattr(raw_output, "content")
+                        else str(raw_output)
+                    )
 
                     if (
                         tool_name == "search_movies"
-                        and tool_output != "No movies found matching those criteria."
+                        and tool_output
+                        != "No movies found matching those criteria."
                     ):
                         try:
                             movies_data = json.loads(tool_output)

@@ -15,7 +15,7 @@ export async function streamChat(
   callbacks: SSECallbacks,
 ): Promise<void> {
   const user = auth.currentUser;
-  const token = user ? await user.getIdToken() : "";
+  const firebaseToken = user ? await user.getIdToken() : "";
 
   const response = await fetch(
     `${import.meta.env.VITE_BASE_URL}/chatbot/stream`,
@@ -23,7 +23,7 @@ export async function streamChat(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${firebaseToken}`,
       },
       body: JSON.stringify({ message, history }),
     },
@@ -44,9 +44,11 @@ export async function streamChat(
 
     buffer += decoder.decode(value, { stream: true });
 
-    // SSE format: "event: <type>\ndata: <json>\n\n"
+    // SSE blocks are separated by double newlines (handles both \r\n\r\n and \n\n)
+    // Normalize \r\n to \n first
+    buffer = buffer.replace(/\r\n/g, "\n");
     const blocks = buffer.split("\n\n");
-    // Last element is incomplete — keep it in buffer
+    // Last element may be incomplete — keep it in buffer
     buffer = blocks.pop() || "";
 
     for (const block of blocks) {
@@ -80,10 +82,10 @@ export async function streamChat(
             break;
           case "done":
             callbacks.onDone();
-            break;
+            return;
           case "error":
             callbacks.onError(data.error || "Unknown error");
-            break;
+            return;
         }
       } catch {
         // Skip malformed SSE data
