@@ -40,10 +40,14 @@ def _make_recommender(
     db_session_factory=None,
     learning_rate: float = 0.05,
     norm_cap: float = 10.0,
+    adaptive_learning_strength: float = 0.0,
+    exploration_weight: float = 0.0,
 ) -> Recommender:
     rec = Recommender.__new__(Recommender)
     rec.learning_rate = learning_rate
     rec.norm_cap = norm_cap
+    rec.adaptive_learning_strength = adaptive_learning_strength
+    rec.exploration_weight = exploration_weight
     rec.model_artifacts = artifacts or _make_artifacts()
     rec._db_session_factory = db_session_factory or _make_session_factory(MagicMock())
     rec._redis = redis_client
@@ -166,6 +170,11 @@ class TestGetTopNRecommendations:
                 return_value=None,
             ),
             patch(
+                "movie_recommender.services.recommender.main.get_genre_impression_counts",
+                new_callable=AsyncMock,
+                return_value={},
+            ),
+            patch(
                 "movie_recommender.services.recommender.main.rank_movie_ids",
                 return_value=[10, 20, 30],
             ) as mock_rank,
@@ -200,6 +209,15 @@ class TestSetUserFeedback:
             patch(
                 "movie_recommender.services.recommender.main.apply_feedback_update",
                 return_value=updated,
+            ),
+            patch(
+                "movie_recommender.services.recommender.main.get_feedback_count",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch(
+                "movie_recommender.services.recommender.main.increment_feedback_count",
+                new_callable=AsyncMock,
             ),
             patch.object(
                 Recommender, "_persist_vector_to_db", new_callable=AsyncMock
