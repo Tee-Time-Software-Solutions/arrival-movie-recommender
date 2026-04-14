@@ -37,7 +37,11 @@ From the repo root with the backend venv active:
 
 ```bash
 cd backend
+# ALS (current online-serving model)
 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
+
+# SVM baseline (offline-only)
+uv run python -m movie_recommender.services.recommender.pipeline.offline.models.svm.main
 ```
 
 Run Item-CF (offline-only artifacts + metrics):
