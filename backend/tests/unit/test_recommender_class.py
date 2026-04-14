@@ -162,7 +162,7 @@ class TestUpdateUser:
         movie_idx = synthetic_artifacts.movie_id_to_index[100]
         movie_vec = synthetic_artifacts.movie_embeddings[movie_idx]
         cold = cold_start_vector(synthetic_artifacts)
-        recommender._redis.get.side_effect = [None, None]
+        recommender._redis.get.return_value = None
 
         await recommender.set_user_feedback(
             user_id=1,
@@ -177,7 +177,7 @@ class TestUpdateUser:
         recommender._redis.set.reset_mock()
         recommender._redis.incr.reset_mock()
         recommender._redis.expire.reset_mock()
-        recommender._redis.get.side_effect = [None, b"100"]
+        recommender._redis.get.return_value = b"100"
 
         await recommender.set_user_feedback(
             user_id=1,

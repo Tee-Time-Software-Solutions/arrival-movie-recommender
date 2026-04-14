@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -72,11 +73,18 @@ class TestFeedManagerGenreTracking:
         redis_client.lpop.return_value = "[100, \"Action Movie\"]"
         redis_client.llen.return_value = 10
 
-        feed_manager = FeedManager(
-            recommender=recommender,
-            hydrator=hydrator,
-            redis_client=redis_client,
-        )
+        app_settings = MagicMock()
+        app_settings.app_logic.queue_min_capacity = 5
+
+        with patch(
+            "movie_recommender.services.recommender.pipeline.feed_manager.main.AppSettings",
+            return_value=app_settings,
+        ):
+            feed_manager = FeedManager(
+                recommender=recommender,
+                hydrator=hydrator,
+                redis_client=redis_client,
+            )
 
         movie = await feed_manager.get_next_movie(user_id=42)
 
