@@ -19,6 +19,17 @@ class RecommenderArtifacts(BaseModel):
     all_movie_ids: np.ndarray
 
 
+def require_model_artifacts(
+    artifacts: "RecommenderArtifacts | None",
+    load_error: "str | None",
+) -> "RecommenderArtifacts":
+    """Return artifacts or raise RuntimeError if not loaded."""
+    if artifacts is None:
+        detail = f" ({load_error})" if load_error else ""
+        raise RuntimeError(f"Recommender artifacts not available{detail}")
+    return artifacts
+
+
 def load_model_artifacts() -> RecommenderArtifacts:
     config = load_config()
     assets_dir = config.data_dirs.model_assets_dir
