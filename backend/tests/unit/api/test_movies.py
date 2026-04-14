@@ -188,9 +188,7 @@ class TestFetchMoviesFeedBatch:
         _override_feed_manager(fm)
 
         try:
-            resp = client.get(
-                "/api/v1/movies/feed/batch?count=5", headers=AUTH_HEADERS
-            )
+            resp = client.get("/api/v1/movies/feed/batch?count=5", headers=AUTH_HEADERS)
         finally:
             _clear_feed_override()
 
@@ -227,9 +225,7 @@ class TestFetchMoviesFeedBatch:
         _override_feed_manager(fm)
 
         try:
-            resp = client.get(
-                "/api/v1/movies/feed/batch?count=3", headers=AUTH_HEADERS
-            )
+            resp = client.get("/api/v1/movies/feed/batch?count=3", headers=AUTH_HEADERS)
         finally:
             _clear_feed_override()
 

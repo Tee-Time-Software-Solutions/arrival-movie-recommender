@@ -49,9 +49,7 @@ class TestCheckDependencies:
         app.dependency_overrides[get_neo4j_driver] = lambda: neo4j_driver
 
         try:
-            resp = client.get(
-                "/api/v1/health/dependencies", headers=AUTH_HEADERS
-            )
+            resp = client.get("/api/v1/health/dependencies", headers=AUTH_HEADERS)
         finally:
             app.dependency_overrides.pop(get_async_redis, None)
             app.dependency_overrides.pop(get_neo4j_driver, None)
@@ -71,9 +69,7 @@ class TestCheckDependencies:
         app.dependency_overrides[get_neo4j_driver] = lambda: neo4j_driver
 
         try:
-            resp = client.get(
-                "/api/v1/health/dependencies", headers=AUTH_HEADERS
-            )
+            resp = client.get("/api/v1/health/dependencies", headers=AUTH_HEADERS)
         finally:
             app.dependency_overrides.pop(get_async_redis, None)
             app.dependency_overrides.pop(get_neo4j_driver, None)
@@ -93,9 +89,7 @@ class TestCheckDependencies:
         app.dependency_overrides[get_neo4j_driver] = lambda: neo4j_driver
 
         try:
-            resp = client.get(
-                "/api/v1/health/dependencies", headers=AUTH_HEADERS
-            )
+            resp = client.get("/api/v1/health/dependencies", headers=AUTH_HEADERS)
         finally:
             app.dependency_overrides.pop(get_async_redis, None)
             app.dependency_overrides.pop(get_neo4j_driver, None)

@@ -29,16 +29,12 @@ class TestAddMovieToWatchlist:
     @patch(
         "movie_recommender.api.v1.watchlist.add_to_watchlist", new_callable=AsyncMock
     )
-    @patch(
-        "movie_recommender.api.v1.watchlist.get_movie_by_id", new_callable=AsyncMock
-    )
+    @patch("movie_recommender.api.v1.watchlist.get_movie_by_id", new_callable=AsyncMock)
     @patch(
         "movie_recommender.api.v1.watchlist.get_user_by_firebase_uid",
         new_callable=AsyncMock,
     )
-    def test_add_success(
-        self, mock_get_user, mock_get_movie, mock_add, client
-    ):
+    def test_add_success(self, mock_get_user, mock_get_movie, mock_add, client):
         mock_get_user.return_value = FAKE_USER
         mock_get_movie.return_value = _FAKE_MOVIE
         mock_add.return_value = 1
@@ -59,9 +55,7 @@ class TestAddMovieToWatchlist:
         resp = client.post("/api/v1/watchlist/1", headers=AUTH_HEADERS)
         assert resp.status_code == 404
 
-    @patch(
-        "movie_recommender.api.v1.watchlist.get_movie_by_id", new_callable=AsyncMock
-    )
+    @patch("movie_recommender.api.v1.watchlist.get_movie_by_id", new_callable=AsyncMock)
     @patch(
         "movie_recommender.api.v1.watchlist.get_user_by_firebase_uid",
         new_callable=AsyncMock,
@@ -76,9 +70,7 @@ class TestAddMovieToWatchlist:
     @patch(
         "movie_recommender.api.v1.watchlist.add_to_watchlist", new_callable=AsyncMock
     )
-    @patch(
-        "movie_recommender.api.v1.watchlist.get_movie_by_id", new_callable=AsyncMock
-    )
+    @patch("movie_recommender.api.v1.watchlist.get_movie_by_id", new_callable=AsyncMock)
     @patch(
         "movie_recommender.api.v1.watchlist.get_user_by_firebase_uid",
         new_callable=AsyncMock,
@@ -164,9 +156,7 @@ class TestGetWatchlistMovies:
             _make_movie_details(movie_db_id=2, title="Interstellar"),
         ]
 
-        resp = client.get(
-            "/api/v1/watchlist?limit=20&offset=0", headers=AUTH_HEADERS
-        )
+        resp = client.get("/api/v1/watchlist?limit=20&offset=0", headers=AUTH_HEADERS)
 
         assert resp.status_code == 200
         data = resp.json()
@@ -202,9 +192,7 @@ class TestGetWatchlistMovies:
         "movie_recommender.api.v1.watchlist.get_user_by_firebase_uid",
         new_callable=AsyncMock,
     )
-    def test_list_empty_watchlist(
-        self, mock_get_user, mock_list, mock_bulk, client
-    ):
+    def test_list_empty_watchlist(self, mock_get_user, mock_list, mock_bulk, client):
         mock_get_user.return_value = FAKE_USER
         mock_list.return_value = ([], 0)
         mock_bulk.return_value = []
