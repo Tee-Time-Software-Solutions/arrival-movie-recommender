@@ -33,20 +33,25 @@ def create_search_movies_tool(db_session_factory: Callable, user_id: int):
         or wants to find movies matching certain criteria. Returns full movie details including
         title, year, rating, synopsis, genres, cast, poster URL, and streaming providers.
         """
-        async with db_session_factory() as db:
-            movie_ids = await search_movies_by_criteria(
-                db,
-                genre_names=genre_names,
-                min_year=min_year,
-                max_year=max_year,
-                keyword=keyword,
-                min_rating=min_rating,
-                limit=limit,
-            )
-            if not movie_ids:
-                return "No movies found matching those criteria."
-            details = await movies_to_details_bulk(db, movie_ids)
-            return json.dumps([d.model_dump(mode="json") for d in details], default=str)
+        try:
+            async with db_session_factory() as db:
+                movie_ids = await search_movies_by_criteria(
+                    db,
+                    genre_names=genre_names,
+                    min_year=min_year,
+                    max_year=max_year,
+                    keyword=keyword,
+                    min_rating=min_rating,
+                    limit=limit,
+                )
+                if not movie_ids:
+                    return "No movies found matching those criteria."
+                details = await movies_to_details_bulk(db, movie_ids)
+                return json.dumps(
+                    [d.model_dump(mode="json") for d in details], default=str
+                )
+        except Exception:
+            return "Could not search movies at this time. Please try again."
 
     return search_movies
 
@@ -62,8 +67,11 @@ def create_taste_profile_tool(db_session_factory: Callable, user_id: int):
         what kind of movies they enjoy, or their viewing history summary.
         Returns genre breakdown, top liked movies, year range, and average rating.
         """
-        async with db_session_factory() as db:
-            profile = await get_user_taste_profile(db, user_id)
-            return json.dumps(profile, default=str)
+        try:
+            async with db_session_factory() as db:
+                profile = await get_user_taste_profile(db, user_id)
+                return json.dumps(profile, default=str)
+        except Exception:
+            return "Could not retrieve taste profile at this time. Please try again."
 
     return get_taste_profile
