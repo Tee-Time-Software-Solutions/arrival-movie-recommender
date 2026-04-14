@@ -12,6 +12,7 @@ services:
       retries: 5
 
   db-migration:
+    image: javidsegura/movie_recommender:${BACKEND_IMAGE_TAG}
     command: ["python", "scripts/migrate.py"]
     working_dir: /app
     env_file:
@@ -36,6 +37,60 @@ services:
       retries: 15
       start_period: 60s
 
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./telemetry/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_UNIFIED_ALERTING_ENABLED=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./telemetry/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
+    env_file:
+      - ${BACKEND_ENV_FILE}
+    depends_on:
+      prometheus:
+        condition: service_started
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: movie-recommender-mlflow
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow_data  # I renamed the inside folder for clarity
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow_data/mlflow.db
+      --default-artifact-root /mlflow_data/artifacts
+      --host 0.0.0.0
+
+
 volumes:
   redis-data:
   neo4j-data:
+  prometheus_data:
+  grafana_data:

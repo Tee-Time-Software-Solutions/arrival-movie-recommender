@@ -59,6 +59,13 @@ def synthetic_artifacts() -> RecommenderArtifacts:
             103: "Action Comedy",
             104: "Horror Movie",
         },
+        movie_id_to_genres={
+            100: ["Action"],
+            101: ["Comedy"],
+            102: ["Drama"],
+            103: ["Action", "Comedy"],
+            104: ["Horror"],
+        },
         all_movie_ids=np.array([100, 101, 102, 103, 104], dtype=np.int32),
     )
 
@@ -74,13 +81,18 @@ def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
     mock_redis = AsyncMock()
     mock_redis.get = AsyncMock(return_value=None)
     mock_redis.smembers = AsyncMock(return_value=set())
+    mock_redis.hgetall = AsyncMock(return_value={})
+    mock_redis.incr = AsyncMock(return_value=1)
+    mock_redis.expire = AsyncMock()
     mock_redis.set = AsyncMock()
     mock_redis.sadd = AsyncMock()
 
     rec = Recommender.__new__(Recommender)
     rec.model_artifacts = synthetic_artifacts
     rec.learning_rate = 0.05
+    rec.adaptive_learning_strength = 0.0
     rec.norm_cap = 10.0
+    rec.exploration_weight = 0.0
     rec._redis = mock_redis
     rec._db_session_factory = MagicMock()
 

@@ -16,17 +16,18 @@ class RecommenderArtifacts(BaseModel):
     movie_id_to_index: dict[int, int]
     index_to_movie_id: dict[int, int]
     movie_id_to_title: dict[int, str]
+    movie_id_to_genres: dict[int, list[str]]
     all_movie_ids: np.ndarray
 
 
 def require_model_artifacts(
-    artifacts: "RecommenderArtifacts | None", load_error: "str | None"
+    artifacts: "RecommenderArtifacts | None",
+    load_error: "str | None",
 ) -> "RecommenderArtifacts":
-    """Raise RuntimeError if artifacts failed to load, otherwise return them."""
+    """Return artifacts or raise RuntimeError if not loaded."""
     if artifacts is None:
-        raise RuntimeError(
-            f"Recommender artifacts not available. {load_error or ''}".strip()
-        )
+        detail = f" ({load_error})" if load_error else ""
+        raise RuntimeError(f"Recommender artifacts not available{detail}")
     return artifacts
 
 
@@ -63,11 +64,16 @@ def load_model_artifacts() -> RecommenderArtifacts:
     }
 
     movies_df = pd.read_parquet(
-        processed_dir / "movies_filtered.parquet", columns=["movie_id", "title"]
+        processed_dir / "movies_filtered.parquet",
+        columns=["movie_id", "title", "genres"],
     )
     movie_id_to_title = {
         int(movie_id): str(title)
         for movie_id, title in zip(movies_df["movie_id"], movies_df["title"])
+    }
+    movie_id_to_genres = {
+        int(movie_id): _parse_genres(genres)
+        for movie_id, genres in zip(movies_df["movie_id"], movies_df["genres"])
     }
 
     all_movie_ids = np.array(
@@ -81,5 +87,17 @@ def load_model_artifacts() -> RecommenderArtifacts:
         movie_id_to_index=movie_id_to_index,
         index_to_movie_id=index_to_movie_id,
         movie_id_to_title=movie_id_to_title,
+        movie_id_to_genres=movie_id_to_genres,
         all_movie_ids=all_movie_ids,
     )
+
+
+def _parse_genres(raw_genres: object) -> list[str]:
+    if raw_genres is None or pd.isna(raw_genres):
+        return []
+
+    genres = str(raw_genres).strip()
+    if not genres:
+        return []
+
+    return [genre for genre in genres.split("|") if genre]

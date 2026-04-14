@@ -1,8 +1,21 @@
 # State
 
 ## Current Position
-- Planning Phase 1: ML Pipeline Testing
-- Branch: ml-pipeline-testing
+- Phase 2 in progress: Additive CI Expansion
+- Branch: ci
+- **Completed plans:** 02-05 (backend coverage report workflow), 02-03 (backend integration CI workflow - commit `18aa637`, new `.github/workflows/ci-backend-integration.yml` runs against Postgres 16 + Redis 7.2 service containers), 02-01 (additive backend unit tests — 44 new tests across feed_manager, swipe_worker, api/health, api/movies, api/watchlist; commits `c204004` + `312d10d`; backend unit suite now 227 passing), 02-02 (backend integration test expansion — new `conftest_integration.py` helper + `test_api_smoke.py` 3 tests + `test_feed_manager_redis.py` 5 tests; 5 FeedManager tests verified passing against real Redis locally, API smoke tests skip cleanly when Postgres unavailable; commits `ea90edd` + `dc51f0d`; zero edits to existing files)
+- **Next Action:** Phase 2 required plans 02-01, 02-02, 02-03, 02-05 all complete. 02-04 (frontend tests) remains deferred. Phase 2 can be marked complete pending any CI workflow smoke runs.
+
+## Accumulated Context
+
+### Roadmap Evolution
+- Phase 2 added: Additive CI Expansion — additive-only expansion of CI (new unit/integration tests, integration-test workflow, frontend test suite + workflow, coverage reporting). No edits to existing source/tests/workflows/Makefile/pre-commit.
+
+### Phase 2 Priority Decision (2026-04-13)
+- **Frontend tests are DEPRIORITIZED.** Plan 02-04 (frontend Vitest+RTL bootstrap + ci-frontend.yml) is marked `priority: deferred` and only executes after all backend-focused plans (02-01, 02-02, 02-03, 02-05) land — and only if there is remaining time/capacity.
+- Plan 02-05 was narrowed to backend coverage only; frontend coverage moved into the deferred 02-04 bundle.
+- Phase 2 is considered complete once 02-01, 02-02, 02-03, and 02-05 are done. 02-04 is optional/bonus.
+- Execution order: Wave 1 parallel = 02-01, 02-02, 02-03, 02-05 (all backend). Wave 2 = 02-04 only if pursued.
 
 ## Existing Test Coverage (122 tests passing)
 ### Unit Tests (8 files, ~48 tests):

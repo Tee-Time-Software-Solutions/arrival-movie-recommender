@@ -4,6 +4,7 @@ from typing import List
 
 from movie_recommender.core.settings.schemas import (
     AppLogicSettings,
+    DiscordSettings,
     FirebaseSettings,
     Neo4jSettings,
     RedisSettings,
@@ -41,6 +42,7 @@ class AppSettings:
         self.neo4j = self._load_neo4j_settings()
         self.firebase = self._load_firebase_settings()
         self.database = self._load_database_settings()
+        self.discord = self._load_discord_settings()
         # self.storage = self._load_storage_settings() # TODO: implement storage
 
         logger.info(f"Settings initialized for environment: {self.environment}")
@@ -57,14 +59,20 @@ class AppSettings:
         batch_size = int(os.getenv("BATCH_SIZE", "15"))
         queue_min_capacity = int(os.getenv("QUEUE_MIN_CAPACITY", "5"))
         learning_rate = float(os.getenv("LEARNING_RATE", "0.05"))
+        adaptive_learning_strength = float(
+            os.getenv("ADAPTIVE_LEARNING_STRENGTH", "0.2")
+        )
         norm_cap = float(os.getenv("NORM_CAP", "10.0"))
         over_fetch_factor = int(os.getenv("OVER_FETCH_FACTOR", "2"))
+        exploration_weight = float(os.getenv("EXPLORATION_WEIGHT", "0.01"))
         return AppLogicSettings(
             batch_size=batch_size,
             queue_min_capacity=queue_min_capacity,
             learning_rate=learning_rate,
+            adaptive_learning_strength=adaptive_learning_strength,
             norm_cap=norm_cap,
             over_fetch_factor=over_fetch_factor,
+            exploration_weight=exploration_weight,
         )
 
     def _load_tmdb_settings(self) -> TMDBSettings:
@@ -99,22 +107,51 @@ class AppSettings:
         )
 
     def _load_database_settings(self) -> DatabaseSettings:
-        """Load database settings."""
+        """Load database settings.
+
+        In production: user + password come from the cloud secrets store.
+          AWS  → Secrets Manager (boto3, IAM role on EC2)
+          Azure → Key Vault (DefaultAzureCredential, managed identity on VM)
+        In dev: user + password are read directly from the env file.
+        """
         check_required(
-            [
-                "DB_HOST",
-                "DB_PORT",
-                "DB_NAME",
-                "DB_USER",
-                "DB_PASSWORD",
-                "DB_SYNC_DRIVER",
-                "DB_ASYNC_DRIVER",
-            ]
+            ["DB_HOST", "DB_PORT", "DB_NAME", "DB_SYNC_DRIVER", "DB_ASYNC_DRIVER"]
         )
 
+        if self.environment == "production":
+            secret_key = os.getenv("SECRETS_MANAGER_DB_CREDENTIALS_KEY")
+            if not secret_key:
+                raise ValueError(
+                    "SECRETS_MANAGER_DB_CREDENTIALS_KEY is required in production"
+                )
+            cloud_provider = os.getenv("CLOUD_PROVIDER", "aws").lower()
+            if cloud_provider == "aws":
+                from movie_recommender.services.infra.aws import fetch_db_credentials
+
+                creds = fetch_db_credentials(secret_key)
+            elif cloud_provider == "azure":
+                key_vault_name = os.getenv("AZURE_KEY_VAULT_NAME")
+                if not key_vault_name:
+                    raise ValueError(
+                        "AZURE_KEY_VAULT_NAME is required in production on Azure"
+                    )
+                from movie_recommender.services.infra.azure import fetch_db_credentials
+
+                creds = fetch_db_credentials(secret_key, key_vault_name)
+            else:
+                raise ValueError(
+                    f"Unsupported CLOUD_PROVIDER '{cloud_provider}'. Use 'aws' or 'azure'"
+                )
+            user = creds["username"]
+            password = creds["password"]
+        else:
+            check_required(["DB_USER", "DB_PASSWORD"])
+            user = os.getenv("DB_USER")
+            password = os.getenv("DB_PASSWORD")
+
         return DatabaseSettings(
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
+            user=user,
+            password=password,
             host=os.getenv("DB_HOST"),
             port=os.getenv("DB_PORT"),
             database=os.getenv("DB_NAME"),
@@ -156,6 +193,9 @@ class AppSettings:
             raise ValueError(
                 f"Unsupported CLOUD_PROVIDER: {provider}. Use 'aws' or 'azure'"
             )
+
+    def _load_discord_settings(self) -> DiscordSettings:
+        return DiscordSettings(webhook_url=os.getenv("DISCORD_WEBHOOK"))
 
     def _load_firebase_settings(self) -> FirebaseSettings:
         check_required(
