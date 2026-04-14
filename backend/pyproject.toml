@@ -63,3 +63,6 @@ extend-exclude = ["**/*.ipynb"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+markers = [
+    "integration: mark test as an integration test (real Postgres/Redis)",
+]
