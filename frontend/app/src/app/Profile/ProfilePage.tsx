@@ -10,16 +10,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { MovieDetails } from "@/types/movie";
-import type { UserProfileSummary, TopPeopleResponse } from "@/types/user";
+import type { UserProfileSummary } from "@/types/user";
 import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
-import { TopPeopleSection } from "./TopPeopleSection";
 import { MoviesDrawer } from "./MoviesDrawer";
 import { useAuthStore } from "@/stores/authStore";
 import {
   getProfileSummary,
   getLikedMovies,
   getRatedMovies,
-  getTopPeople,
 } from "@/services/api/user";
 
 type DrawerType = "liked" | "rated";
@@ -31,7 +29,6 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(null);
-  const [topPeople, setTopPeople] = useState<TopPeopleResponse | null>(null);
 
   // Movies drawer state
   const [drawerType, setDrawerType] = useState<DrawerType | null>(null);
@@ -46,13 +43,11 @@ export function ProfilePage() {
     Promise.all([
       getProfileSummary(firebaseUid),
       getLikedMovies(firebaseUid, 200),
-      getTopPeople(firebaseUid),
       getRatedMovies(firebaseUid, 200),
     ])
-      .then(([profileData, likedData, topPeopleData, ratedData]) => {
+      .then(([profileData, likedData, ratedData]) => {
         setProfile(profileData);
         setLikedMovies(likedData.items);
-        setTopPeople(topPeopleData);
         setRatedMovies(ratedData.items);
       })
       .catch(() => setError("Failed to load profile"))
@@ -166,16 +161,8 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* ── People & Movies side-by-side ── */}
-      <div className="mb-8 flex flex-col gap-6 lg:flex-row">
-        {/* People panel */}
-        {topPeople && (
-          <div className="min-w-0 flex-1 rounded-xl border border-violet-500/20 bg-violet-500/5 p-5">
-            <TopPeopleSection data={topPeople} />
-          </div>
-        )}
-
-        {/* Movies panel */}
+      {/* Movies */}
+      <div className="mb-8">
         {(likedMovies.length > 0 || stats.total_seen > 0) && (
           <div className="min-w-0 flex-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
             <h2 className="mb-4 text-lg font-semibold">Your Movies</h2>
@@ -272,7 +259,7 @@ export function ProfilePage() {
         )}
       </div>
 
-      {likedMovies.length === 0 && stats.total_seen === 0 && !topPeople && (
+      {likedMovies.length === 0 && stats.total_seen === 0 && (
         <div className="py-12 text-center">
           <p className="text-muted-foreground">
             Start swiping to build your movie collection!

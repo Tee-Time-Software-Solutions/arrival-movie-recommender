@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 
 metadata = MetaData()
 
@@ -32,6 +33,12 @@ users = Table(
     Column("email", String(256), nullable=False),
     Column("created_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
     Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+    Column(
+        "onboarding_completed",
+        Boolean,
+        nullable=False,
+        server_default=text("FALSE"),
+    ),
 )
 
 preferences = Table(
@@ -146,6 +153,14 @@ watchlist = Table(
     UniqueConstraint("user_id", "movie_id", name="uq_watchlist_user_movie"),
 )
 
+user_online_vectors = Table(
+    "user_online_vectors",
+    metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("vector", ARRAY(Float), nullable=False),
+    Column("updated_at", DateTime, server_default=text("CURRENT_TIMESTAMP")),
+)
+
 
 # ── Row types (for IDE autocompletion on CRUD returns) ──────────────
 
@@ -157,6 +172,7 @@ class UserRow(TypedDict):
     email: str
     created_at: datetime
     updated_at: datetime
+    onboarding_completed: bool
 
 
 class MovieRow(TypedDict):

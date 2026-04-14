@@ -20,22 +20,5 @@ services:
       ENVIRONMENT: ${ENVIRONMENT}
     restart: "no"
 
-  neo4j:
-    image: neo4j:5-community
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    volumes:
-      - neo4j-data:/data
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-dev-password}
-    healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-dev-password}", "RETURN 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
 volumes:
   redis-data:
-  neo4j-data:

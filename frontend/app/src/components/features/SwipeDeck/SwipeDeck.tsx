@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Star, ChevronDown, Bookmark, Check } from "lucide-react";
-import { ExplanationBanner } from "@/components/features/ExplanationBanner/ExplanationBanner";
 import { MovieCard } from "@/components/features/MovieCard/MovieCard";
 import { MovieDetailContent } from "@/components/features/MovieDetail/MovieDetail";
 import { addToWatchlist } from "@/services/api/watchlist";
@@ -127,9 +126,6 @@ export function SwipeDeck({
 
   return (
     <>
-      {mode === "card" && (
-        <ExplanationBanner explanation={currentMovie.explanation} />
-      )}
       <div className="relative mx-auto h-[70vh] w-full max-w-sm">
         {/* Full card — default mode */}
         <motion.div

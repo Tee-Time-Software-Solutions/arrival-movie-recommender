@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 class AppLogicSettings(BaseModel):
     batch_size: int
     queue_min_capacity: int
+    learning_rate: float = 0.05
+    norm_cap: float = 10.0
+    over_fetch_factor: int = 2
 
 
 class TMDBSettings(BaseModel):
@@ -47,11 +50,10 @@ class StorageSettings(BaseModel):
     azure_account_key: str | None = None
 
 
-class Neo4jSettings(BaseModel):
-    uri: str
-    username: str
-    password: str
-    database: str = "neo4j"
+class OpenRouterSettings(BaseModel):
+    api_key: str
+    base_url: str = "https://openrouter.ai/api/v1"
+    model_name: str = "google/gemini-2.5-flash"
 
 
 class FirebaseSettings(BaseModel):

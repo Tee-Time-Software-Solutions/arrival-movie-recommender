@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 
 from movie_recommender.main import app
 from movie_recommender.dependencies.database import get_db
+from movie_recommender.dependencies.recommender import get_recommender
+from movie_recommender.dependencies.redis import get_async_redis
 
 FAKE_UID = "firebase-uid-1"
 
@@ -22,6 +24,7 @@ FakeRow = namedtuple(
         "email",
         "created_at",
         "updated_at",
+        "onboarding_completed",
     ],
 )
 
@@ -32,6 +35,7 @@ FAKE_USER = FakeRow(
     email="test@example.com",
     created_at=datetime(2024, 1, 1),
     updated_at=datetime(2024, 1, 1),
+    onboarding_completed=False,
 )
 
 
@@ -51,6 +55,8 @@ def client(mock_db):
     original_lifespan = app.router.lifespan_context
     app.router.lifespan_context = _noop_lifespan
     app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_recommender] = lambda: AsyncMock()
+    app.dependency_overrides[get_async_redis] = lambda: AsyncMock()
 
     with (
         patch(

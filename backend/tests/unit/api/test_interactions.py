@@ -10,11 +10,7 @@ FakeMovie = namedtuple("FakeMovie", ["id", "tmdb_id", "title"])
 
 class TestRegisterMovieInteraction:
     @patch(
-        "movie_recommender.api.v1.interactions.update_beacon_on_swipe",
-        new_callable=AsyncMock,
-    )
-    @patch(
-        "movie_recommender.api.v1.interactions.enqueue_swipe", new_callable=AsyncMock
+        "movie_recommender.api.v1.interactions.persist_swipe", new_callable=AsyncMock
     )
     @patch(
         "movie_recommender.api.v1.interactions.get_movie_by_id", new_callable=AsyncMock
@@ -28,7 +24,6 @@ class TestRegisterMovieInteraction:
         mock_get_user,
         mock_get_movie,
         mock_enqueue,
-        mock_beacon,
         client,
     ):
         mock_get_user.return_value = FAKE_USER
@@ -36,11 +31,9 @@ class TestRegisterMovieInteraction:
 
         from movie_recommender.dependencies.recommender import get_recommender
         from movie_recommender.dependencies.redis import get_async_redis
-        from movie_recommender.dependencies.neo4j import get_neo4j_driver
         from movie_recommender.main import app
 
         app.dependency_overrides[get_async_redis] = lambda: AsyncMock()
-        app.dependency_overrides[get_neo4j_driver] = lambda: AsyncMock()
         app.dependency_overrides[get_recommender] = lambda: AsyncMock()
 
         resp = client.post(
@@ -66,11 +59,9 @@ class TestRegisterMovieInteraction:
         mock_get_movie.return_value = None
 
         from movie_recommender.dependencies.redis import get_async_redis
-        from movie_recommender.dependencies.neo4j import get_neo4j_driver
         from movie_recommender.main import app
 
         app.dependency_overrides[get_async_redis] = lambda: AsyncMock()
-        app.dependency_overrides[get_neo4j_driver] = lambda: AsyncMock()
 
         resp = client.post(
             "/api/v1/interactions/999/swipe",
@@ -88,11 +79,9 @@ class TestRegisterMovieInteraction:
         mock_get_user.return_value = None
 
         from movie_recommender.dependencies.redis import get_async_redis
-        from movie_recommender.dependencies.neo4j import get_neo4j_driver
         from movie_recommender.main import app
 
         app.dependency_overrides[get_async_redis] = lambda: AsyncMock()
-        app.dependency_overrides[get_neo4j_driver] = lambda: AsyncMock()
 
         resp = client.post(
             "/api/v1/interactions/1/swipe",
@@ -104,11 +93,9 @@ class TestRegisterMovieInteraction:
 
     def test_supercharged_skip_returns_400(self, client):
         from movie_recommender.dependencies.redis import get_async_redis
-        from movie_recommender.dependencies.neo4j import get_neo4j_driver
         from movie_recommender.main import app
 
         app.dependency_overrides[get_async_redis] = lambda: AsyncMock()
-        app.dependency_overrides[get_neo4j_driver] = lambda: AsyncMock()
 
         resp = client.post(
             "/api/v1/interactions/1/swipe",

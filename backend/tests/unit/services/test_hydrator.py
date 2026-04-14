@@ -6,7 +6,7 @@ Only tests the pure extraction logic — no TMDB HTTP calls or DB access.
 
 from unittest.mock import patch
 
-from movie_recommender.services.hydrator.main import TMDBFetcher
+from movie_recommender.services.recommender.pipeline.hydrator.main import TMDBFetcher
 
 
 def _make_tmdb_fetcher() -> TMDBFetcher:

@@ -76,3 +76,24 @@ format-check: ## Formats
 format-fix: ## Format code (for pre-commit)
 	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
 	$(VENV_ACTIVATE) && ruff format src/
+
+# ── Recommender offline pipeline ────────────────────────────────────────────
+# Run from backend/ with DB_* env vars set (see env_config/synced/.env.dev).
+# APP_USER_ID_OFFSET must exceed the max MovieLens userId in ratings.csv (default 10_000_000).
+
+# Fetch step is built into ALS/FM pipelines (Step 3). Set SKIP_DB_SWIPE_EXPORT=1 for MovieLens-only.
+
+recommender-export-swipes: ## Only fetch Postgres swipes → raw/swipes_from_db.parquet (same as pipeline Step 3)
+	$(VENV_ACTIVATE) && python -m movie_recommender.services.recommender.pipeline.offline.models.base.steps.fetch_app_swipes
+
+recommender-train-als: ## ALS pipeline — MovieLens only (skips Step 3 DB fetch + Step 4 merge)
+	$(VENV_ACTIVATE) && SKIP_DB_SWIPE_EXPORT=1 python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
+
+recommender-train-fm: ## FM pipeline — MovieLens only (skips Step 3 DB fetch + Step 4 merge)
+	$(VENV_ACTIVATE) && SKIP_DB_SWIPE_EXPORT=1 python -m movie_recommender.services.recommender.pipeline.offline.models.fm.main
+
+recommender-train-closed-loop-als: ## ALS pipeline — includes Postgres swipe fetch (requires DB_* env vars)
+	$(VENV_ACTIVATE) && python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
+
+recommender-train-closed-loop-fm: ## FM pipeline — includes Postgres swipe fetch (requires DB_* env vars)
+	$(VENV_ACTIVATE) && python -m movie_recommender.services.recommender.pipeline.offline.models.fm.main

@@ -14,14 +14,14 @@ export async function getMovieFeed(): Promise<MovieDetails> {
 export async function getMovieQueue(
   count: number = 5,
 ): Promise<MovieDetails[]> {
-  const promises = Array.from({ length: count }, () => getMovieFeed());
-  const results = await Promise.allSettled(promises);
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<MovieDetails> =>
-        r.status === "fulfilled",
-    )
-    .map((r) => r.value);
+  const { data } = await apiClient.get<MovieDetails[]>("movies/feed/batch", {
+    params: { count },
+  });
+  return data;
+}
+
+export async function flushMovieFeed(): Promise<void> {
+  await apiClient.delete("movies/feed");
 }
 
 export async function registerSwipe(
