@@ -38,6 +38,16 @@ def _get_user_history(
     return history_indices, history_values
 
 
+def _apply_neighbor_weight_power(
+    weights: np.ndarray, weight_power: float
+) -> np.ndarray:
+    if weight_power <= 0:
+        raise ValueError("neighbor_weight_power must be greater than 0")
+    if weight_power == 1.0:
+        return weights
+    return np.sign(weights) * np.power(np.abs(weights), weight_power)
+
+
 def score_user_movie(
     user_id: int,
     movie_id: int,
@@ -47,6 +57,7 @@ def score_user_movie(
     movie_id_to_index: dict[int, int],
     use_positive_only: bool = True,
     normalize_scores: bool = True,
+    neighbor_weight_power: float = 1.0,
 ) -> float:
     user_idx = user_id_to_index.get(user_id)
     item_idx = movie_id_to_index.get(movie_id)
@@ -79,6 +90,10 @@ def score_user_movie(
         return 0.0
 
     weight_array = np.array(weights, dtype=np.float32)
+    weight_array = _apply_neighbor_weight_power(
+        weights=weight_array,
+        weight_power=neighbor_weight_power,
+    )
     pref_array = np.array(preferences, dtype=np.float32)
     score = float(np.dot(weight_array, pref_array))
     if not normalize_scores:
@@ -100,6 +115,7 @@ def recommend_top_n_for_user(
     index_to_movie_id: dict[int, int],
     use_positive_only: bool = True,
     normalize_scores: bool = True,
+    neighbor_weight_power: float = 1.0,
     exclude_seen: bool = True,
 ) -> list[int]:
     user_idx = user_id_to_index.get(user_id)
@@ -120,6 +136,7 @@ def recommend_top_n_for_user(
             movie_id_to_index=movie_id_to_index,
             use_positive_only=use_positive_only,
             normalize_scores=normalize_scores,
+            neighbor_weight_power=neighbor_weight_power,
         )
         scores.append((score, movie_id))
 
@@ -150,5 +167,6 @@ def recommend_top_n_from_artifacts(
         index_to_movie_id=index_to_movie_id,
         use_positive_only=config.models.item_cf.use_positive_only,
         normalize_scores=config.models.item_cf.normalize_scores,
+        neighbor_weight_power=config.models.item_cf.neighbor_weight_power,
         exclude_seen=True,
     )

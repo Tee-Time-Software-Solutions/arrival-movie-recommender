@@ -81,3 +81,44 @@ def test_item_cf_inference_handles_unknown_user_item():
         normalize_scores=True,
     )
     assert unknown_item_score == 0.0
+
+
+def test_item_cf_inference_applies_neighbor_weight_power():
+    train_matrix = csr_matrix(np.array([[2.0, 1.0, 0.0]], dtype=np.float32))
+    similarity = csr_matrix(
+        np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [0.5, 0.8, 0.0],
+            ],
+            dtype=np.float32,
+        )
+    )
+    user_id_to_index = {1: 0}
+    movie_id_to_index = {10: 0, 20: 1, 30: 2}
+
+    base_score = score_user_movie(
+        user_id=1,
+        movie_id=30,
+        similarity=similarity,
+        train_matrix=train_matrix,
+        user_id_to_index=user_id_to_index,
+        movie_id_to_index=movie_id_to_index,
+        use_positive_only=True,
+        normalize_scores=True,
+        neighbor_weight_power=1.0,
+    )
+    powered_score = score_user_movie(
+        user_id=1,
+        movie_id=30,
+        similarity=similarity,
+        train_matrix=train_matrix,
+        user_id_to_index=user_id_to_index,
+        movie_id_to_index=movie_id_to_index,
+        use_positive_only=True,
+        normalize_scores=True,
+        neighbor_weight_power=2.0,
+    )
+
+    assert base_score > powered_score

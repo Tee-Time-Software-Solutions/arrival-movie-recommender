@@ -118,9 +118,13 @@ models:
   item_cf:
     similarity: "cosine"
     top_k_neighbors: 100
-    min_similarity: 0.0
+    min_similarity: 0.2
     use_positive_only: true
-    normalize_scores: true
+    normalize_scores: false
+    min_co_raters: 1
+    similarity_shrinkage: 0.0
+    neighbor_weight_power: 1.0
+    relevance_preference_threshold: 0.0
 ```
 
 ---

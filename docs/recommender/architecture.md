@@ -96,6 +96,7 @@ build_item_cf_matrix()                      [item_cf/steps/matrix.py]
 train_item_cf()                             [item_cf/steps/train_item_cf.py]
   cosine item-item similarity from train matrix columns
   optional positive-only interactions for similarity construction
+  optional co-rater threshold + shrinkage regularization for stability
   top-K neighbor pruning per item for compact artifacts
   → model_assets/item_cf_similarity.npz
   → model_assets/item_cf_model_info.json
@@ -103,6 +104,7 @@ train_item_cf()                             [item_cf/steps/train_item_cf.py]
       ▼
 evaluate_item_cf()                          [item_cf/steps/metrics.py]
   rank candidates per val user (excluding train-seen items)
+  relevant validation items use preference > relevance_preference_threshold
   compute Precision@10, Recall@10, NDCG@10
   skip users with no valid candidates/ground truth
   → model_assets/item_cf_metrics.json

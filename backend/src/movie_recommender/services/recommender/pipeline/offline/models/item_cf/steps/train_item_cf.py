@@ -32,6 +32,41 @@ def _compute_cosine_similarity(filtered_matrix: csr_matrix) -> csr_matrix:
     return similarity
 
 
+def _compute_co_rater_counts(filtered_matrix: csr_matrix) -> csr_matrix:
+    binary = filtered_matrix.copy().astype(np.float32)
+    binary.data = np.ones_like(binary.data, dtype=np.float32)
+    return (binary.T @ binary).tocsr().astype(np.float32)
+
+
+def _apply_co_rater_controls(
+    similarity: csr_matrix,
+    co_rater_counts: csr_matrix,
+    min_co_raters: int,
+    similarity_shrinkage: float,
+) -> csr_matrix:
+    if min_co_raters <= 0:
+        raise ValueError("min_co_raters must be greater than 0")
+    if similarity_shrinkage < 0:
+        raise ValueError("similarity_shrinkage must be non-negative")
+
+    updated_similarity = similarity
+
+    if min_co_raters > 1:
+        co_mask = co_rater_counts.copy()
+        co_mask.data = (co_mask.data >= min_co_raters).astype(np.float32)
+        co_mask.eliminate_zeros()
+        updated_similarity = updated_similarity.multiply(co_mask)
+        updated_similarity.eliminate_zeros()
+
+    if similarity_shrinkage > 0:
+        shrinkage = co_rater_counts.copy().astype(np.float32)
+        shrinkage.data = shrinkage.data / (shrinkage.data + similarity_shrinkage)
+        updated_similarity = updated_similarity.multiply(shrinkage)
+        updated_similarity.eliminate_zeros()
+
+    return updated_similarity
+
+
 def _prune_top_k_neighbors(
     similarity: csr_matrix, top_k_neighbors: int, min_similarity: float
 ) -> csr_matrix:
@@ -104,6 +139,13 @@ def run(config: Config) -> None:
         f"(use_positive_only={item_cf.use_positive_only})..."
     )
     similarity = _compute_cosine_similarity(filtered_matrix=filtered_matrix)
+    co_rater_counts = _compute_co_rater_counts(filtered_matrix=filtered_matrix)
+    similarity = _apply_co_rater_controls(
+        similarity=similarity,
+        co_rater_counts=co_rater_counts,
+        min_co_raters=item_cf.min_co_raters,
+        similarity_shrinkage=item_cf.similarity_shrinkage,
+    )
     similarity = _prune_top_k_neighbors(
         similarity=similarity,
         top_k_neighbors=item_cf.top_k_neighbors,
@@ -124,6 +166,8 @@ def run(config: Config) -> None:
                 "min_similarity": item_cf.min_similarity,
                 "use_positive_only": item_cf.use_positive_only,
                 "normalize_scores": item_cf.normalize_scores,
+                "min_co_raters": item_cf.min_co_raters,
+                "similarity_shrinkage": item_cf.similarity_shrinkage,
                 "num_users": int(interaction_matrix.shape[0]),
                 "num_items": int(interaction_matrix.shape[1]),
                 "similarity_nnz": int(similarity.nnz),

@@ -7,9 +7,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from movie_recommender.services.recommender.pipeline.offline.models.als.steps.metrics import (
-    dcg_at_k,
-)
 from movie_recommender.services.recommender.pipeline.offline.models.item_cf.steps.inference import (
     load_item_cf_artifacts,
     recommend_top_n_for_user,
@@ -19,6 +16,10 @@ from movie_recommender.services.recommender.utils.schema import Config
 
 def _to_int_mapping(raw_mapping: dict) -> dict[int, int]:
     return {int(key): int(value) for key, value in raw_mapping.items()}
+
+
+def dcg_at_k(relevance: list[int] | list[float]) -> float:
+    return float(sum(rel / np.log2(idx + 2) for idx, rel in enumerate(relevance)))
 
 
 def run(config: Config) -> None:
@@ -35,7 +36,13 @@ def run(config: Config) -> None:
     train_df = pd.read_parquet(splits_dir / "train.parquet")
     val_df = pd.read_parquet(splits_dir / "val.parquet")
     train_lookup = train_df.groupby("user_id")["movie_id"].apply(set).to_dict()
-    val_lookup = val_df.groupby("user_id")["movie_id"].apply(set).to_dict()
+    threshold = item_cf.relevance_preference_threshold
+    val_lookup = (
+        val_df[val_df["preference"] > threshold]
+        .groupby("user_id")["movie_id"]
+        .apply(set)
+        .to_dict()
+    )
 
     precision_scores: list[float] = []
     recall_scores: list[float] = []
@@ -71,6 +78,7 @@ def run(config: Config) -> None:
             index_to_movie_id=index_to_movie_id,
             use_positive_only=item_cf.use_positive_only,
             normalize_scores=item_cf.normalize_scores,
+            neighbor_weight_power=item_cf.neighbor_weight_power,
             exclude_seen=True,
         )
         if not recommendations:
@@ -85,7 +93,8 @@ def run(config: Config) -> None:
         ideal_relevance = sorted(relevance, reverse=True)
         idcg = dcg_at_k(ideal_relevance)
 
-        precision_scores.append(len(hits) / k)
+        effective_k = max(1, len(recommendations))
+        precision_scores.append(len(hits) / effective_k)
         recall_scores.append(len(hits) / len(true_movies))
         ndcg_scores.append(dcg / idcg if idcg > 0 else 0.0)
 
@@ -108,6 +117,10 @@ def run(config: Config) -> None:
             "min_similarity": item_cf.min_similarity,
             "use_positive_only": item_cf.use_positive_only,
             "normalize_scores": item_cf.normalize_scores,
+            "min_co_raters": item_cf.min_co_raters,
+            "similarity_shrinkage": item_cf.similarity_shrinkage,
+            "neighbor_weight_power": item_cf.neighbor_weight_power,
+            "relevance_preference_threshold": threshold,
             "min_user_ratings": config.pipeline.min_user_ratings,
             "min_movie_ratings": config.pipeline.min_movie_ratings,
             "train_ratio": config.pipeline.train_ratio,
