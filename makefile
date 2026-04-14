@@ -55,6 +55,32 @@ check-enviroment-variables:
 lint: ## Check backend for lint errors and auto-fix if any are found
 	cd backend && uv run ruff check src/ || uv run ruff check --fix src/
 
+staging-launch: ## [STAGING] First-ever deploy: terraform + sync env + build frontend + push image + ansible
+	$(MAKE) check-enviroment-variables
+	$(MAKE) check-backend-version
+	$(MAKE) -C infra terraform-apply
+	$(MAKE) -C infra sync_all
+	$(MAKE) -C frontend build
+	$(MAKE) -C backend push-docker
+	$(MAKE) -C infra ansible-start
+
+staging-ship: ## [STAGING] New version: sync env + build frontend + push new image + ansible (no terraform)
+	$(MAKE) check-enviroment-variables
+	$(MAKE) check-backend-version
+	$(MAKE) -C infra sync_all
+	$(MAKE) -C frontend build
+	$(MAKE) -C backend push-docker
+	$(MAKE) -C infra ansible-start
+
+staging-rollout: ## [STAGING] Restart only: run ansible with already-pushed image (fastest)
+	$(MAKE) check-enviroment-variables
+	$(MAKE) check-backend-version
+	$(MAKE) -C infra ansible-start
+
+staging-teardown: ## [STAGING] Destroy staging infrastructure
+	$(MAKE) check-enviroment-variables
+	$(MAKE) -C infra terraform-stop
+
 prod-launch: ## [PROD] First-ever deploy: terraform + sync env + build frontend + push image + ansible
 	$(MAKE) check-enviroment-variables
 	$(MAKE) check-backend-version
