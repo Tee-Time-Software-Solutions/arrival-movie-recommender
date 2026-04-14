@@ -16,6 +16,9 @@ def rank_movie_ids(
     Fully vectorised: uses the pre-built all_movie_ids array so there are no
     Python-level per-movie loops or dict lookups on the hot path.
     """
+    if n == 0:
+        return []
+
     all_ids = model_artifacts.all_movie_ids  # shape (N,), int32
 
     if seen_movie_ids:
