@@ -57,6 +57,7 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
         model_artifacts=SimpleNamespace(
             movie_id_to_index={mid: idx for idx, mid in enumerate(movie_ids)},
             movie_id_to_title=titles,
+            movie_id_to_genres={mid: [] for mid in movie_ids},
         ),
         get_top_n_recommendations=AsyncMock(return_value=list(movie_ids)),
     )
