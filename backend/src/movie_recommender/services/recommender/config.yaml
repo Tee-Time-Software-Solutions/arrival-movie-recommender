@@ -35,3 +35,10 @@ models:
     similarity_shrinkage: 0.0
     neighbor_weight_power: 1.0
     relevance_preference_threshold: 0.0
+  svm:
+    c: 0.25
+    max_iter: 2000
+    negative_sampling_ratio: 1.0
+    random_state: 42
+    use_metadata_features: true
+    release_year_bucket_size: 10
