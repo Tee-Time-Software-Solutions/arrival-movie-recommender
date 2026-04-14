@@ -8,6 +8,9 @@ import redis
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.schemas.requests.movies import MovieDetails
 from movie_recommender.schemas.requests.users import UserPreferences
+from movie_recommender.services.recommender.pipeline.online.exploration import (
+    record_genre_impressions,
+)
 from movie_recommender.services.recommender.pipeline.hydrator.main import MovieHydrator
 from movie_recommender.services.recommender.main import Recommender
 
@@ -74,11 +77,21 @@ class FeedManager:
         movie_details = await self.hydrator.get_or_fetch_movie(
             movie_db_id=movie_id, movie_title=movie_title
         )
+        if movie_details:
+            await self.track_served_movie_genres(user_id, movie_id, movie_details)
 
         if movie_details and movie_details.tmdb_id and self.neo4j_driver:
             movie_details = await self._attach_explanation(user_id, movie_details)
 
         return movie_details
+
+    async def track_served_movie_genres(
+        self, user_id: int, movie_id: int, movie_details: MovieDetails
+    ) -> None:
+        genres = self.recommender.model_artifacts.movie_id_to_genres.get(
+            movie_id, movie_details.genres
+        )
+        await record_genre_impressions(self.redis_client, user_id, genres)
 
     async def _attach_explanation(
         self, user_id: int, movie_details: MovieDetails
