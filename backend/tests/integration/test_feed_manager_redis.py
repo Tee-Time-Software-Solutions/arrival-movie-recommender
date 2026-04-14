@@ -45,14 +45,16 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
     Tests of Redis queue semantics shouldn't need TMDB/Firebase env vars.
     """
 
-    from movie_recommender.services.feed_manager.main import FeedManager
+    from movie_recommender.services.recommender.pipeline.feed_manager.main import (
+        FeedManager,
+    )
 
     titles = titles or {mid: f"Movie {mid}" for mid in movie_ids}
 
     # Recommender stub — only the attributes FeedManager actually reads.
     recommender = SimpleNamespace(
         user_seen_movie_ids={},
-        artifacts=SimpleNamespace(
+        model_artifacts=SimpleNamespace(
             movie_id_to_index={mid: idx for idx, mid in enumerate(movie_ids)},
             movie_id_to_title=titles,
         ),
@@ -60,7 +62,9 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
     )
 
     # Hydrator stub — returns a truthy object so FeedManager pushes the entry.
-    async def _fake_get_or_fetch(mid, title):
+    async def _fake_get_or_fetch(*args, **kwargs):
+        mid = kwargs.get("movie_db_id", args[0] if args else None)
+        title = kwargs.get("movie_title", args[1] if len(args) > 1 else "")
         return SimpleNamespace(id=mid, title=title, tmdb_id=None)
 
     hydrator = SimpleNamespace(
@@ -68,7 +72,9 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
     )
 
     # Minimal stand-in for AppSettings.app_logic used by refill_queue.
-    fake_app_logic = SimpleNamespace(batch_size=15, queue_min_capacity=5)
+    fake_app_logic = SimpleNamespace(
+        batch_size=15, queue_min_capacity=5, over_fetch_factor=2
+    )
 
     fm = FeedManager.__new__(FeedManager)
     fm.recommender = recommender
@@ -82,7 +88,9 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
 
 async def _cleanup_user(real_redis, user_id):
     """Best-effort cleanup of all keys touched by a test user."""
-    from movie_recommender.services.feed_manager.main import SEEN_KEY_PREFIX
+    from movie_recommender.services.recommender.pipeline.feed_manager.main import (
+        SEEN_KEY_PREFIX,
+    )
 
     await real_redis.delete(f"feed:user:{user_id}")
     await real_redis.delete(f"{SEEN_KEY_PREFIX}{user_id}")
@@ -127,8 +135,11 @@ async def test_refill_queue_populates_from_recommender(real_redis):
         await _cleanup_user(real_redis, user_id)
 
 
-async def test_pop_unseen_skips_seen_movies(real_redis):
-    """_pop_unseen should advance past any movie already in the seen set."""
+async def test_get_next_movie_records_seen_set(real_redis):
+    """get_next_movie should lpop from the queue and mark the movie as seen."""
+    from movie_recommender.services.recommender.pipeline.feed_manager.main import (
+        SEEN_KEY_PREFIX,
+    )
 
     user_id = abs(hash(real_redis.test_prefix + "_unseen")) % 10_000_000
     queue_key = f"feed:user:{user_id}"
@@ -140,17 +151,14 @@ async def test_pop_unseen_skips_seen_movies(real_redis):
         await fm.refill_queue(user_id=user_id, queue_key=queue_key)
         assert await real_redis.llen(queue_key) == len(movie_ids)
 
-        # Mark the first two as already seen.
-        seen = {201, 202}
-        raw = await fm._pop_unseen(queue_key, seen)
+        result = await fm.get_next_movie(user_id=user_id)
 
-        import json
-
-        assert raw is not None
-        mid, _title = json.loads(raw)
-        assert mid == 203
-        # Remaining queue should be empty — the skipped entries were lpop'd.
-        assert await real_redis.llen(queue_key) == 0
+        assert result is not None
+        # One item consumed from the head of the queue.
+        assert await real_redis.llen(queue_key) == len(movie_ids) - 1
+        # The consumed movie id is now in the seen set.
+        seen_members = await real_redis.smembers(f"{SEEN_KEY_PREFIX}{user_id}")
+        assert {int(m) for m in seen_members} == {201}
     finally:
         await _cleanup_user(real_redis, user_id)
 
