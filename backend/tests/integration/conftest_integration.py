@@ -302,7 +302,12 @@ def api_client(real_db_engine) -> Iterator["object"]:
     fb_auth.get_user = _fake_get_user
 
     try:
-        client = TestClient(app)
+        # raise_server_exceptions=False lets the test suite assert on HTTP
+        # contract (status codes / bodies) even when downstream dependencies
+        # like the recommender artifacts or Neo4j aren't wired up in CI —
+        # otherwise a FileNotFoundError in a route handler re-raises through
+        # TestClient and the test dies before it can check the response.
+        client = TestClient(app, raise_server_exceptions=False)
         # Attach the internal user id for tests that need it.
         client.test_user_id = user_id
         client.test_firebase_uid = _TEST_FIREBASE_UID
