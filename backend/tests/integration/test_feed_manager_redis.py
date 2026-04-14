@@ -57,6 +57,7 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
         model_artifacts=SimpleNamespace(
             movie_id_to_index={mid: idx for idx, mid in enumerate(movie_ids)},
             movie_id_to_title=titles,
+            movie_id_to_genres={mid: [] for mid in movie_ids},
         ),
         get_top_n_recommendations=AsyncMock(return_value=list(movie_ids)),
     )
@@ -65,7 +66,7 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
     async def _fake_get_or_fetch(*args, **kwargs):
         mid = kwargs.get("movie_db_id", args[0] if args else None)
         title = kwargs.get("movie_title", args[1] if len(args) > 1 else "")
-        return SimpleNamespace(id=mid, title=title, tmdb_id=None)
+        return SimpleNamespace(id=mid, title=title, tmdb_id=None, genres=[])
 
     hydrator = SimpleNamespace(
         get_or_fetch_movie=AsyncMock(side_effect=_fake_get_or_fetch)
