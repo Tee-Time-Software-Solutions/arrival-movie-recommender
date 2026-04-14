@@ -2,18 +2,20 @@
 
 > A production-grade movie recommendation platform with a Tinder-style swipe interface, online learning, Knowledge Graph explainability, and a full MLOps stack.
 
-![CI](https://github.com/Tee-Time-Software-Solutions/arrival-movie-recommender/actions/workflows/ci-backend.yml/badge.svg)
+[![CI](https://github.com/Tee-Time-Software-Solutions/arrival-movie-recommender/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/Tee-Time-Software-Solutions/arrival-movie-recommender/actions/workflows/ci-backend.yml)
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1-overview)
 
 ---
 
 ## What it is
 
-Users swipe through movies (like, dislike, supercharge, skip). Every swipe updates their personal embedding in real time. The recommender — an Alternating Least Squares (ALS) collaborative filtering model trained on MovieLens 20M + live app interactions — ranks the next batch accordingly.
+Users swipe through movies (like, dislike, supercharge, skip). Every swipe updates their personal embedding in real time. The recommender (ALS by default, with SVM, BPR, and Item-CF also available) ranks the next batch accordingly.
 
 A Neo4j Knowledge Graph enriches each recommendation with an explanation: "You might like this because you enjoyed films directed by Christopher Nolan."
 
-> **Image: Architecture overview**
-> `[architecture.png]`
+<img src="docs/assets/architecture.png" width="600"/>
+
+> Full system documentation: [DeepWiki — Overview](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1-overview)
 
 ---
 
@@ -27,7 +29,7 @@ A Neo4j Knowledge Graph enriches each recommendation with an explanation: "You m
 | Knowledge Graph | Neo4j 5 |
 | Frontend | React 19, TypeScript, Vite, Zustand, Framer Motion, Tailwind CSS v4 |
 | Auth | Firebase (Google OAuth + email/password) |
-| ML — offline | ALS via `implicit`, FM via LightFM (BPR) |
+| ML — offline | ALS, BPR, SVM, Item-CF |
 | ML — online | Gradient-like user vector updates on every swipe |
 | Experiment tracking | MLflow |
 | Monitoring | Grafana + Prometheus |
@@ -35,7 +37,7 @@ A Neo4j Knowledge Graph enriches each recommendation with an explanation: "You m
 | Containerisation | Docker Compose (dev + production) |
 | Infrastructure | Terraform (AWS + Azure), Ansible |
 | Secrets | Azure Key Vault (Managed Identity), AWS Secrets Manager |
-| CI | GitHub Actions (lint → unit tests) |
+| CI | GitHub Actions (lint → unit tests → integration tests) |
 | Package manager | `uv` |
 
 ---
@@ -56,9 +58,7 @@ A Neo4j Knowledge Graph enriches each recommendation with an explanation: "You m
 │       └── services/
 │           ├── recommender/
 │           │   └── pipeline/
-│           │       ├── offline/     # ALS + FM training pipelines
-│           │       │   ├── models/als/   # ALS steps + MLflow integration
-│           │       │   └── models/fm/    # LightFM (BPR) steps
+│           │       ├── offline/     # ALS, BPR, SVM, Item-CF training pipelines
 │           │       └── online/      # Serving: ranker, user_state, feedback
 │           ├── knowledge_graph/     # Neo4j schema, beacon, traversal, renderer
 │           ├── infra/               # Cloud credential helpers (Azure, AWS)
@@ -86,38 +86,57 @@ A Neo4j Knowledge Graph enriches each recommendation with an explanation: "You m
 └── makefile                         # Dev commands
 ```
 
+> Backend deep-dive: [DeepWiki — Backend Architecture](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/2-backend-architecture)
+
 ---
 
 ## ML pipeline
 
+> Full reference: [DeepWiki — Recommendation Engine](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/3-recommendation-engine)
+
 ### Offline training
 
-Two models share the same base preprocessing steps:
+Four models share the same base preprocessing steps:
 
 ```
 Preprocess movies → Preprocess ratings → Fetch app swipes (Postgres)
   → Merge interactions → Filter → Prune → Chronological split
-    → [ALS] Build sparse matrix → Train ALS → Evaluate → MLflow + Discord
-    → [FM]  Build LightFM data → Train BPR → Evaluate
+    → [ALS]     Build sparse matrix → Train → Evaluate → MLflow + Discord
+    → [BPR]     Build LightFM data  → Train → Evaluate
+    → [SVM]     Build feature matrix → Train → Evaluate
+    → [Item-CF] Build similarity matrix → Train → Evaluate
 ```
 
-The chronological split ensures no data leakage between train and validation — a critical distinction for time-ordered interaction data.
+The chronological split ensures no data leakage between train and validation — critical for time-ordered interaction data where future swipes must never inform past training.
 
-Every ALS run is tracked in MLflow (hyperparameters + metrics + pipeline duration) and a Discord notification is sent on completion.
+**Experiment tracking (MLflow)**
 
-> **Image: MLflow experiment tracking**
-> `[mlflow.png]`
+Every **ALS** offline run is logged to MLflow automatically: hyperparameters (factors, regularization, iterations), evaluation metrics, pipeline duration, and model artifacts. The BPR, SVM, and Item-CF pipelines do not integrate MLflow in their `main.py` flows today. This makes ALS runs reproducible and comparable across versions without manual logging.
 
-> **Image: Discord training notification**
-> `[discord.png]`
+<img src="docs/assets/ml-flow.png" width="560"/>
 
-Evaluation metrics (ALS, factors=64, MovieLens 20M):
+**Training notifications (Discord)**
 
-| Metric | Score |
-|---|---|
-| Precision@10 | 0.055 |
-| Recall@10 | 0.081 |
-| NDCG@10 | 0.183 |
+On pipeline completion a structured card is posted to a Discord webhook with the full metric summary, hyperparameters, and an evaluation chart. This gives the team visibility into training outcomes without needing to access MLflow directly.
+
+<img src="docs/assets/discord-pipeline.png" width="420"/>
+
+> See [DeepWiki — Offline Training Pipeline](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/3.1-offline-training-pipeline)
+
+### Benchmarking
+
+Four models evaluated at K=10 on MovieLens 20M with a chronological train/val split:
+
+<img src="docs/assets/model_performance_k10.png" width="500"/>
+
+| Model | Precision@10 | Recall@10 | NDCG@10 |
+|---|---|---|---|
+| ALS | 0.051 | 0.070 | 0.183 |
+| SVM | 0.040 | 0.078 | 0.147 |
+| Item-CF | 0.059 | 0.134 | **0.223** |
+| BPR | 0.054 | 0.090 | 0.187 |
+
+Item-CF achieves the best NDCG@10. ALS is used as the default online-serving model due to its lower inference latency and native support for incremental user-vector updates.
 
 ### Online serving
 
@@ -128,11 +147,17 @@ Every swipe triggers:
 3. Persist: Redis (immediate) + Postgres (async background task)
 4. On next recommendation request: vectorised dot-product ranking with `argpartition` (O(N) top-k) and seen-movie exclusion
 
+> See [DeepWiki — Online Serving and Real-Time Updates](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/3.2-online-serving-and-real-time-updates)
+
 ### Closed loop
 
-The offline pipeline fetches live swipes from Postgres before every training run. App user IDs are offset by 10,000,000 to avoid collision with MovieLens IDs. Every retrain incorporates real user behavior alongside the base MovieLens 20M corpus.
+The offline pipeline fetches live swipes from Postgres before every training run. App user IDs are offset by 10,000,000 to avoid collision with MovieLens IDs. Every retrain incorporates real user behaviour alongside the base MovieLens 20M corpus.
 
-### Knowledge Graph
+---
+
+## Knowledge Graph
+
+> See [DeepWiki — Knowledge Graph](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/4-knowledge-graph)
 
 Neo4j graph: Movies, Persons (director/actor/writer), Genres, Keywords, Collections, ProductionCompanies.
 
@@ -140,18 +165,48 @@ Neo4j graph: Movies, Persons (director/actor/writer), Genres, Keywords, Collecti
 - **Traversal** — finds highest-scoring path from user interests to recommended movie
 - **Renderer** — converts scored path to a human-readable explanation sentence
 
+> Beacon map detail: [DeepWiki — Beacon Map and Explainability](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/4.2-beacon-map-and-explainability)
+
 ---
 
 ## Monitoring
 
-> **Image: Grafana dashboard**
-> `[grafana.png]`
+<img src="docs/assets/grafana.png" width="600"/>
 
 Grafana dashboards and alerting rules are provisioned as code (`deployment/telemetry/grafana/provisioning/`). Prometheus scrapes FastAPI metrics. The full observability stack starts with the application via Docker Compose.
+
+> See [DeepWiki — Observability](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/6.3-observability:-prometheus-grafana-and-mlflow)
+
+---
+
+## Infrastructure
+
+<img src="docs/assets/deployment-flow.png" width="560"/>
+
+Multi-cloud deployment (AWS + Azure) via Terraform + Ansible:
+
+```
+Terraform (AWS or Azure)
+  → Provisions VPC/VNet, compute, managed DB, secrets manager
+  → terraform output -json
+      → infra/scripts/output_redirection/
+          → .env files (backend + frontend)
+          → Ansible inventory
+Ansible
+  → Installs Docker on EC2 / Azure VM
+  → Deploys production Docker Compose
+  → Configures all services
+```
+
+Azure deployments use Managed Identity + Key Vault: no credentials in environment files or Docker images. AWS deployments use Secrets Manager.
+
+> See [DeepWiki — Terraform and Cloud Provisioning](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/6.2-terraform-and-cloud-provisioning)
 
 ---
 
 ## Setup
+
+> See [DeepWiki — Getting Started](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1.1-getting-started)
 
 ### Prerequisites
 
@@ -161,6 +216,8 @@ Grafana dashboards and alerting rules are provisioned as code (`deployment/telem
 - Firebase project (for auth)
 
 ### 1. Environment variables
+
+> See [DeepWiki — Configuration and Environment Variables](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1.2-configuration-and-environment-variables)
 
 ```bash
 # Backend
@@ -197,15 +254,20 @@ make dev-start
 ### 4. Run the offline pipeline
 
 ```bash
-# ALS (primary model, MLflow-tracked)
 cd backend
+
+# ALS (primary model, MLflow-tracked)
 python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 
-# FM / LightFM BPR (requires: pip install lightfm)
-python -m movie_recommender.services.recommender.pipeline.offline.models.fm.main
-```
+# BPR
+python -m movie_recommender.services.recommender.pipeline.offline.models.bpr.main
 
-Trained embeddings are saved to `model_assets_dir` (configured in `config.yaml`). The online serving layer loads them at startup.
+# SVM
+python -m movie_recommender.services.recommender.pipeline.offline.models.svm.main
+
+# Item-CF
+python -m movie_recommender.services.recommender.pipeline.offline.models.item_cf.main
+```
 
 ---
 
@@ -231,45 +293,25 @@ alembic upgrade head
 
 ---
 
-## CI/CD
+## Testing
 
-> **Image: CI/CD pipeline**
-> `[ci-cd.png]`
+> See [DeepWiki — Testing](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/7-testing) · [Unit Tests](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/7.1-unit-tests) · [Integration Tests](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/7.2-integration-tests)
 
 GitHub Actions runs on every push touching `backend/`:
 
 1. **Lint** — `ruff` format check via `uv`
-2. **Unit tests** — full test suite, runs after lint passes
+2. **Unit tests** — full test suite
+3. **Integration tests** — FeedManager (Redis) + API smoke tests (Postgres)
 
-Pre-commit hooks (run on every local commit):
-
-- Trailing whitespace, YAML/JSON validation, large file detection
-- Debug statement detection
-- `gitleaks` secret scanning
-- Unit tests
-
-CODEOWNERS assigns reviewers automatically: backend → `@javidsegura`, frontend → `@aallendez`, recommender → data team.
+Pre-commit hooks run on every local commit: trailing whitespace, YAML/JSON validation, large file detection, debug statement detection, `gitleaks` secret scanning, unit tests.
 
 ---
 
-## Infrastructure
+## Authentication
 
-Multi-cloud deployment (AWS + Azure) via Terraform + Ansible:
+> See [DeepWiki — Authentication](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/2.3-authentication)
 
-```
-Terraform (AWS or Azure)
-  → Provisions VPC/VNet, compute, managed DB, secrets manager
-  → terraform output -json
-      → infra/scripts/output_redirection/
-          → .env files (backend + frontend)
-          → Ansible inventory
-Ansible
-  → Installs Docker on EC2 / Azure VM
-  → Deploys production Docker Compose
-  → Configures all services
-```
-
-Azure deployments use Managed Identity + Key Vault: no credentials in environment files or Docker images. AWS deployments use Secrets Manager.
+Firebase handles identity (Google OAuth + email/password). The backend verifies Firebase ID tokens via a FastAPI dependency (`verify_user()`). Private routes require ownership checks via `user_private_route=True`.
 
 ---
 
@@ -277,12 +319,14 @@ Azure deployments use Managed Identity + Key Vault: no credentials in environmen
 
 | Name | Role |
 |---|---|
-| Javier Dominguez Segura | Backend / ML Engineer / MLOps |
+| Javier Dominguez Segura | Backend / MLOps / Infrastructure |
 | Lucas Van Zyl | Data Engineer |
-| [Teammate] | Data Scientist |
-| [Teammate] | ML Engineer |
-| [Teammate] | Frontend |
-| [Teammate] | Frontend |
+| Borja Valentin | Data Engineer |
+| Lus Infante | ML Engineer |
+| Alejandro Helmrich | ML Engineer / Testing |
+| Diego Oliveros | Data Scientist |
+| Juan Alonso-Allende | Frontend / Chatbot |
+| Juliette Janne | Frontend / Project Management |
 
 ---
 
@@ -291,5 +335,7 @@ Azure deployments use Managed Identity + Key Vault: no credentials in environmen
 - [TMDB API](https://www.themoviedb.org/documentation/api)
 - [MovieLens 20M dataset](https://grouplens.org/datasets/movielens/20m/)
 - [implicit (ALS)](https://github.com/benfred/implicit)
-- [LightFM (BPR/FM)](https://github.com/lyst/lightfm)
+- [LightFM (BPR)](https://github.com/lyst/lightfm)
 - [MLflow](https://mlflow.org)
+- [DeepWiki — Full documentation](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1-overview)
+- [Glossary](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/8-glossary)
