@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import re
 
@@ -223,17 +222,9 @@ class TMDBFetcher:
 
 
 class MovieHydrator:
-    def __init__(self, db_session_factory, neo4j_driver=None) -> None:
+    def __init__(self, db_session_factory) -> None:
         self.db_session_factory = db_session_factory
-        self.neo4j_driver = neo4j_driver
         self.tmdb = TMDBFetcher()
-        self._kg_semaphore: asyncio.Semaphore | None = None
-
-    def _get_kg_semaphore(self) -> asyncio.Semaphore:
-        # Lazy init — asyncio.Semaphore must be created inside a running loop
-        if self._kg_semaphore is None:
-            self._kg_semaphore = asyncio.Semaphore(3)
-        return self._kg_semaphore
 
     async def get_or_fetch_movie(
         self, movie_db_id: int, movie_title: str
@@ -263,25 +254,4 @@ class MovieHydrator:
                     f"Movie {movie_db_id} already saved by another task, skipping"
                 )
 
-        if self.neo4j_driver:
-            asyncio.create_task(self._enrich_kg(details))
-
         return details
-
-    async def _enrich_kg(self, movie_details: MovieDetails) -> None:
-        """Fire-and-forget KG enrichment. Never blocks the feed.
-
-        Semaphore (max 3 concurrent) prevents Neo4j deadlocks that occur when
-        many movies concurrently MERGE the same shared nodes (actors, genres).
-        """
-        async with self._get_kg_semaphore():
-            try:
-                from movie_recommender.services.knowledge_graph.writer import (
-                    upsert_movie_to_kg,
-                )
-
-                await upsert_movie_to_kg(self.neo4j_driver, movie_details)
-            except Exception:
-                logger.warning(
-                    "KG enrichment failed for %s, continuing", movie_details.title
-                )

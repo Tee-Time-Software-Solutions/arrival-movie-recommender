@@ -45,24 +45,3 @@ export interface UserCreatedResponse {
   updated_at: string;
   onboarding_completed: boolean;
 }
-
-export interface LinkedMovie {
-  tmdb_id: number;
-  title: string;
-  poster_url: string | null;
-}
-
-export interface TopPerson {
-  tmdb_id: number;
-  name: string;
-  entity_type: string;
-  weight: number;
-  image_url: string | null;
-  linked_movies: LinkedMovie[];
-}
-
-export interface TopPeopleResponse {
-  directors: TopPerson[];
-  actors: TopPerson[];
-  writers: TopPerson[];
-}

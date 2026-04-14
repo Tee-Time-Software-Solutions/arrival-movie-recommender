@@ -12,7 +12,6 @@ from movie_recommender.main import app
 from movie_recommender.dependencies.database import get_db
 from movie_recommender.dependencies.recommender import get_recommender
 from movie_recommender.dependencies.redis import get_async_redis
-from movie_recommender.dependencies.neo4j import get_neo4j_driver
 
 FAKE_UID = "firebase-uid-1"
 
@@ -58,7 +57,6 @@ def client(mock_db):
     app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_recommender] = lambda: AsyncMock()
     app.dependency_overrides[get_async_redis] = lambda: AsyncMock()
-    app.dependency_overrides[get_neo4j_driver] = lambda: AsyncMock()
 
     with (
         patch(

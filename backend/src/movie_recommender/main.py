@@ -6,13 +6,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from movie_recommender.api.v1 import routers
-from movie_recommender.core.clients.neo4j import Neo4jClient
 from movie_recommender.core.clients.redis import RedisClient
 from movie_recommender.core.clients.firebase import initialize_firebase
 from movie_recommender.core.logger.main import initialize_logger
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.dependencies.recommender import init_recommender_redis
-from movie_recommender.services.knowledge_graph.schema import ensure_kg_schema
 from movie_recommender.services.onboarding.seed_onboarding_movies import (
     seed_onboarding_movies,
 )
@@ -34,8 +32,6 @@ async def lifespan(app: FastAPI):
     initialize_firebase(AppSettings())
 
     redis_binary_client = await RedisClient().get_async_binary_client()
-    neo4j_driver = await Neo4jClient().get_async_driver()
-    await ensure_kg_schema(neo4j_driver)
     await init_recommender_redis(redis_binary_client)
 
     asyncio.create_task(seed_onboarding_movies())
@@ -48,7 +44,6 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down application...")
-    await Neo4jClient().close()
     await RedisClient().close()
 
 

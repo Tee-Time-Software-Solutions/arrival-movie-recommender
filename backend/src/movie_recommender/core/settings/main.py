@@ -5,7 +5,6 @@ from typing import List
 from movie_recommender.core.settings.schemas import (
     AppLogicSettings,
     FirebaseSettings,
-    Neo4jSettings,
     OpenRouterSettings,
     RedisSettings,
     DatabaseSettings,
@@ -39,7 +38,6 @@ class AppSettings:
         self.app_logic = self._load_app_logic_settings()
         self.tmdb = self._load_tmdb_settings()
         self.redis = self._load_redis_settings()
-        self.neo4j = self._load_neo4j_settings()
         self.firebase = self._load_firebase_settings()
         self.database = self._load_database_settings()
         self.openrouter = self._load_openrouter_settings()
@@ -84,20 +82,6 @@ class AppSettings:
 
         return RedisSettings(
             url=url, max_connections=int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
-        )
-
-    def _load_neo4j_settings(self) -> Neo4jSettings:
-        """Load Neo4j settings."""
-        uri = os.getenv("NEO4J_URI", "bolt://neo4j:7687")
-        username = os.getenv("NEO4J_USERNAME", "neo4j")
-        password = os.getenv("NEO4J_PASSWORD", "dev-password")
-        database = os.getenv("NEO4J_DATABASE", "neo4j")
-
-        return Neo4jSettings(
-            uri=uri,
-            username=username,
-            password=password,
-            database=database,
         )
 
     def _load_database_settings(self) -> DatabaseSettings:

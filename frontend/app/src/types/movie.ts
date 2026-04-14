@@ -23,25 +23,12 @@ export interface MovieCard {
   is_adult: boolean;
 }
 
-export interface EntityReference {
-  entity_type: string;
-  tmdb_id: number;
-  name: string;
-}
-
-export interface ExplanationResponse {
-  text: string;
-  entities: EntityReference[];
-  confidence: number;
-}
-
 export interface MovieDetails extends MovieCard {
   synopsis: string;
   cast: CastMember[];
   trailer_url: string | null;
   runtime: number;
   movie_providers: MovieProvider[];
-  explanation: ExplanationResponse | null;
 }
 
 export interface PaginatedMovieDetails {

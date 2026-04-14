@@ -34,7 +34,6 @@ dependencies = [
       "asyncpg", #db --  async postgres driver (used by the app)
       "psycopg2-binary", # db -- sync postgres driver (for migrations)
       "python-dotenv",
-      "neo4j>=5.0.0",
       "httpx>=0.27.0", # async HTTP client (TMDBFetcher)
       "apscheduler>=3.11.2",
       "langchain-core>=0.3",

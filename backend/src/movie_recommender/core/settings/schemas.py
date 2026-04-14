@@ -50,13 +50,6 @@ class StorageSettings(BaseModel):
     azure_account_key: str | None = None
 
 
-class Neo4jSettings(BaseModel):
-    uri: str
-    username: str
-    password: str
-    database: str = "neo4j"
-
-
 class OpenRouterSettings(BaseModel):
     api_key: str
     base_url: str = "https://openrouter.ai/api/v1"
