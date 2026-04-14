@@ -90,11 +90,40 @@ Migration env loads connection URL from `AppSettings` singleton.
 
 ### Testing
 
-- Tests in `backend/tests/unit/`, mirroring source structure
-- Fixtures in `conftest.py` files (global + per-directory)
+#### Test structure
+
+- **Unit tests**: `backend/tests/unit/`, mirroring source layout (`api/`, `services/`, `database/CRUD/`, etc.)
+- **Integration tests**: `backend/tests/integration/`, marked with `@pytest.mark.integration`
+- Fixtures in `conftest.py` files — global root conftest plus per-directory overrides
 - Mock async dependencies with `AsyncMock`
 - Patch at the import site: `movie_recommender.api.v1.users.create_user`
-- Override dependencies via `app.dependency_overrides[get_db]`
+- Override FastAPI dependencies via `app.dependency_overrides[get_db]`
+
+#### Running locally
+
+```bash
+make backend-tests          # unit tests only (no external services needed)
+
+# Integration tests require Postgres + Redis running (e.g. via make dev-start):
+cd backend
+.venv/bin/python -m pytest tests/integration/ -v -m integration
+```
+
+#### CI pipelines (GitHub Actions)
+
+Three workflows trigger on backend changes (`backend/**`):
+
+| Workflow | File | Trigger | What it does |
+|---|---|---|---|
+| **CI - Backend** | `ci-backend.yml` | push / PR on any branch | Lint (Ruff) → unit tests, sequentially (`unit-tests` needs `lint`) |
+| **CI - Backend Integration** | `ci-backend-integration.yml` | push / PR on any branch | Spins up Postgres 16 + Redis 7.2 as services, runs Alembic migrations, then runs `pytest tests/integration/ -m integration` |
+| **Coverage Report** | `coverage-report.yml` | push to `main` + PRs | Runs unit tests with `pytest-cov`, uploads `coverage.xml` as a build artifact |
+
+**Integration workflow environment** — the workflow injects all required `AppSettings` fields as env vars so the app can boot without real Firebase/Neo4j/TMDB credentials. Stub values are used for those services; only Postgres and Redis are real. Key vars set:
+
+- `DATABASE_URL`, `DB_*` — points to the GitHub-hosted Postgres service container
+- `REDIS_URL` — points to the GitHub-hosted Redis service container
+- `FIREBASE_*`, `NEO4J_*`, `TMDB_*` — stub/fake values so `AppSettings` validation passes without live credentials
 
 ---
 
@@ -174,7 +203,7 @@ Requires `ENVIRONMENT=dev` or `ENVIRONMENT=production`.
 - **Backend**: Ruff for linting/formatting, pre-commit hooks run tests
 - **Frontend**: ESLint with React plugins
 - **Pre-commit**: Trailing whitespace, YAML/JSON validation, large file detection, debug statement detection, gitleaks secret scanning
-- **CI**: GitHub Actions runs lint then unit tests on backend changes
+- **CI**: Three GitHub Actions workflows — lint+unit tests, integration tests (real Postgres/Redis), and coverage report (see Testing section)
 
 ---
 
