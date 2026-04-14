@@ -38,9 +38,9 @@ class BPRConfig(BaseModel):
 
 
 class SVMConfig(BaseModel):
-    c: float = 1.0
+    c: float = 0.25
     max_iter: int = 2000
-    negative_sampling_ratio: float = 3.0
+    negative_sampling_ratio: float = 1.0
     random_state: int = 42
     use_metadata_features: bool = True
     release_year_bucket_size: int = 10
