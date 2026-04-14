@@ -1,5 +1,5 @@
-# NOTE: LightFM (pip install lightfm) must be installed for this pipeline to run.
-# lightfm currently fails to build on some platforms due to Cython/compiler issues.
+# NOTE: This pipeline previously used LightFM, but LightFM can fail to build on
+# some platforms due to Cython/compiler issues. We now use `implicit` BPR.
 
 import time
 
@@ -10,24 +10,23 @@ import movie_recommender.services.recommender.pipeline.offline.models.base.steps
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.filter as filter_step
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.prune_movies as prune_movies
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.split as split_step
-import movie_recommender.services.recommender.pipeline.offline.models.fm.steps.data as fm_data
-import movie_recommender.services.recommender.pipeline.offline.models.fm.steps.trainer as trainer
-import movie_recommender.services.recommender.pipeline.offline.models.fm.steps.evaluator as evaluator
+import movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.data as bpr_data
+import movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.trainer as trainer
+import movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.evaluator as evaluator
 from movie_recommender.services.recommender.pipeline.offline.models.base.base_pipeline import (
     RecommenderPipeline,
 )
 from movie_recommender.services.recommender.utils.schema import load_config
 
 
-class FMPipeline(RecommenderPipeline):
+class BPRPipeline(RecommenderPipeline):
     """
-    Factorization Machine pipeline using LightFM (BPR loss).
+    Second offline model pipeline using implicit BPR (matrix factorization).
 
     Math:
-        ŷ(x) = w₀ + Σ wⱼxⱼ + Σᵢ Σⱼ₍ᵢ₎ ⟨vᵢ, vⱼ⟩ xᵢ xⱼ
-        Loss: BPR (Bayesian Personalised Ranking)
-
-    Requires: pip install lightfm
+        Train embeddings with BPR (Bayesian Personalized Ranking) on implicit
+        positive-only user↔item interactions. Serve by scoring dot-products
+        between user/item latent vectors.
     """
 
     def run_pipeline(self) -> None:
@@ -57,20 +56,20 @@ class FMPipeline(RecommenderPipeline):
         print("\nStep 7: Chronological split...")
         split_step.run(config)
 
-        print("\nStep 8: Building LightFM data artifacts...")
-        fm_data.run(config)
+        print("\nStep 8: Building BPR data artifacts...")
+        bpr_data.run(config)
 
-        print("\nStep 9: Training LightFM (BPR)...")
+        print("\nStep 9: Training implicit BPR...")
         trainer.run(config)
 
-        print("\nStep 10: Evaluating LightFM...")
+        print("\nStep 10: Evaluating BPR model...")
         report = evaluator.run(config)
 
         elapsed = time.time() - start
         print(f"\n===== PIPELINE COMPLETE ({elapsed / 60:.2f} min) =====")
 
-        self._notify("LightFM (BPR)", report, elapsed)
+        self._notify("BPR", report, elapsed)
 
 
 if __name__ == "__main__":
-    FMPipeline().run_pipeline()
+    BPRPipeline().run_pipeline()
