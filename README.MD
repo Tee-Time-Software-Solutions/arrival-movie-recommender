@@ -13,7 +13,7 @@ Users swipe through movies (like, dislike, supercharge, skip). Every swipe updat
 
 A Neo4j Knowledge Graph enriches each recommendation with an explanation: "You might like this because you enjoyed films directed by Christopher Nolan."
 
-![Architecture overview](docs/assets/architecture.png)
+<img src="docs/assets/architecture.png" width="600"/>
 
 > Full system documentation: [DeepWiki — Overview](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1-overview)
 
@@ -107,24 +107,36 @@ Preprocess movies → Preprocess ratings → Fetch app swipes (Postgres)
     → [Item-CF] Build similarity matrix → Train → Evaluate
 ```
 
-The chronological split ensures no data leakage. Every run is tracked in MLflow (hyperparameters, metrics, pipeline duration) and a Discord notification fires on completion.
+The chronological split ensures no data leakage between train and validation — critical for time-ordered interaction data where future swipes must never inform past training.
 
-![MLflow experiment tracking](docs/assets/ml-flow.png)
+**Experiment tracking (MLflow)**
 
-![Discord training notification](docs/assets/discord-pipeline.png)
+Every run is logged automatically: hyperparameters (factors, regularization, iterations), evaluation metrics, pipeline duration, and model artifacts. This makes runs reproducible and comparable across model versions without any manual logging.
 
-Evaluation metrics at K=10 across models:
+<img src="docs/assets/ml-flow.png" width="560"/>
 
-![Model performance at K=10](docs/assets/model_performance_k10.png)
+**Training notifications (Discord)**
+
+On pipeline completion a structured card is posted to a Discord webhook with the full metric summary, hyperparameters, and an evaluation chart. This gives the team visibility into training outcomes without needing to access MLflow directly.
+
+<img src="docs/assets/discord-pipeline.png" width="420"/>
+
+> See [DeepWiki — Offline Training Pipeline](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/3.1-offline-training-pipeline)
+
+### Benchmarking
+
+Four models evaluated at K=10 on MovieLens 20M with a chronological train/val split:
+
+<img src="docs/assets/model_performance_k10.png" width="500"/>
 
 | Model | Precision@10 | Recall@10 | NDCG@10 |
 |---|---|---|---|
 | ALS | 0.051 | 0.070 | 0.183 |
 | SVM | 0.040 | 0.078 | 0.147 |
-| Item-CF | 0.059 | 0.134 | 0.223 |
+| Item-CF | 0.059 | 0.134 | **0.223** |
 | BPR | 0.054 | 0.090 | 0.187 |
 
-> See [DeepWiki — Offline Training Pipeline](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/3.1-offline-training-pipeline)
+Item-CF achieves the best NDCG@10. ALS is used as the default online-serving model due to its lower inference latency and native support for incremental user-vector updates.
 
 ### Online serving
 
@@ -159,7 +171,7 @@ Neo4j graph: Movies, Persons (director/actor/writer), Genres, Keywords, Collecti
 
 ## Monitoring
 
-![Grafana dashboard](docs/assets/grafana.png)
+<img src="docs/assets/grafana.png" width="600"/>
 
 Grafana dashboards and alerting rules are provisioned as code (`deployment/telemetry/grafana/provisioning/`). Prometheus scrapes FastAPI metrics. The full observability stack starts with the application via Docker Compose.
 
@@ -169,7 +181,7 @@ Grafana dashboards and alerting rules are provisioned as code (`deployment/telem
 
 ## Infrastructure
 
-![Deployment flow](docs/assets/deployment-flow.png)
+<img src="docs/assets/deployment-flow.png" width="560"/>
 
 Multi-cloud deployment (AWS + Azure) via Terraform + Ansible:
 
