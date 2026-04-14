@@ -10,10 +10,12 @@ def rank_movie_ids(
     model_artifacts: RecommenderArtifacts,
     user_vector: np.ndarray,
     seen_movie_ids: set[int],
-    genre_impression_counts: dict[str, int] | None = None,
-    exploration_weight: float = 0.0,
 ) -> list[int]:
-    """Rank all known movies by score, excluding seen ones."""
+    """Rank all known movies by dot-product score, excluding seen ones.
+
+    Fully vectorised: uses the pre-built all_movie_ids array so there are no
+    Python-level per-movie loops or dict lookups on the hot path.
+    """
     if n == 0:
         return []
 
@@ -31,31 +33,12 @@ def rank_movie_ids(
 
     candidate_embeddings = model_artifacts.movie_embeddings[mask]
     scores = candidate_embeddings @ user_vector
-    final_scores = scores
 
-    if exploration_weight > 0:
-        final_scores = scores.copy()
-
-        counts = genre_impression_counts or {}
-        genre_to_bonus = {g: 1.0 / np.sqrt(1.0 + c) for g, c in counts.items()}
-
-        movie_to_genres = model_artifacts.movie_id_to_genres
-        bonuses = np.zeros(len(candidate_ids), dtype=np.float32)
-
-        for i, movie_id in enumerate(candidate_ids):
-            m_genres = movie_to_genres.get(int(movie_id))
-            if m_genres:
-                bonuses[i] = max(
-                    (genre_to_bonus.get(g, 1.0) for g in m_genres),
-                    default=0.0,
-                )
-
-        final_scores += exploration_weight * bonuses
-
-    if n >= len(final_scores):
-        ranked = final_scores.argsort()[::-1]
+    if n >= len(scores):
+        ranked = scores.argsort()[::-1]
     else:
-        top = np.argpartition(final_scores, -n)[-n:]
-        ranked = top[final_scores[top].argsort()[::-1]]
+        # argpartition is O(N) vs argsort's O(N log N) — significant for large n
+        top = np.argpartition(scores, -n)[-n:]
+        ranked = top[scores[top].argsort()[::-1]]
 
     return candidate_ids[ranked].tolist()

@@ -157,6 +157,7 @@ class TestGetTopNRecommendations:
         redis_client.get = AsyncMock(return_value=None)
         redis_client.set = AsyncMock()
         redis_client.smembers = AsyncMock(return_value={b"1", b"2"})
+        redis_client.hgetall = AsyncMock(return_value={})
 
         rec = _make_recommender(
             artifacts=_make_artifacts(user_id_to_index={7: 0}),
@@ -168,11 +169,6 @@ class TestGetTopNRecommendations:
                 "movie_recommender.services.recommender.main.get_user_vector",
                 new_callable=AsyncMock,
                 return_value=None,
-            ),
-            patch(
-                "movie_recommender.services.recommender.main.get_genre_impression_counts",
-                new_callable=AsyncMock,
-                return_value={},
             ),
             patch(
                 "movie_recommender.services.recommender.main.rank_movie_ids",
@@ -192,6 +188,8 @@ class TestSetUserFeedback:
         redis_client = MagicMock()
         redis_client.get = AsyncMock(return_value=None)
         redis_client.set = AsyncMock()
+        redis_client.incr = AsyncMock(return_value=1)
+        redis_client.expire = AsyncMock()
 
         rec = _make_recommender(
             artifacts=_make_artifacts(user_id_to_index={7: 0}),
@@ -209,15 +207,6 @@ class TestSetUserFeedback:
             patch(
                 "movie_recommender.services.recommender.main.apply_feedback_update",
                 return_value=updated,
-            ),
-            patch(
-                "movie_recommender.services.recommender.main.get_feedback_count",
-                new_callable=AsyncMock,
-                return_value=0,
-            ),
-            patch(
-                "movie_recommender.services.recommender.main.increment_feedback_count",
-                new_callable=AsyncMock,
             ),
             patch.object(
                 Recommender, "_persist_vector_to_db", new_callable=AsyncMock
