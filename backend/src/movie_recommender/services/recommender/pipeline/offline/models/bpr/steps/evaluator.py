@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime
+import json
 from typing import Dict, Set
 
 import numpy as np
@@ -94,8 +96,38 @@ def run(config: Config) -> None:
 
     print(f"\n=== BPR Evaluation Results (K={k}) ===")
     if recall_scores:
-        print(f"Recall@{k}:    {np.mean(recall_scores):.4f}")
-        print(f"Precision@{k}: {np.mean(precision_scores):.4f}")
-        print(f"NDCG@{k}:      {np.mean(ndcg_scores):.4f}")
+        recall_mean = float(np.mean(recall_scores))
+        precision_mean = float(np.mean(precision_scores))
+        ndcg_mean = float(np.mean(ndcg_scores))
+
+        print(f"Recall@{k}:    {recall_mean:.4f}")
+        print(f"Precision@{k}: {precision_mean:.4f}")
+        print(f"NDCG@{k}:      {ndcg_mean:.4f}")
+
+        report = {
+            "evaluated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "model": "bpr",
+            "k": k,
+            "config": {
+                "factors": config.models.bpr.factors,
+                "iterations": config.models.bpr.iterations,
+                "num_threads": config.models.bpr.num_threads,
+                "min_user_ratings": config.pipeline.min_user_ratings,
+                "min_movie_ratings": config.pipeline.min_movie_ratings,
+                "train_ratio": config.pipeline.train_ratio,
+                "val_ratio": config.pipeline.val_ratio,
+            },
+            "metrics": {
+                f"recall@{k}": recall_mean,
+                f"precision@{k}": precision_mean,
+                f"ndcg@{k}": ndcg_mean,
+            },
+            "num_users_evaluated": len(recall_scores),
+        }
+
+        report_path = assets_dir / "bpr_metrics.json"
+        with open(report_path, "w") as f:
+            json.dump(report, f, indent=2)
+        print(f"Metrics saved to {report_path}")
     else:
         print("No users were evaluated.")
