@@ -52,6 +52,7 @@ class ItemCFConfig(BaseModel):
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
     bpr: BPRConfig = BPRConfig()
+    item_cf: ItemCFConfig = ItemCFConfig()
 
 
 class Config(BaseModel):
