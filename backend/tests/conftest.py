@@ -59,6 +59,8 @@ def synthetic_artifacts() -> RecommenderArtifacts:
             103: "Action Comedy",
             104: "Horror Movie",
         },
+        # Forward-compat: consumed by genre-exploration code on `main`. PR CI runs
+        # against the merged (ci → main) result, so this field must be present.
         movie_id_to_genres={
             100: ["Action"],
             101: ["Comedy"],
@@ -78,6 +80,9 @@ def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
     - _redis is an AsyncMock with smembers returning empty set by default
     - _persist_vector_to_db is a no-op AsyncMock
     """
+    # Forward-compat: hgetall/incr/expire are awaited by adaptive-learning and
+    # feedback-count code that lives on `main`. PR CI runs against the merged
+    # (ci → main) result, so these must be AsyncMocks or the awaits blow up.
     mock_redis = AsyncMock()
     mock_redis.get = AsyncMock(return_value=None)
     mock_redis.smembers = AsyncMock(return_value=set())
@@ -90,6 +95,8 @@ def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
     rec = Recommender.__new__(Recommender)
     rec.model_artifacts = synthetic_artifacts
     rec.learning_rate = 0.05
+    # Forward-compat: adaptive_learning_strength / exploration_weight are read
+    # by Recommender code on `main`; PR CI merges ci → main before running.
     rec.adaptive_learning_strength = 0.0
     rec.norm_cap = 10.0
     rec.exploration_weight = 0.0

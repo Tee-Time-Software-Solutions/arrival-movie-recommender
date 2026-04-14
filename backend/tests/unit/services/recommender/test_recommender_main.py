@@ -46,6 +46,8 @@ def _make_recommender(
     rec = Recommender.__new__(Recommender)
     rec.learning_rate = learning_rate
     rec.norm_cap = norm_cap
+    # Forward-compat: adaptive_learning_strength / exploration_weight are read
+    # by Recommender code on `main`; PR CI merges ci → main before running.
     rec.adaptive_learning_strength = adaptive_learning_strength
     rec.exploration_weight = exploration_weight
     rec.model_artifacts = artifacts or _make_artifacts()
@@ -157,6 +159,7 @@ class TestGetTopNRecommendations:
         redis_client.get = AsyncMock(return_value=None)
         redis_client.set = AsyncMock()
         redis_client.smembers = AsyncMock(return_value={b"1", b"2"})
+        # Forward-compat: awaited by genre-exploration code on `main`.
         redis_client.hgetall = AsyncMock(return_value={})
 
         rec = _make_recommender(
@@ -188,6 +191,7 @@ class TestSetUserFeedback:
         redis_client = MagicMock()
         redis_client.get = AsyncMock(return_value=None)
         redis_client.set = AsyncMock()
+        # Forward-compat: incr/expire are awaited by feedback-count tracking on `main`.
         redis_client.incr = AsyncMock(return_value=1)
         redis_client.expire = AsyncMock()
 
