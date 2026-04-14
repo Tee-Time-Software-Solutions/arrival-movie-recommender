@@ -37,9 +37,18 @@ class FMConfig(BaseModel):
     num_threads: int = 4
 
 
+class ItemCFConfig(BaseModel):
+    similarity: str = "cosine"
+    top_k_neighbors: int = 100
+    min_similarity: float = 0.0
+    use_positive_only: bool = True
+    normalize_scores: bool = True
+
+
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
     fm: FMConfig = FMConfig()
+    item_cf: ItemCFConfig = ItemCFConfig()
 
 
 class Config(BaseModel):

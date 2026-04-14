@@ -1,6 +1,8 @@
 # Recommender — Architecture
 
-## Offline pipeline (ALS)
+## Offline pipelines
+
+### ALS
 
 Run once to produce embeddings. Re-runs nightly via cron job.
 
@@ -73,6 +75,37 @@ evaluate()                                  [als/steps/metrics.py]
     mask seen movies → take top 10
     compute Precision@10, Recall@10, NDCG@10
   → model_assets/als_metrics.json
+```
+
+### Item-CF (offline-only)
+
+Item-CF reuses the same base preprocessing/filter/split steps as ALS, then switches to
+an item-similarity training/evaluation tail.
+
+```
+split()                                     [base/steps/split.py]
+      │
+      ▼
+build_item_cf_matrix()                      [item_cf/steps/matrix.py]
+  CSR matrix from train.parquet (user_id, movie_id, preference)
+  + ID mappings with index_to_movie_id
+  → model_assets/item_cf_train_matrix.npz
+  → model_assets/item_cf_mappings.json
+      │
+      ▼
+train_item_cf()                             [item_cf/steps/train_item_cf.py]
+  cosine item-item similarity from train matrix columns
+  optional positive-only interactions for similarity construction
+  top-K neighbor pruning per item for compact artifacts
+  → model_assets/item_cf_similarity.npz
+  → model_assets/item_cf_model_info.json
+      │
+      ▼
+evaluate_item_cf()                          [item_cf/steps/metrics.py]
+  rank candidates per val user (excluding train-seen items)
+  compute Precision@10, Recall@10, NDCG@10
+  skip users with no valid candidates/ground truth
+  → model_assets/item_cf_metrics.json
 ```
 
 ### Nightly rerun
@@ -181,3 +214,6 @@ Recommender loads on startup via load_model_artifacts()
 per-swipe : online vector update → Redis + Postgres (upsert)
 per-feed  : dot product → ranked list → Redis queue → TMDB hydration → response
 ```
+
+Item-CF artifacts are currently generated and evaluated offline only; online serving
+still reads ALS artifacts.

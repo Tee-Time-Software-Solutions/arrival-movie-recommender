@@ -40,6 +40,13 @@ cd backend
 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 ```
 
+Run Item-CF (offline-only artifacts + metrics):
+
+```bash
+cd backend
+uv run python -m movie_recommender.services.recommender.pipeline.offline.models.item_cf.main
+```
+
 This runs the 10-step pipeline:
 
 | Step | What it does | Output |
@@ -54,6 +61,13 @@ This runs the 10-step pipeline:
 | 8 | Build sparse CSR matrix | `model_assets/R_train.npz`, `mappings.json` |
 | 9 | Train ALS | `model_assets/user_embeddings.npy`, `movie_embeddings.npy` |
 | 10 | Evaluate | `model_assets/als_metrics.json` |
+
+Item-CF uses the same first 7 base steps, then writes:
+- `model_assets/item_cf_train_matrix.npz`
+- `model_assets/item_cf_mappings.json`
+- `model_assets/item_cf_similarity.npz`
+- `model_assets/item_cf_model_info.json`
+- `model_assets/item_cf_metrics.json`
 
 All artifacts land under:
 ```
@@ -70,6 +84,10 @@ backend/src/movie_recommender/services/recommender/pipeline/artifacts/
 ```bash
 SKIP_DB_SWIPE_EXPORT=1 uv run python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 ```
+
+Item-CF supports the same `SKIP_DB_SWIPE_EXPORT=1` behavior.
+
+Online serving still uses ALS artifacts for live requests.
 
 Expected runtime on M1 (small dataset): ~2–5 min.
 
@@ -97,6 +115,12 @@ models:
     regularization: 0.1
     iterations: 15
     alpha: 15        # C(u,i) = 1 + alpha * |preference|
+  item_cf:
+    similarity: "cosine"
+    top_k_neighbors: 100
+    min_similarity: 0.0
+    use_positive_only: true
+    normalize_scores: true
 ```
 
 ---

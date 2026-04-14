@@ -25,3 +25,9 @@ models:
     no_components: 32
     epochs: 15
     num_threads: 4
+  item_cf:
+    similarity: "cosine"
+    top_k_neighbors: 100
+    min_similarity: 0.0
+    use_positive_only: true
+    normalize_scores: true
