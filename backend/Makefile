@@ -17,7 +17,7 @@ APP_PATH = src.movie_recommender.main:app
 
 # 0) Set-up
 install: ## Install packages with uv
-	uv venv $(VENV) --python 3.11
+	uv venv $(VENV) --python 3.12
 	uv sync --group dev
 
 help:
@@ -76,6 +76,15 @@ format-check: ## Formats
 format-fix: ## Format code (for pre-commit)
 	@echo "$(YELLOW)Formatting code with ruff...$(RESET)"
 	$(VENV_ACTIVATE) && ruff format src/
+
+push-docker: ## Build multi-arch image and push to Docker Hub. Requires: docker login + BACKEND_VERSION env var
+	@if [ -z "$(BACKEND_VERSION)" ]; then echo "BACKEND_VERSION required. Usage: BACKEND_VERSION=v1.0.0 make push-docker"; exit 1; fi
+	docker buildx build \
+		-t javidsegura/movie_recommender:$(ENVIRONMENT)-$(BACKEND_VERSION) \
+		-t javidsegura/movie_recommender:$(ENVIRONMENT) \
+		--platform linux/amd64,linux/arm64 \
+		--push \
+		-f ./Dockerfile ./
 
 # ── Recommender offline pipeline ────────────────────────────────────────────
 # Run from backend/ with DB_* env vars set (see env_config/synced/.env.dev).

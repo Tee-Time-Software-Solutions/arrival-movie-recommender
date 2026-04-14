@@ -17,7 +17,7 @@ from movie_recommender.services.recommender.pipeline.offline.models.bpr.steps.da
 )
 
 
-def run(config: Config) -> None:
+def run(config: Config) -> dict:
     """Evaluate BPR factors on the validation split using Recall@K, Precision@K, NDCG@K."""
     assets_dir = config.data_dirs.model_assets_dir
     k = 10
@@ -129,5 +129,8 @@ def run(config: Config) -> None:
         with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
         print(f"Metrics saved to {report_path}")
+
+        return report
     else:
         print("No users were evaluated.")
+        return {}

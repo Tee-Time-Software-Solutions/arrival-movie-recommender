@@ -37,9 +37,32 @@ class BPRConfig(BaseModel):
     num_threads: int = 4
 
 
+class SVMConfig(BaseModel):
+    c: float = 0.25
+    max_iter: int = 2000
+    negative_sampling_ratio: float = 1.0
+    random_state: int = 42
+    use_metadata_features: bool = True
+    release_year_bucket_size: int = 10
+
+
+class ItemCFConfig(BaseModel):
+    similarity: str = "cosine"
+    top_k_neighbors: int = 100
+    min_similarity: float = 0.2
+    use_positive_only: bool = True
+    normalize_scores: bool = False
+    min_co_raters: int = 1
+    similarity_shrinkage: float = 0.0
+    neighbor_weight_power: float = 1.0
+    relevance_preference_threshold: float = 0.0
+
+
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
     bpr: BPRConfig = BPRConfig()
+    item_cf: ItemCFConfig = ItemCFConfig()
+    svm: SVMConfig = SVMConfig()
 
 
 class Config(BaseModel):

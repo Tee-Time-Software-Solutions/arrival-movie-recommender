@@ -63,10 +63,12 @@ class BPRPipeline(RecommenderPipeline):
         trainer.run(config)
 
         print("\nStep 10: Evaluating BPR model...")
-        evaluator.run(config)
+        report = evaluator.run(config)
 
         elapsed = time.time() - start
         print(f"\n===== PIPELINE COMPLETE ({elapsed / 60:.2f} min) =====")
+
+        self._notify("BPR", report, elapsed)
 
 
 if __name__ == "__main__":

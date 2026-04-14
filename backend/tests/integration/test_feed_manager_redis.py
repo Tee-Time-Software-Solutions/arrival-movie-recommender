@@ -52,8 +52,6 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
     titles = titles or {mid: f"Movie {mid}" for mid in movie_ids}
 
     # Recommender stub — only the attributes FeedManager actually reads.
-    # Forward-compat: movie_id_to_genres is consumed by FeedManager on `main`
-    # (PR CI runs against the merged ci → main result).
     recommender = SimpleNamespace(
         user_seen_movie_ids={},
         model_artifacts=SimpleNamespace(
@@ -68,7 +66,6 @@ def _make_feed_manager(real_redis, movie_ids, titles=None):
     async def _fake_get_or_fetch(*args, **kwargs):
         mid = kwargs.get("movie_db_id", args[0] if args else None)
         title = kwargs.get("movie_title", args[1] if len(args) > 1 else "")
-        # Forward-compat: FeedManager on `main` reads `.genres` on hydrated results.
         return SimpleNamespace(id=mid, title=title, tmdb_id=None, genres=[])
 
     hydrator = SimpleNamespace(

@@ -1,6 +1,8 @@
 # Recommender — Architecture
 
-## Offline pipeline (ALS)
+## Offline pipelines
+
+### ALS
 
 Run once to produce embeddings. Re-runs nightly via cron job.
 
@@ -75,11 +77,82 @@ evaluate()                                  [als/steps/metrics.py]
   → model_assets/als_metrics.json
 ```
 
+### Item-CF (offline-only)
+
+Item-CF reuses the same base preprocessing/filter/split steps as ALS, then switches to
+an item-similarity training/evaluation tail.
+
+```
+split()                                     [base/steps/split.py]
+      │
+      ▼
+build_item_cf_matrix()                      [item_cf/steps/matrix.py]
+  CSR matrix from train.parquet (user_id, movie_id, preference)
+  + ID mappings with index_to_movie_id
+  → model_assets/item_cf_train_matrix.npz
+  → model_assets/item_cf_mappings.json
+      │
+      ▼
+train_item_cf()                             [item_cf/steps/train_item_cf.py]
+  cosine item-item similarity from train matrix columns
+  optional positive-only interactions for similarity construction
+  optional co-rater threshold + shrinkage regularization for stability
+  top-K neighbor pruning per item for compact artifacts
+  → model_assets/item_cf_similarity.npz
+  → model_assets/item_cf_model_info.json
+      │
+      ▼
+evaluate_item_cf()                          [item_cf/steps/metrics.py]
+  rank candidates per val user (excluding train-seen items)
+  relevant validation items use preference > relevance_preference_threshold
+  compute Precision@10, Recall@10, NDCG@10
+  skip users with no valid candidates/ground truth
+  → model_assets/item_cf_metrics.json
+```
+
 ### Nightly rerun
 
 APScheduler fires `run_pipeline_cron_job()` at midnight.
 Redis lock (`ml_pipeline_lock`, TTL 1h) prevents concurrent runs across workers.
 The lock is always released in `finally`.
+
+---
+
+## Offline pipeline (SVM baseline)
+
+SVM is an offline-only ranking baseline. It reuses the same shared base steps
+through split, then swaps the model-specific steps:
+
+```
+1-7  shared base steps:
+  preprocess_movies → preprocess_ratings → fetch_app_swipes → merge_interactions
+  → filter → prune_movies → split
+8    svm_data_prep
+  build sparse user/movie features (+ optional metadata features)
+  labels: positives from train.parquet + sampled negatives per user
+  → model_assets/svm_train_features.npz
+  → model_assets/svm_train_labels.npy
+  → model_assets/svm_feature_mappings.json
+9    svm_training
+  train sklearn LinearSVC on sparse artifacts
+  → model_assets/svm_linear_model.joblib
+  → model_assets/svm_model_info.json
+10   svm_evaluation
+  rank candidates per val user with decision_function
+  exclude seen train movies
+  compute Precision@10 / Recall@10 / NDCG@10
+  → model_assets/svm_metrics.json
+```
+
+Run manually:
+
+```bash
+uv run python -m movie_recommender.services.recommender.pipeline.offline.models.svm.main
+```
+
+Important: online serving is still wired to ALS artifacts loaded by
+`pipeline/online/artifacts.py`. SVM artifacts are persisted separately and do not
+replace online runtime behavior yet.
 
 ---
 
@@ -175,9 +248,13 @@ never propagate to the API response.
 MovieLens CSV + Postgres swipes (offline)
       ↓
 ALS embeddings (user_embeddings.npy, movie_embeddings.npy, mappings.json)
+  + optional offline SVM artifacts (svm_*.json/.npz/.joblib)
       ↓
-Recommender loads on startup via load_model_artifacts()
+Recommender loads on startup via load_model_artifacts()  (ALS today)
       ↓
 per-swipe : online vector update → Redis + Postgres (upsert)
 per-feed  : dot product → ranked list → Redis queue → TMDB hydration → response
 ```
+
+Item-CF artifacts are currently generated and evaluated offline only; online serving
+still reads ALS artifacts.
