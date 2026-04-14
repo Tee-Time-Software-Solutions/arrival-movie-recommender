@@ -64,7 +64,8 @@ def load_model_artifacts() -> RecommenderArtifacts:
     }
 
     movies_df = pd.read_parquet(
-        processed_dir / "movies_filtered.parquet", columns=["movie_id", "title", "genres"]
+        processed_dir / "movies_filtered.parquet",
+        columns=["movie_id", "title", "genres"],
     )
     movie_id_to_title = {
         int(movie_id): str(title)

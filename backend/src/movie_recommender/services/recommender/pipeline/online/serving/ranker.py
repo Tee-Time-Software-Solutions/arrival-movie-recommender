@@ -45,7 +45,10 @@ def rank_movie_ids(
         for i, movie_id in enumerate(candidate_ids):
             m_genres = movie_to_genres.get(int(movie_id))
             if m_genres:
-                bonuses[i] = max((genre_to_bonus.get(g, 1.0) for g in m_genres), default=0.0)
+                bonuses[i] = max(
+                    (genre_to_bonus.get(g, 1.0) for g in m_genres),
+                    default=0.0,
+                )
 
         final_scores += exploration_weight * bonuses
 
