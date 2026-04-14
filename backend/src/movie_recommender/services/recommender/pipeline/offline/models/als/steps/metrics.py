@@ -15,7 +15,7 @@ def dcg_at_k(relevance: list[int] | list[float]) -> float:
     return float(sum(rel / np.log2(idx + 2) for idx, rel in enumerate(relevance)))
 
 
-def run(config: Config) -> None:
+def run(config: Config) -> dict:
     assets_dir = config.data_dirs.model_assets_dir
     splits_dir = config.data_dirs.splits_dir
     k = 10
@@ -101,3 +101,5 @@ def run(config: Config) -> None:
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
     print(f"Metrics saved to {report_path}")
+
+    return report
