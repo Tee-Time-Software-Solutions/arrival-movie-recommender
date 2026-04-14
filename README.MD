@@ -111,7 +111,7 @@ The chronological split ensures no data leakage between train and validation —
 
 **Experiment tracking (MLflow)**
 
-Every run is logged automatically: hyperparameters (factors, regularization, iterations), evaluation metrics, pipeline duration, and model artifacts. This makes runs reproducible and comparable across model versions without any manual logging.
+Every **ALS** offline run is logged to MLflow automatically: hyperparameters (factors, regularization, iterations), evaluation metrics, pipeline duration, and model artifacts. The BPR, SVM, and Item-CF pipelines do not integrate MLflow in their `main.py` flows today. This makes ALS runs reproducible and comparable across versions without manual logging.
 
 <img src="docs/assets/ml-flow.png" width="560"/>
 
@@ -260,7 +260,7 @@ cd backend
 python -m movie_recommender.services.recommender.pipeline.offline.models.als.main
 
 # BPR
-python -m movie_recommender.services.recommender.pipeline.offline.models.fm.main
+python -m movie_recommender.services.recommender.pipeline.offline.models.bpr.main
 
 # SVM
 python -m movie_recommender.services.recommender.pipeline.offline.models.svm.main
