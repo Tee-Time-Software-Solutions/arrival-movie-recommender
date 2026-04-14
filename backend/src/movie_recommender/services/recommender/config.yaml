@@ -17,9 +17,9 @@ pipeline:
 
 models:
   als:
-    factors: 16
+    factors: 32
     regularization: 0.1
-    iterations: 15
+    iterations: 17
     alpha: 15          # confidence scaling: C(u,i) = 1 + alpha * |pref|
   bpr:
     factors: 32

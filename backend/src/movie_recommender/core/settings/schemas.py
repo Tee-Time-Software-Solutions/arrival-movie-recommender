@@ -63,3 +63,7 @@ class FirebaseSettings(BaseModel):
     firebase_private_key: str
     firebase_client_email: str
     firebase_client_id: str
+
+
+class DiscordSettings(BaseModel):
+    webhook_url: str | None = None

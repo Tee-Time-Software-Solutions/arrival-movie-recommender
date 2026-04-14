@@ -1,5 +1,7 @@
 *.env*
 !.env.dev.example
+!.env.staging.example
+!.env.production.example
 .dev_token
 
 # Node
@@ -241,3 +243,8 @@ e2e-frontend.pid
 
 
 docs/college_course/feedback.md
+
+old-infra-project/*
+old-infra-project/**
+
+docs/reports/*
