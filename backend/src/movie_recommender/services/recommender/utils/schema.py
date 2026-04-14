@@ -49,6 +49,7 @@ class SVMConfig(BaseModel):
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
     bpr: BPRConfig = BPRConfig()
+    svm: SVMConfig = SVMConfig()
 
 
 class Config(BaseModel):
