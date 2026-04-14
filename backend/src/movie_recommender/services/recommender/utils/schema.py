@@ -37,9 +37,22 @@ class BPRConfig(BaseModel):
     num_threads: int = 4
 
 
+class ItemCFConfig(BaseModel):
+    similarity: str = "cosine"
+    top_k_neighbors: int = 100
+    min_similarity: float = 0.2
+    use_positive_only: bool = True
+    normalize_scores: bool = False
+    min_co_raters: int = 1
+    similarity_shrinkage: float = 0.0
+    neighbor_weight_power: float = 1.0
+    relevance_preference_threshold: float = 0.0
+
+
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
     bpr: BPRConfig = BPRConfig()
+    item_cf: ItemCFConfig = ItemCFConfig()
 
 
 class Config(BaseModel):
