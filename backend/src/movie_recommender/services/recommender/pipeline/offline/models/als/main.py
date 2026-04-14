@@ -15,6 +15,8 @@ from movie_recommender.services.recommender.pipeline.offline.models.base.base_pi
 )
 from movie_recommender.services.recommender.utils.schema import load_config
 
+import mlflow
+
 
 class ALSPipeline(RecommenderPipeline):
     """
@@ -31,40 +33,59 @@ class ALSPipeline(RecommenderPipeline):
         start = time.time()
         config = load_config()
 
-        print(f"\n===== ALS pipeline START =====\n")
+        mlflow.set_tracking_uri("http://localhost:5000")
+        mlflow.set_experiment("ALS_Recommender_Offline")
 
-        print("Step 1: Preprocessing movies...")
-        preprocess_movies.run(config)
+        with mlflow.start_run(run_name=f"ALS_Train_{time.strftime('%Y%m%d-%H%M%S')}B"):
+            # Log the configs from your Pydantic model
+            mlflow.log_params(config.models.als.model_dump())
+            mlflow.log_param("min_user_ratings", config.pipeline.min_user_ratings)
 
-        print("\nStep 2: Preprocessing ratings...")
-        preprocess_ratings.run(config)
+            print(f"\n===== ALS pipeline START =====\n")
 
-        print("\nStep 3: Fetching app swipes from Postgres → raw parquet...")
-        fetch_app_swipes.run(config)
+            print("Step 1: Preprocessing movies...")
+            preprocess_movies.run(config)
 
-        print("\nStep 4: Merging MovieLens ratings with app swipes...")
-        merge_interactions.run(config)
+            print("\nStep 2: Preprocessing ratings...")
+            preprocess_ratings.run(config)
 
-        print("\nStep 5: Filtering sparse users/movies...")
-        filter_step.run(config)
+            print("\nStep 3: Fetching app swipes from Postgres → raw parquet...")
+            fetch_app_swipes.run(config)
 
-        print("\nStep 6: Pruning movie metadata to interaction set...")
-        prune_movies.run(config)
+            print("\nStep 4: Merging MovieLens ratings with app swipes...")
+            merge_interactions.run(config)
 
-        print("\nStep 7: Chronological split...")
-        split_step.run(config)
+            print("\nStep 5: Filtering sparse users/movies...")
+            filter_step.run(config)
 
-        print("\nStep 8: Building sparse matrix...")
-        matrix.run(config)
+            print("\nStep 6: Pruning movie metadata to interaction set...")
+            prune_movies.run(config)
 
-        print("\nStep 9: Training ALS...")
-        train_als.run(config)
+            print("\nStep 7: Chronological split...")
+            split_step.run(config)
 
-        print("\nStep 10: Evaluating model...")
-        metrics.run(config)
+            print("\nStep 8: Building sparse matrix...")
+            matrix.run(config)
 
-        elapsed = time.time() - start
-        print(f"\n===== PIPELINE COMPLETE ({elapsed / 60:.2f} min) =====")
+            print("\nStep 9: Training ALS...")
+            train_als.run(config)
+
+            print("\nStep 10: Evaluating model...")
+            report = metrics.run(config)
+
+            # Log your actual results (MAP, RMSE, etc.)
+            if isinstance(report, dict):
+                # Filter out anything that isn't a number (float/int)
+                numeric_metrics = {
+                    k: v for k, v in report.items() if isinstance(v, (int, float))
+                }
+                mlflow.log_metrics(numeric_metrics)
+
+            elapsed = time.time() - start
+            mlflow.log_metric("pipeline_duration_min", elapsed / 60)
+            print(f"\n===== PIPELINE COMPLETE ({elapsed / 60:.2f} min) =====")
+
+            self._notify("ALS", report, elapsed)
 
 
 if __name__ == "__main__":

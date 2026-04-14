@@ -17,11 +17,11 @@ pipeline:
 
 models:
   als:
-    factors: 16
+    factors: 32
     regularization: 0.1
-    iterations: 15
+    iterations: 17
     alpha: 15          # confidence scaling: C(u,i) = 1 + alpha * |pref|
-  fm:
-    no_components: 32
-    epochs: 15
+  bpr:
+    factors: 32
+    iterations: 15
     num_threads: 4
