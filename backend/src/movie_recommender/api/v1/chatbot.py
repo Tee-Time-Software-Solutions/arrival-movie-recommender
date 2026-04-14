@@ -68,7 +68,10 @@ async def stream_chat(
                     tool_name = event["name"]
                     tool_output = event["data"].get("output", "")
 
-                    if tool_name == "search_movies" and tool_output != "No movies found matching those criteria.":
+                    if (
+                        tool_name == "search_movies"
+                        and tool_output != "No movies found matching those criteria."
+                    ):
                         try:
                             movies_data = json.loads(tool_output)
                             yield {

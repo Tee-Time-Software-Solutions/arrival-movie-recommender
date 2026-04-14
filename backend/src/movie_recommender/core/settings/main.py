@@ -132,7 +132,7 @@ class AppSettings:
             base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
             model_name=os.getenv(
                 "OPENROUTER_MODEL",
-                "google/gemini-2.5-flash-preview",
+                "google/gemini-2.5-flash",
             ),
         )
 

@@ -119,8 +119,9 @@ async def get_user_taste_profile(
     # Genres per top movie
     if top_movies:
         liked_ids_result = await db.execute(
-            select(swipes.c.movie_id)
-            .where(swipes.c.user_id == user_id, swipes.c.action_type == "like")
+            select(swipes.c.movie_id).where(
+                swipes.c.user_id == user_id, swipes.c.action_type == "like"
+            )
         )
         liked_ids = [r.movie_id for r in liked_ids_result]
 
@@ -154,5 +155,7 @@ async def get_user_taste_profile(
             "min": stats.min_year if stats else None,
             "max": stats.max_year if stats else None,
         },
-        "avg_rating": round(float(stats.avg_rating), 2) if stats and stats.avg_rating else None,
+        "avg_rating": round(float(stats.avg_rating), 2)
+        if stats and stats.avg_rating
+        else None,
     }

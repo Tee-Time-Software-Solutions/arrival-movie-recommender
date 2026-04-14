@@ -46,9 +46,7 @@ def create_search_movies_tool(db_session_factory: Callable, user_id: int):
             if not movie_ids:
                 return "No movies found matching those criteria."
             details = await movies_to_details_bulk(db, movie_ids)
-            return json.dumps(
-                [d.model_dump(mode="json") for d in details], default=str
-            )
+            return json.dumps([d.model_dump(mode="json") for d in details], default=str)
 
     return search_movies
 
