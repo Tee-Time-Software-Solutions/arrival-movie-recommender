@@ -13,7 +13,7 @@ Run with:  pytest tests/integration/test_online_recommender.py -v -s
 
 import numpy as np
 
-from movie_recommender.schemas.interactions import SwipeAction
+from movie_recommender.schemas.requests.interactions import SwipeAction
 from movie_recommender.services.recommender.main import Recommender
 from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,

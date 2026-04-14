@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from movie_recommender.schemas.interactions import SwipeAction
+from movie_recommender.schemas.requests.interactions import SwipeAction
 from movie_recommender.services.recommender.main import Recommender
 from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,

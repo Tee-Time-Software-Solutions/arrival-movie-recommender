@@ -23,16 +23,61 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
+from pathlib import Path
 from typing import AsyncIterator, Iterator
 
 import pytest
+
+
+def _load_dev_env_file() -> None:
+    """Populate os.environ from backend/env_config/synced/.env.$ENVIRONMENT.
+
+    The backend container receives this file via compose's ``env_file:``. When
+    running integration tests on the host, the same vars (TMDB_API_KEY,
+    FIREBASE_*, DB_*, REDIS_URL, ...) are needed so the FastAPI app's
+    AppSettings singleton can initialize. Only missing keys are filled — real
+    shell env always wins.
+    """
+
+    env_name = os.environ.get("ENVIRONMENT", "dev")
+    # backend/tests/integration/conftest_integration.py -> backend/
+    backend_root = Path(__file__).resolve().parents[2]
+    env_file = backend_root / "env_config" / "synced" / f".env.{env_name}"
+    if not env_file.is_file():
+        return
+
+    for raw_line in env_file.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+    # Rewrite Docker-network hostnames to host-facing localhost. Compose maps
+    # the service ports to the same numbers on localhost, so this "just works"
+    # while `make dev-start` is running.
+    _host_overrides = {
+        "DB_HOST": "localhost",
+        "REDIS_URL": "redis://localhost:6379",
+        "NEO4J_URI": "bolt://localhost:7687",
+    }
+    for key, host_value in _host_overrides.items():
+        current = os.environ.get(key, "")
+        if "localhost" not in current and "127.0.0.1" not in current:
+            os.environ[key] = host_value
+
+
+_load_dev_env_file()
 
 # ---------------------------------------------------------------------------
 # Defaults mirror docker-compose.dev.yml so a local `make dev-start` "just works".
 # ---------------------------------------------------------------------------
 
 _DEFAULT_DATABASE_URL = (
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/movie_recommender"
+    "postgresql+asyncpg://db-dev-user:db-dev-password@localhost:5432/dev-db"
 )
 _DEFAULT_REDIS_URL = "redis://localhost:6379/0"
 
@@ -87,12 +132,13 @@ def real_db_engine():
 
     try:
         from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy.pool import NullPool
 
         from movie_recommender.database.models import metadata
     except Exception as exc:  # pragma: no cover - defensive
         pytest.skip(f"integration services unavailable: cannot import models ({exc})")
 
-    engine = create_async_engine(_database_url(), future=True)
+    engine = create_async_engine(_database_url(), future=True, poolclass=NullPool)
 
     async def _setup() -> None:
         async with engine.begin() as conn:
