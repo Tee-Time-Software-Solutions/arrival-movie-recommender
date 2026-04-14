@@ -8,10 +8,7 @@ from movie_recommender.database.models import metadata
 from sqlalchemy import create_engine, pool
 
 # Load env vars for local runs; no-op in Docker where they're already set
-import os as _os
-
-_env = _os.getenv("ENVIRONMENT", "dev")
-load_dotenv(Path(__file__).parents[4] / f"env_config/synced/.env.{_env}")
+load_dotenv(Path(__file__).parents[4] / "env_config/synced/.env.dev")
 
 alembic_config = context.config
 

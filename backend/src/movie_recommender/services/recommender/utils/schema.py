@@ -31,15 +31,15 @@ class ALSConfig(BaseModel):
     alpha: int = 15
 
 
-class BPRConfig(BaseModel):
-    factors: int = 32
-    iterations: int = 15
+class FMConfig(BaseModel):
+    no_components: int = 32
+    epochs: int = 15
     num_threads: int = 4
 
 
 class ModelsConfig(BaseModel):
     als: ALSConfig = ALSConfig()
-    bpr: BPRConfig = BPRConfig()
+    fm: FMConfig = FMConfig()
 
 
 class Config(BaseModel):

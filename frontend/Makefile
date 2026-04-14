@@ -14,6 +14,3 @@ help: ## Show this help message
 
 install: ## Install frontend dependencies
 	cd ./app && npm install
-
-build: ## Build frontend for production (output: frontend/app/dist)
-	cd ./app && npm run build

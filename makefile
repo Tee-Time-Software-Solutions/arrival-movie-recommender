@@ -26,12 +26,10 @@ install: ## Install projet-wide dependencies
 
 dev-start: ## Start dev (no rebuild, fast). Use dev-rebuild if deps changed
 	$(MAKE) check-enviroment-variables
-	$(MAKE) -C backend recommender-train-als
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up
 
 dev-rebuild: ## Rebuild images then start dev (use when deps change)
 	$(MAKE) check-enviroment-variables
-	$(MAKE) -C backend recommender-train-als
 	BACKEND_ENV_FILE=$(BACKEND_ENV_FILE_SYNCED_PATH) docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml -p $(PROJECT_NAME) up --build -V
 
 dev-stop: ## Stop development environment
@@ -54,63 +52,5 @@ check-enviroment-variables:
 
 lint: ## Check backend for lint errors and auto-fix if any are found
 	cd backend && uv run ruff check src/ || uv run ruff check --fix src/
-
-staging-launch: ## [STAGING] First-ever deploy: terraform + sync env + build frontend + push image + ansible
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra terraform-apply
-	$(MAKE) -C infra sync_all
-	$(MAKE) -C frontend build
-	$(MAKE) -C backend push-docker
-	$(MAKE) -C infra ansible-start
-
-staging-ship: ## [STAGING] New version: sync env + build frontend + push new image + ansible (no terraform)
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra sync_all
-	$(MAKE) -C frontend build
-	$(MAKE) -C backend push-docker
-	$(MAKE) -C infra ansible-start
-
-staging-rollout: ## [STAGING] Restart only: run ansible with already-pushed image (fastest)
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra ansible-start
-
-staging-teardown: ## [STAGING] Destroy staging infrastructure
-	$(MAKE) check-enviroment-variables
-	$(MAKE) -C infra terraform-stop
-
-prod-launch: ## [PROD] First-ever deploy: terraform + sync env + build frontend + push image + ansible
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra terraform-apply
-	$(MAKE) -C infra sync_all
-	$(MAKE) -C frontend build
-	$(MAKE) -C backend push-docker
-	$(MAKE) -C infra ansible-start
-
-prod-ship: ## [PROD] New version: sync env + build frontend + push new image + ansible (no terraform)
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra sync_all
-	$(MAKE) -C frontend build
-	$(MAKE) -C backend push-docker
-	$(MAKE) -C infra ansible-start
-
-prod-rollout: ## [PROD] Restart only: run ansible with already-pushed image (fastest)
-	$(MAKE) check-enviroment-variables
-	$(MAKE) check-backend-version
-	$(MAKE) -C infra ansible-start
-
-prod-teardown: ## [PROD] Destroy all AWS infrastructure
-	$(MAKE) check-enviroment-variables
-	$(MAKE) -C infra terraform-stop
-
-check-backend-version:
-	@if [ -z "$$BACKEND_VERSION" ]; then \
-		echo "Error: BACKEND_VERSION must be defined. Do export BACKEND_VERSION=<tag>"; \
-		exit 1; \
-	fi
 
 format-check:

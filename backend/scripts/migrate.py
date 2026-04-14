@@ -10,9 +10,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from movie_recommender.core.settings.main import AppSettings
 
 ROOT = Path(__file__).parent.parent
-import os
-_env = os.getenv("ENVIRONMENT", "dev")
-load_dotenv(ROOT / f"env_config/synced/.env.{_env}")
+load_dotenv(ROOT / "env_config/synced/.env.dev")
 
 
 class Migrator:
