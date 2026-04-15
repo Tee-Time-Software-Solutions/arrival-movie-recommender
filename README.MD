@@ -322,9 +322,9 @@ Firebase handles identity (Google OAuth + email/password). The backend verifies 
 | Javier Dominguez Segura | Backend / MLOps / Infrastructure |
 | Lucas Van Zyl | Data Engineer |
 | Borja Valentin | Data Engineer |
-| Lus Infante | ML Engineer |
+| Lus Infante | ML Engineer / Data Scientist |
 | Alejandro Helmrich | ML Engineer / Testing |
-| Diego Oliveros | Data Scientist |
+| Diego Oliveros | Data Scientist / ML Engineer |
 | Juan Alonso-Allende | Frontend / Chatbot |
 | Juliette Janne | Frontend / Project Management |
 
