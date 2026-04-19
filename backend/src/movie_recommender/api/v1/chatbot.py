@@ -67,7 +67,10 @@ async def stream_chat(
                             for block in chunk.content:
                                 if isinstance(block, str):
                                     content += block
-                                elif isinstance(block, dict) and block.get("type") == "text":
+                                elif (
+                                    isinstance(block, dict)
+                                    and block.get("type") == "text"
+                                ):
                                     content += block.get("text", "")
                     if content:
                         yield {
@@ -87,8 +90,7 @@ async def stream_chat(
 
                     if (
                         tool_name == "search_movies"
-                        and tool_output
-                        != "No movies found matching those criteria."
+                        and tool_output != "No movies found matching those criteria."
                     ):
                         try:
                             movies_data = json.loads(tool_output)
