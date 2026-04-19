@@ -7,6 +7,7 @@ from movie_recommender.core.settings.schemas import (
     DiscordSettings,
     FirebaseSettings,
     Neo4jSettings,
+    OpenRouterSettings,
     RedisSettings,
     DatabaseSettings,
     StorageSettings,
@@ -42,6 +43,7 @@ class AppSettings:
         self.neo4j = self._load_neo4j_settings()
         self.firebase = self._load_firebase_settings()
         self.database = self._load_database_settings()
+        self.openrouter = self._load_openrouter_settings()
         self.discord = self._load_discord_settings()
         # self.storage = self._load_storage_settings() # TODO: implement storage
 
@@ -157,6 +159,18 @@ class AppSettings:
             database=os.getenv("DB_NAME"),
             sync_driver=os.getenv("DB_SYNC_DRIVER"),
             async_driver=os.getenv("DB_ASYNC_DRIVER"),
+        )
+
+    def _load_openrouter_settings(self) -> OpenRouterSettings:
+        """Load OpenRouter LLM settings."""
+        api_key = os.getenv("OPENROUTER_API_KEY", "")
+        return OpenRouterSettings(
+            api_key=api_key,
+            base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+            model_name=os.getenv(
+                "OPENROUTER_MODEL",
+                "google/gemini-2.5-flash",
+            ),
         )
 
     def _load_storage_settings(self) -> StorageSettings:
