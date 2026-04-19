@@ -15,4 +15,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Load .env files from env_config/synced/ instead of project root.
+  // dev script uses dotenv-cli to load .env.dev explicitly.
+  // build script passes --mode production, so Vite loads .env.production from here.
+  envDir: path.resolve(__dirname, "env_config/synced"),
 })

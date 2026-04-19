@@ -17,11 +17,28 @@ pipeline:
 
 models:
   als:
-    factors: 16
+    factors: 32
     regularization: 0.1
-    iterations: 15
+    iterations: 17
     alpha: 15          # confidence scaling: C(u,i) = 1 + alpha * |pref|
-  fm:
-    no_components: 32
-    epochs: 15
+  bpr:
+    factors: 32
+    iterations: 15
     num_threads: 4
+  item_cf:
+    similarity: "cosine"
+    top_k_neighbors: 100
+    min_similarity: 0.2
+    use_positive_only: true
+    normalize_scores: false
+    min_co_raters: 1
+    similarity_shrinkage: 0.0
+    neighbor_weight_power: 1.0
+    relevance_preference_threshold: 0.0
+  svm:
+    c: 0.25
+    max_iter: 2000
+    negative_sampling_ratio: 1.0
+    random_state: 42
+    use_metadata_features: true
+    release_year_bucket_size: 10

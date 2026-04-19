@@ -26,6 +26,7 @@ dependencies = [
       "pandas",
       "pyarrow",
       "scipy",
+      "scikit-learn",
       "implicit",
       "cython",
       "tqdm",
@@ -41,6 +42,12 @@ dependencies = [
       "langchain-openai>=0.3",
       "langgraph>=0.4",
       "sse-starlette>=2.0",
+      "matplotlib",
+      "prometheus-fastapi-instrumentator>=7.0.0",
+      "boto3>=1.34.0",
+      "azure-identity>=1.15.0",
+      "azure-keyvault-secrets>=4.7.0",
+      "mlflow>=3.11.1",
 ]
 
 [dependency-groups]
@@ -54,9 +61,12 @@ tests = [
 ]
 
 [tool.ruff]
-extend-exclude = ["*.ipynb"]
+extend-exclude = ["**/*.ipynb"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+markers = [
+    "integration: mark test as an integration test (real Postgres/Redis)",
+]
