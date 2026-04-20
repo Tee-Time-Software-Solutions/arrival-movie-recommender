@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/Tee-Time-Software-Solutions/arrival-movie-recommender/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/Tee-Time-Software-Solutions/arrival-movie-recommender/actions/workflows/ci-backend.yml)
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Tee-Time-Software-Solutions/arrival-movie-recommender/1-overview)
+\n
 [Deployment video](https://drive.google.com/file/d/1ys3i-luG9C5ZmMgwATjpzS12ZjkAFKeN/view?usp=sharing)
 
 ---
