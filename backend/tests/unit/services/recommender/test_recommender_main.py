@@ -42,12 +42,14 @@ def _make_recommender(
     norm_cap: float = 10.0,
     adaptive_learning_strength: float = 0.0,
     exploration_weight: float = 0.0,
+    diversity_weight: float = 0.0,
 ) -> Recommender:
     rec = Recommender.__new__(Recommender)
     rec.learning_rate = learning_rate
     rec.norm_cap = norm_cap
     rec.adaptive_learning_strength = adaptive_learning_strength
     rec.exploration_weight = exploration_weight
+    rec.diversity_weight = diversity_weight
     rec.model_artifacts = artifacts or _make_artifacts()
     rec._db_session_factory = db_session_factory or _make_session_factory(MagicMock())
     rec._redis = redis_client

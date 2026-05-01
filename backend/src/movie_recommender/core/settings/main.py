@@ -67,6 +67,7 @@ class AppSettings:
         norm_cap = float(os.getenv("NORM_CAP", "10.0"))
         over_fetch_factor = int(os.getenv("OVER_FETCH_FACTOR", "2"))
         exploration_weight = float(os.getenv("EXPLORATION_WEIGHT", "0.01"))
+        diversity_weight = float(os.getenv("DIVERSITY_WEIGHT", "0.0"))
         return AppLogicSettings(
             batch_size=batch_size,
             queue_min_capacity=queue_min_capacity,
@@ -75,6 +76,7 @@ class AppSettings:
             norm_cap=norm_cap,
             over_fetch_factor=over_fetch_factor,
             exploration_weight=exploration_weight,
+            diversity_weight=diversity_weight,
         )
 
     def _load_tmdb_settings(self) -> TMDBSettings:
