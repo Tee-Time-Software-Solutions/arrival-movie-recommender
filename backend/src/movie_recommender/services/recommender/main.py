@@ -49,6 +49,7 @@ class Recommender:
         self.adaptive_learning_strength = settings.app_logic.adaptive_learning_strength
         self.norm_cap = settings.app_logic.norm_cap
         self.exploration_weight = settings.app_logic.exploration_weight
+        self.diversity_weight = settings.app_logic.diversity_weight
         self.model_artifacts: RecommenderArtifacts = load_model_artifacts()
         self._db_session_factory = db_session_factory
         self._redis: Optional[aioredis.Redis] = None
@@ -105,6 +106,7 @@ class Recommender:
             seen_movie_ids=seen_movie_ids,
             genre_impression_counts=genre_impression_counts,
             exploration_weight=self.exploration_weight,
+            diversity_weight=self.diversity_weight,
         )
 
     async def set_user_feedback(

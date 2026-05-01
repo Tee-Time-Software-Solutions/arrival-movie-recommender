@@ -93,6 +93,7 @@ def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
     rec.adaptive_learning_strength = 0.0
     rec.norm_cap = 10.0
     rec.exploration_weight = 0.0
+    rec.diversity_weight = 0.0
     rec._redis = mock_redis
     rec._db_session_factory = MagicMock()
 

@@ -3,6 +3,9 @@ import numpy as np
 from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,
 )
+from movie_recommender.services.recommender.pipeline.online.serving.diversity import (
+    mmr_rerank,
+)
 
 
 def rank_movie_ids(
@@ -12,6 +15,7 @@ def rank_movie_ids(
     seen_movie_ids: set[int],
     genre_impression_counts: dict[str, int] | None = None,
     exploration_weight: float = 0.0,
+    diversity_weight: float = 0.0,
 ) -> list[int]:
     """Rank all known movies by score, excluding seen ones."""
     if n == 0:
@@ -52,7 +56,21 @@ def rank_movie_ids(
 
         final_scores += exploration_weight * bonuses
 
-    if n >= len(final_scores):
+    if diversity_weight > 0:
+        pool_size = min(len(final_scores), max(n * 5, n))
+        if pool_size < len(final_scores):
+            pool_idx = np.argpartition(final_scores, -pool_size)[-pool_size:]
+        else:
+            pool_idx = np.arange(len(final_scores))
+        lambda_mmr = float(np.clip(1.0 - diversity_weight, 0.0, 1.0))
+        local = mmr_rerank(
+            scores=final_scores[pool_idx],
+            embeddings=candidate_embeddings[pool_idx],
+            top_k=n,
+            lambda_mmr=lambda_mmr,
+        )
+        ranked = pool_idx[local]
+    elif n >= len(final_scores):
         ranked = final_scores.argsort()[::-1]
     else:
         top = np.argpartition(final_scores, -n)[-n:]
