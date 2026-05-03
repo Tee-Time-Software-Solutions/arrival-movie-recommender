@@ -1,0 +1,2 @@
+user_id,holdout_movie_id,holdout_title,baseline_recs,agent_recs,agent_first_titles,baseline_hit,baseline_prec,baseline_recall,baseline_ndcg,agent_hit,agent_prec,agent_recall,agent_ndcg,agent_search_calls
+1,24,Powder,"356,318,296,593,527,110,480,260,2571,589",,,0,0.0,0.0,0.0,0,0.0,0.0,0.0,0

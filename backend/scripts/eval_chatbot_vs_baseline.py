@@ -39,9 +39,9 @@ from typing import Any
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / "env_config" / "synced" / ".env.dev")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+load_dotenv(ROOT / "env_config" / "synced" / ".env.dev", override=False)
 sys.path.insert(0, str(ROOT / "src"))
 
 from sqlalchemy import select, func, desc  # noqa: E402
@@ -73,8 +73,12 @@ AGENT_PROMPT = (
 # ---- DB helpers ------------------------------------------------------------
 
 
-async def fetch_eligible_users(session_factory, min_likes: int) -> list[int]:
-    """App user_ids whose `+offset` is in the ALS training set AND have >= min_likes."""
+async def fetch_eligible_users(
+    session_factory, min_likes: int, require_in_training: bool
+) -> list[int]:
+    """App user_ids with >= min_likes. If require_in_training, restrict to those
+    whose `+offset` id is in the ALS training set (so they have a trained vector
+    rather than a cold-start mean)."""
     artifacts = load_model_artifacts()
     offset = get_app_user_id_offset()
     trained_app_ids = {
@@ -82,8 +86,6 @@ async def fetch_eligible_users(session_factory, min_likes: int) -> list[int]:
         for ml_uid in artifacts.user_id_to_index
         if ml_uid >= offset
     }
-    if not trained_app_ids:
-        return []
 
     async with session_factory() as db:
         rows = await db.execute(
@@ -93,7 +95,10 @@ async def fetch_eligible_users(session_factory, min_likes: int) -> list[int]:
             .having(func.count() >= min_likes)
             .order_by(desc("n"))
         )
-        return [r.user_id for r in rows if r.user_id in trained_app_ids]
+        all_ids = [r.user_id for r in rows]
+    if require_in_training:
+        return [uid for uid in all_ids if uid in trained_app_ids]
+    return all_ids
 
 
 async def fetch_user_swipes(session_factory, user_id: int) -> tuple[list[int], list[int]]:
@@ -204,14 +209,19 @@ def title_for(artifacts, movie_id: int) -> str:
 # ---- Main ------------------------------------------------------------------
 
 
-async def main(n_users: int, k: int, output_path: Path) -> None:
+async def main(n_users: int, k: int, output_path: Path, require_in_training: bool) -> None:
     artifacts = load_model_artifacts()
     offset = get_app_user_id_offset()
     session_factory = DatabaseEngine().session_factory
 
-    eligible = await fetch_eligible_users(session_factory, min_likes=10)
+    eligible = await fetch_eligible_users(
+        session_factory, min_likes=10, require_in_training=require_in_training,
+    )
     if not eligible:
-        print("No eligible users (>=10 likes AND in ALS training set). Aborting.")
+        msg = "No eligible users with >= 10 likes"
+        if require_in_training:
+            msg += " AND in ALS training set"
+        print(f"{msg}. Aborting.")
         return
     test_users = eligible[:n_users]
     print(f"Eval on {len(test_users)} users (k={k}).")
@@ -315,5 +325,10 @@ if __name__ == "__main__":
         type=Path,
         default=ROOT / "scripts" / "eval_results" / "eval_chatbot_vs_baseline.csv",
     )
+    parser.add_argument(
+        "--require-in-training",
+        action="store_true",
+        help="Only evaluate users whose ALS vector was trained (vs cold-start mean).",
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.n_users, args.k, args.output))
+    asyncio.run(main(args.n_users, args.k, args.output, args.require_in_training))

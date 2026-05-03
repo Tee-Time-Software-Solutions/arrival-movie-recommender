@@ -37,9 +37,9 @@ from typing import Any
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / "env_config" / "synced" / ".env.dev")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+load_dotenv(ROOT / "env_config" / "synced" / ".env.dev", override=False)
 sys.path.insert(0, str(ROOT / "src"))
 
 from sqlalchemy import select, func, desc  # noqa: E402
