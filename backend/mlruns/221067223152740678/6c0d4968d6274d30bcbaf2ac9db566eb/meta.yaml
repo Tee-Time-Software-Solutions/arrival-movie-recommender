@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/juanalonso-allende/Desktop/University/Chatbots & Recommenders/arrival-movie-recommender/backend/mlruns/221067223152740678/6c0d4968d6274d30bcbaf2ac9db566eb/artifacts
+end_time: 1777827343770
+entry_point_name: ''
+experiment_id: '221067223152740678'
+lifecycle_stage: active
+run_id: 6c0d4968d6274d30bcbaf2ac9db566eb
+run_name: ALS_Train_20260503-185543B
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1777827343199
+status: 3
+tags: []
+user_id: juanalonso-allende

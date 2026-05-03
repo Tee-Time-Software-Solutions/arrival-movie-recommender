@@ -8,6 +8,8 @@ interface ChatState {
   addMessage: (message: ChatMessage) => void;
   updateLastAssistantContent: (token: string) => void;
   setLastAssistantMovies: (movies: MovieDetails[]) => void;
+  setLastAssistantError: (errorText: string) => void;
+  removeMessageById: (id: string) => void;
   setTyping: (isTyping: boolean) => void;
 }
 
@@ -38,5 +40,18 @@ export const useChatStore = create<ChatState>((set) => ({
       }
       return { messages: msgs };
     }),
+  setLastAssistantError: (errorText) =>
+    set((state) => {
+      const msgs = [...state.messages];
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].role === "assistant") {
+          msgs[i] = { ...msgs[i], content: errorText, status: "error" };
+          break;
+        }
+      }
+      return { messages: msgs };
+    }),
+  removeMessageById: (id) =>
+    set((state) => ({ messages: state.messages.filter((m) => m.id !== id) })),
   setTyping: (isTyping) => set({ isTyping }),
 }));

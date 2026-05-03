@@ -1,0 +1,9 @@
+artifact_location: file:///Users/juanalonso-allende/Desktop/University/Chatbots &
+  Recommenders/arrival-movie-recommender/backend/mlruns/221067223152740678
+creation_time: 1777825029432
+experiment_id: '221067223152740678'
+last_update_time: 1777825029432
+lifecycle_stage: active
+name: ALS_Recommender_Offline
+trace_location: null
+workspace: default
