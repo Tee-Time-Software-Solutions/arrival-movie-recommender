@@ -8,19 +8,14 @@ from movie_recommender.services.recommender.pipeline.online.serving.diversity im
 )
 
 
-def rank_movie_ids(
-    n: int,
+def score_candidates(
     model_artifacts: RecommenderArtifacts,
     user_vector: np.ndarray,
     seen_movie_ids: set[int],
     genre_impression_counts: dict[str, int] | None = None,
     exploration_weight: float = 0.0,
-    diversity_weight: float = 0.0,
-) -> list[int]:
-    """Rank all known movies by score, excluding seen ones."""
-    if n == 0:
-        return []
-
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Score every unseen movie and return (candidate_ids, candidate_embeddings, scores)."""
     all_ids = model_artifacts.all_movie_ids  # shape (N,), int32
 
     if seen_movie_ids:
@@ -30,15 +25,11 @@ def rank_movie_ids(
         mask = np.ones(len(all_ids), dtype=bool)
 
     candidate_ids = all_ids[mask]
-    if len(candidate_ids) == 0:
-        return []
-
     candidate_embeddings = model_artifacts.movie_embeddings[mask]
     scores = candidate_embeddings @ user_vector
-    final_scores = scores
 
-    if exploration_weight > 0:
-        final_scores = scores.copy()
+    if exploration_weight > 0 and len(candidate_ids) > 0:
+        scores = scores.copy()
 
         counts = genre_impression_counts or {}
         genre_to_bonus = {g: 1.0 / np.sqrt(1.0 + c) for g, c in counts.items()}
@@ -54,26 +45,66 @@ def rank_movie_ids(
                     default=0.0,
                 )
 
-        final_scores += exploration_weight * bonuses
+        scores += exploration_weight * bonuses
+
+    return candidate_ids, candidate_embeddings, scores
+
+
+def select_top_n(
+    candidate_ids: np.ndarray,
+    candidate_embeddings: np.ndarray,
+    scores: np.ndarray,
+    n: int,
+    diversity_weight: float = 0.0,
+) -> list[int]:
+    """Pick top-n by score, optionally MMR-reranked for diversity."""
+    if n == 0 or len(candidate_ids) == 0:
+        return []
 
     if diversity_weight > 0:
-        pool_size = min(len(final_scores), max(n * 5, n))
-        if pool_size < len(final_scores):
-            pool_idx = np.argpartition(final_scores, -pool_size)[-pool_size:]
+        pool_size = min(len(scores), max(n * 5, n))
+        if pool_size < len(scores):
+            pool_idx = np.argpartition(scores, -pool_size)[-pool_size:]
         else:
-            pool_idx = np.arange(len(final_scores))
+            pool_idx = np.arange(len(scores))
         lambda_mmr = float(np.clip(1.0 - diversity_weight, 0.0, 1.0))
         local = mmr_rerank(
-            scores=final_scores[pool_idx],
+            scores=scores[pool_idx],
             embeddings=candidate_embeddings[pool_idx],
             top_k=n,
             lambda_mmr=lambda_mmr,
         )
         ranked = pool_idx[local]
-    elif n >= len(final_scores):
-        ranked = final_scores.argsort()[::-1]
+    elif n >= len(scores):
+        ranked = scores.argsort()[::-1]
     else:
-        top = np.argpartition(final_scores, -n)[-n:]
-        ranked = top[final_scores[top].argsort()[::-1]]
+        top = np.argpartition(scores, -n)[-n:]
+        ranked = top[scores[top].argsort()[::-1]]
 
     return candidate_ids[ranked].tolist()
+
+
+def rank_movie_ids(
+    n: int,
+    model_artifacts: RecommenderArtifacts,
+    user_vector: np.ndarray,
+    seen_movie_ids: set[int],
+    genre_impression_counts: dict[str, int] | None = None,
+    exploration_weight: float = 0.0,
+    diversity_weight: float = 0.0,
+) -> list[int]:
+    """Rank all known movies by score, excluding seen ones."""
+    candidate_ids, candidate_embeddings, scores = score_candidates(
+        model_artifacts=model_artifacts,
+        user_vector=user_vector,
+        seen_movie_ids=seen_movie_ids,
+        genre_impression_counts=genre_impression_counts,
+        exploration_weight=exploration_weight,
+    )
+    return select_top_n(
+        candidate_ids=candidate_ids,
+        candidate_embeddings=candidate_embeddings,
+        scores=scores,
+        n=n,
+        diversity_weight=diversity_weight,
+    )
