@@ -1,0 +1,12 @@
+{
+  "user_id": 11,
+  "n_prompts": 27,
+  "flag_counts": {
+    "ok": 5,
+    "no_tool": 14,
+    "empty_result": 4,
+    "seen_leakage": 2,
+    "hallucinated": 4,
+    "bad_args": 1
+  }
+}

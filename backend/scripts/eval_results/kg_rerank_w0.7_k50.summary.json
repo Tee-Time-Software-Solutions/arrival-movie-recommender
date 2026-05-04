@@ -1,0 +1,27 @@
+{
+  "n_users": 12,
+  "k": 50,
+  "graph_weight": 0.7,
+  "shortlist_k": 200,
+  "diversity_weight": 0.0,
+  "metrics": {
+    "als_only": {
+      "hit": 0.4167,
+      "prec": 0.0083,
+      "rec": 0.4167,
+      "ndcg": 0.0818
+    },
+    "als_diversity": {
+      "hit": 0.4167,
+      "prec": 0.0083,
+      "rec": 0.4167,
+      "ndcg": 0.0818
+    },
+    "als_kg": {
+      "hit": 0.1667,
+      "prec": 0.0033,
+      "rec": 0.1667,
+      "ndcg": 0.0585
+    }
+  }
+}

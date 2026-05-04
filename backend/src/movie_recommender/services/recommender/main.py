@@ -4,6 +4,7 @@ from typing import Callable, List, Optional  # List kept for return type annotat
 
 import numpy as np
 import redis.asyncio as aioredis
+from neo4j import AsyncDriver
 
 from movie_recommender.core.settings.main import AppSettings
 from movie_recommender.database.CRUD.user_vectors import (
@@ -11,6 +12,7 @@ from movie_recommender.database.CRUD.user_vectors import (
     save_user_vector,
 )
 from movie_recommender.schemas.requests.interactions import SwipeAction
+from movie_recommender.services.knowledge_graph.beacon import load_beacon_map
 from movie_recommender.services.recommender.pipeline.online.artifacts import (
     RecommenderArtifacts,
     load_model_artifacts,
@@ -28,8 +30,14 @@ from movie_recommender.services.recommender.pipeline.online.learning.adaptive im
 from movie_recommender.services.recommender.pipeline.online.exploration import (
     get_genre_impression_counts,
 )
+from movie_recommender.services.recommender.pipeline.online.serving.graph_rerank import (
+    als_shortlist,
+    blend_scores,
+    compute_graph_scores,
+)
 from movie_recommender.services.recommender.pipeline.online.serving.ranker import (
-    rank_movie_ids,
+    score_candidates,
+    select_top_n,
 )
 from movie_recommender.services.recommender.pipeline.online.serving.user_state import (
     base_user_vector,
@@ -50,12 +58,18 @@ class Recommender:
         self.norm_cap = settings.app_logic.norm_cap
         self.exploration_weight = settings.app_logic.exploration_weight
         self.diversity_weight = settings.app_logic.diversity_weight
+        self.graph_weight = settings.app_logic.graph_weight
+        self.graph_rerank_top_k = settings.app_logic.graph_rerank_top_k
         self.model_artifacts: RecommenderArtifacts = load_model_artifacts()
         self._db_session_factory = db_session_factory
         self._redis: Optional[aioredis.Redis] = None
+        self._neo4j_driver: Optional[AsyncDriver] = None
 
     def set_redis(self, redis_client: aioredis.Redis) -> None:
         self._redis = redis_client
+
+    def set_neo4j_driver(self, driver: AsyncDriver) -> None:
+        self._neo4j_driver = driver
 
     async def _get_user_vector(self, user_id: int) -> np.ndarray:
         # 1. Redis hot cache
@@ -99,15 +113,80 @@ class Recommender:
                 self._redis, user_id
             )
 
-        return rank_movie_ids(
-            n=n,
+        candidate_ids, candidate_embeddings, scores = score_candidates(
             model_artifacts=self.model_artifacts,
             user_vector=user_vector,
             seen_movie_ids=seen_movie_ids,
             genre_impression_counts=genre_impression_counts,
             exploration_weight=self.exploration_weight,
+        )
+
+        if (
+            self.graph_weight > 0
+            and self._neo4j_driver is not None
+            and self._redis is not None
+            and len(candidate_ids) > 0
+        ):
+            try:
+                await self._apply_graph_rerank(user_id, candidate_ids, scores)
+            except Exception:
+                logger.warning(
+                    "Graph rerank failed for user %s — falling back to ALS",
+                    user_id,
+                    exc_info=True,
+                )
+
+        return select_top_n(
+            candidate_ids=candidate_ids,
+            candidate_embeddings=candidate_embeddings,
+            scores=scores,
+            n=n,
             diversity_weight=self.diversity_weight,
         )
+
+    async def _apply_graph_rerank(
+        self,
+        user_id: int,
+        candidate_ids: np.ndarray,
+        scores: np.ndarray,
+    ) -> None:
+        """Mutate `scores` in place: blend ALS with KG-affinity for the top-K shortlist."""
+        beacon_map = await load_beacon_map(self._redis, user_id)
+        if not beacon_map:
+            return
+
+        movie_id_to_tmdb_id = self.model_artifacts.movie_id_to_tmdb_id
+        if not movie_id_to_tmdb_id:
+            return
+
+        shortlist_idx, shortlist_ids = als_shortlist(
+            scores, candidate_ids, self.graph_rerank_top_k
+        )
+
+        # Map internal movie_ids to tmdb_ids; drop entries without a tmdb_id.
+        shortlist_tmdb_ids: list[int] = []
+        idx_to_tmdb: list[tuple[int, int]] = []  # (position-in-shortlist, tmdb_id)
+        for pos, mid in enumerate(shortlist_ids.tolist()):
+            tid = movie_id_to_tmdb_id.get(int(mid))
+            if tid is not None:
+                shortlist_tmdb_ids.append(tid)
+                idx_to_tmdb.append((pos, tid))
+
+        if not shortlist_tmdb_ids:
+            return
+
+        graph_scores_dict = await compute_graph_scores(
+            self._neo4j_driver, shortlist_tmdb_ids, beacon_map
+        )
+        if not graph_scores_dict:
+            return
+
+        graph_array = np.zeros(len(shortlist_idx), dtype=np.float32)
+        for pos, tid in idx_to_tmdb:
+            graph_array[pos] = graph_scores_dict.get(tid, 0.0)
+
+        blended = blend_scores(scores[shortlist_idx], graph_array, self.graph_weight)
+        scores[shortlist_idx] = blended
 
     async def set_user_feedback(
         self,

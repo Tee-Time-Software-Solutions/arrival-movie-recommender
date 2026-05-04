@@ -13,6 +13,7 @@ export async function streamChat(
   message: string,
   history: Array<{ role: string; content: string }>,
   callbacks: SSECallbacks,
+  signal?: AbortSignal,
 ): Promise<void> {
   const user = auth.currentUser;
   const firebaseToken = user ? await user.getIdToken() : "";
@@ -26,6 +27,7 @@ export async function streamChat(
         Authorization: `Bearer ${firebaseToken}`,
       },
       body: JSON.stringify({ message, history }),
+      signal,
     },
   );
 

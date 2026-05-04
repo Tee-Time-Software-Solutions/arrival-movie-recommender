@@ -82,7 +82,13 @@ class TestPreprocessMoviesOrchestration:
         csv = "movieId,title,genres\n1,Toy Story (1995),Animation|Comedy\n"
         out = self._run(tmp_path, csv)
         df = pd.read_parquet(out)
-        assert list(df.columns) == ["movie_id", "title", "release_year", "genres"]
+        assert list(df.columns) == [
+            "movie_id",
+            "title",
+            "release_year",
+            "genres",
+            "tmdb_id",
+        ]
 
     def test_transforms_applied(self, tmp_path):
         csv = "movieId,title,genres\n1,Toy Story (1995),Animation|Comedy\n"

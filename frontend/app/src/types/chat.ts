@@ -6,4 +6,5 @@ export interface ChatMessage {
   role: "user" | "assistant";
   timestamp: string;
   movieRecommendations?: MovieDetails[];
+  status?: "error";
 }

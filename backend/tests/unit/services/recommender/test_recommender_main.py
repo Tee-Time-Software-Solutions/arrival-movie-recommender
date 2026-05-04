@@ -50,9 +50,12 @@ def _make_recommender(
     rec.adaptive_learning_strength = adaptive_learning_strength
     rec.exploration_weight = exploration_weight
     rec.diversity_weight = diversity_weight
+    rec.graph_weight = 0.0
+    rec.graph_rerank_top_k = 200
     rec.model_artifacts = artifacts or _make_artifacts()
     rec._db_session_factory = db_session_factory or _make_session_factory(MagicMock())
     rec._redis = redis_client
+    rec._neo4j_driver = None
     return rec
 
 
@@ -173,14 +176,22 @@ class TestGetTopNRecommendations:
                 return_value=None,
             ),
             patch(
-                "movie_recommender.services.recommender.main.rank_movie_ids",
+                "movie_recommender.services.recommender.main.score_candidates",
+                return_value=(
+                    np.array([10, 20, 30], dtype=np.int32),
+                    np.zeros((3, 4), dtype=np.float32),
+                    np.array([0.9, 0.8, 0.7], dtype=np.float32),
+                ),
+            ) as mock_score,
+            patch(
+                "movie_recommender.services.recommender.main.select_top_n",
                 return_value=[10, 20, 30],
-            ) as mock_rank,
+            ),
         ):
             result = await rec.get_top_n_recommendations(user_id=7, n=3)
 
         assert result == [10, 20, 30]
-        call_kwargs = mock_rank.call_args.kwargs
+        call_kwargs = mock_score.call_args.kwargs
         assert call_kwargs["seen_movie_ids"] == {1, 2}
         redis_client.smembers.assert_awaited_once_with(f"{SEEN_KEY_PREFIX}7")
 

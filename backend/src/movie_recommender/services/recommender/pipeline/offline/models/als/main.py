@@ -1,3 +1,4 @@
+import os
 import time
 
 import movie_recommender.services.recommender.pipeline.offline.models.base.steps.preprocess_movies as preprocess_movies
@@ -33,7 +34,7 @@ class ALSPipeline(RecommenderPipeline):
         start = time.time()
         config = load_config()
 
-        mlflow.set_tracking_uri("http://localhost:5000")
+        mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns"))
         mlflow.set_experiment("ALS_Recommender_Offline")
 
         with mlflow.start_run(run_name=f"ALS_Train_{time.strftime('%Y%m%d-%H%M%S')}B"):

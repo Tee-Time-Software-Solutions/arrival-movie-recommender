@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowUp, Popcorn } from "lucide-react";
+import { ArrowUp, Popcorn, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from "@/hooks/useChat";
 import { ChatMessage } from "@/components/features/ChatMessage/ChatMessage";
@@ -13,7 +13,7 @@ const SUGGESTIONS = [
 
 export function ChatPage() {
   const [input, setInput] = useState("");
-  const { messages, isTyping, sendMessage } = useChat();
+  const { messages, isTyping, sendMessage, cancel, retryLast } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -102,7 +102,10 @@ export function ChatPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, ease: "easeOut" }}
                   >
-                    <ChatMessage message={msg} />
+                    <ChatMessage
+                      message={msg}
+                      onRetry={msg.status === "error" ? retryLast : undefined}
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -150,14 +153,26 @@ export function ChatPage() {
               className="max-h-[200px] min-h-[52px] flex-1 resize-none bg-transparent px-4 py-3.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/60"
             />
             <div className="flex items-center gap-1 p-2">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!input.trim() || isTyping}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-30 disabled:hover:bg-primary"
-              >
-                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-              </button>
+              {isTyping ? (
+                <button
+                  type="button"
+                  onClick={cancel}
+                  aria-label="Stop generating"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-all hover:bg-foreground/85"
+                >
+                  <Square className="h-3.5 w-3.5 fill-current" strokeWidth={0} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!input.trim()}
+                  aria-label="Send message"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-30 disabled:hover:bg-primary"
+                >
+                  <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+                </button>
+              )}
             </div>
           </div>
           <p className="mt-2 text-center text-xs text-muted-foreground/50">
