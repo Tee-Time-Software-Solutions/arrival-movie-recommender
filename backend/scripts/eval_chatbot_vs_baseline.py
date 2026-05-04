@@ -206,6 +206,25 @@ def title_for(artifacts, movie_id: int) -> str:
     return artifacts.movie_id_to_title.get(int(movie_id), f"#{movie_id}")
 
 
+def pairwise_jaccard(lists: list[list[int]]) -> float:
+    """Mean Jaccard overlap across all pairs of recommendation lists.
+
+    1.0 = identical lists for every user (no personalisation).
+    0.0 = disjoint lists for every user (fully personalised).
+    """
+    sets = [set(lst) for lst in lists if lst]
+    if len(sets) < 2:
+        return 0.0
+    sims = []
+    for i in range(len(sets)):
+        for j in range(i + 1, len(sets)):
+            union = sets[i] | sets[j]
+            if not union:
+                continue
+            sims.append(len(sets[i] & sets[j]) / len(union))
+    return sum(sims) / len(sims) if sims else 0.0
+
+
 # ---- Main ------------------------------------------------------------------
 
 
@@ -232,69 +251,96 @@ async def main(n_users: int, k: int, output_path: Path, require_in_training: boo
         "baseline": {"hit": 0.0, "prec": 0.0, "rec": 0.0, "ndcg": 0.0},
         "agent": {"hit": 0.0, "prec": 0.0, "rec": 0.0, "ndcg": 0.0},
     }
+    n_trials = 0
+    baseline_lists_per_user: list[list[int]] = []
+    agent_lists_per_user: list[list[int]] = []
+    HISTORY_KEEP = 5
 
     for idx, user_id in enumerate(test_users, start=1):
         liked, all_swiped = await fetch_user_swipes(session_factory, user_id)
-        if len(liked) < 2:
+        if len(liked) <= HISTORY_KEEP + 1:
             print(f"  [{idx}/{len(test_users)}] user={user_id}: not enough likes — skip.")
             continue
-        holdout = liked[-1]  # most recent like
-        seen_set = set(all_swiped) - {holdout}
-
-        ml_user_id = user_id + offset
-        baseline_recs = rank_movie_ids(
-            n=k,
-            model_artifacts=artifacts,
-            user_vector=base_user_vector(artifacts, ml_user_id),
-            seen_movie_ids=seen_set,
-        )
+        holdouts = liked[HISTORY_KEEP:]  # leave-one-out over each like beyond the first 5
 
         try:
             agent_recs, debug = await agent_recommend(session_factory, user_id, k)
         except Exception as e:
             print(f"  [{idx}/{len(test_users)}] user={user_id}: agent error: {e!r}")
             agent_recs, debug = [], {"error": repr(e)}
+        agent_lists_per_user.append(agent_recs)
 
-        b = {
-            "hit": hit_at_k(baseline_recs, holdout),
-            "prec": precision_at_k(baseline_recs, holdout, k),
-            "rec": recall_at_k(baseline_recs, holdout),
-            "ndcg": ndcg_at_k(baseline_recs, holdout),
-        }
-        a = {
-            "hit": hit_at_k(agent_recs, holdout),
-            "prec": precision_at_k(agent_recs, holdout, k),
-            "rec": recall_at_k(agent_recs, holdout),
-            "ndcg": ndcg_at_k(agent_recs, holdout),
-        }
-        for src, m in (("baseline", b), ("agent", a)):
-            for key, val in m.items():
-                aggregates[src][key] += val
+        ml_user_id = user_id + offset
+        user_vec = base_user_vector(artifacts, ml_user_id)
 
-        rows.append({
-            "user_id": user_id,
-            "holdout_movie_id": holdout,
-            "holdout_title": title_for(artifacts, holdout),
-            "baseline_recs": ",".join(map(str, baseline_recs)),
-            "agent_recs": ",".join(map(str, agent_recs)),
-            "agent_first_titles": " | ".join(title_for(artifacts, m) for m in agent_recs[:3]),
-            "baseline_hit": b["hit"], "baseline_prec": round(b["prec"], 4),
-            "baseline_recall": b["rec"], "baseline_ndcg": round(b["ndcg"], 4),
-            "agent_hit": a["hit"], "agent_prec": round(a["prec"], 4),
-            "agent_recall": a["rec"], "agent_ndcg": round(a["ndcg"], 4),
-            "agent_search_calls": debug.get("search_calls", 0),
-        })
+        # First holdout's baseline_recs becomes the user's representative list for Jaccard.
+        first_baseline_recs: list[int] | None = None
+
+        per_user_acc = {
+            "baseline": {"hit": 0, "prec": 0.0, "rec": 0.0, "ndcg": 0.0},
+            "agent":    {"hit": 0, "prec": 0.0, "rec": 0.0, "ndcg": 0.0},
+        }
+
+        for holdout in holdouts:
+            seen_set = set(all_swiped) - {holdout}
+            baseline_recs = rank_movie_ids(
+                n=k,
+                model_artifacts=artifacts,
+                user_vector=user_vec,
+                seen_movie_ids=seen_set,
+            )
+            if first_baseline_recs is None:
+                first_baseline_recs = baseline_recs
+
+            b = {
+                "hit": hit_at_k(baseline_recs, holdout),
+                "prec": precision_at_k(baseline_recs, holdout, k),
+                "rec": recall_at_k(baseline_recs, holdout),
+                "ndcg": ndcg_at_k(baseline_recs, holdout),
+            }
+            a = {
+                "hit": hit_at_k(agent_recs, holdout),
+                "prec": precision_at_k(agent_recs, holdout, k),
+                "rec": recall_at_k(agent_recs, holdout),
+                "ndcg": ndcg_at_k(agent_recs, holdout),
+            }
+            for src, m in (("baseline", b), ("agent", a)):
+                for key, val in m.items():
+                    aggregates[src][key] += val
+                    per_user_acc[src][key] += val
+            n_trials += 1
+
+            rows.append({
+                "user_id": user_id,
+                "holdout_movie_id": holdout,
+                "holdout_title": title_for(artifacts, holdout),
+                "baseline_recs": ",".join(map(str, baseline_recs)),
+                "agent_recs": ",".join(map(str, agent_recs)),
+                "baseline_hit": b["hit"], "baseline_prec": round(b["prec"], 4),
+                "baseline_recall": b["rec"], "baseline_ndcg": round(b["ndcg"], 4),
+                "agent_hit": a["hit"], "agent_prec": round(a["prec"], 4),
+                "agent_recall": a["rec"], "agent_ndcg": round(a["ndcg"], 4),
+            })
+
+        baseline_lists_per_user.append(first_baseline_recs or [])
+
+        nh = len(holdouts)
+        b_pu = {k_: v / nh for k_, v in per_user_acc["baseline"].items()}
+        a_pu = {k_: v / nh for k_, v in per_user_acc["agent"].items()}
         print(
-            f"  [{idx}/{len(test_users)}] user={user_id} "
-            f"holdout={title_for(artifacts, holdout)!r}  "
-            f"baseline_hit={b['hit']} agent_hit={a['hit']} "
-            f"baseline_ndcg={b['ndcg']:.3f} agent_ndcg={a['ndcg']:.3f}"
+            f"  [{idx}/{len(test_users)}] user={user_id} ({nh:>2} holdouts)  "
+            f"baseline: hit={b_pu['hit']:.3f} ndcg={b_pu['ndcg']:.3f}  |  "
+            f"agent: hit={a_pu['hit']:.3f} ndcg={a_pu['ndcg']:.3f}"
         )
 
-    n = max(len(rows), 1)
+    n = max(n_trials, 1)
     summary = {
         src: {key: round(val / n, 4) for key, val in m.items()}
         for src, m in aggregates.items()
+    }
+    personalisation = {
+        "baseline": round(pairwise_jaccard(baseline_lists_per_user), 4),
+        "agent": round(pairwise_jaccard(agent_lists_per_user), 4),
     }
 
     with output_path.open("w", newline="") as f:
@@ -305,14 +351,21 @@ async def main(n_users: int, k: int, output_path: Path, require_in_training: boo
 
     summary_path = output_path.with_suffix(".summary.json")
     summary_path.write_text(json.dumps({
-        "n_users": len(rows), "k": k, "metrics": summary,
+        "n_users": len(test_users),
+        "n_trials": n_trials,
+        "k": k,
+        "metrics": summary,
+        "personalisation_jaccard": personalisation,
     }, indent=2))
 
-    print("\n=== Summary (mean over users) ===")
+    print(f"\n=== Summary (mean over {n_trials} LOO trials) ===")
     print(f"           hit@{k}   prec@{k}   recall@{k}  ndcg@{k}")
     for src in ("baseline", "agent"):
         m = summary[src]
         print(f"  {src:8} {m['hit']:.3f}   {m['prec']:.3f}    {m['rec']:.3f}      {m['ndcg']:.3f}")
+    print(f"\nPersonalisation (Jaccard across users; 1.0 = same list for everyone):")
+    print(f"  baseline {personalisation['baseline']:.3f}")
+    print(f"  agent    {personalisation['agent']:.3f}")
     print(f"\nWrote {output_path} and {summary_path}")
 
 
