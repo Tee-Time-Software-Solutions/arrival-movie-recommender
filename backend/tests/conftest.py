@@ -94,7 +94,10 @@ def recommender(synthetic_artifacts: RecommenderArtifacts) -> Recommender:
     rec.norm_cap = 10.0
     rec.exploration_weight = 0.0
     rec.diversity_weight = 0.0
+    rec.graph_weight = 0.0
+    rec.graph_rerank_top_k = 200
     rec._redis = mock_redis
+    rec._neo4j_driver = None
     rec._db_session_factory = MagicMock()
 
     async def _get_user_vector(user_id: int) -> np.ndarray:

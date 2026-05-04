@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Popcorn, User, Star } from "lucide-react";
+import { Popcorn, User, Star, AlertCircle, RotateCw } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import type { MovieDetails } from "@/types/movie";
@@ -8,10 +8,12 @@ import { MovieDetail } from "@/components/features/MovieDetail/MovieDetail";
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  onRetry?: () => void;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, onRetry }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const isError = message.status === "error";
   const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(null);
 
   return (
@@ -26,11 +28,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-            isUser ? "bg-foreground/10" : "bg-primary/10",
+            isUser
+              ? "bg-foreground/10"
+              : isError
+                ? "bg-destructive/10"
+                : "bg-primary/10",
           )}
         >
           {isUser ? (
             <User className="h-4 w-4 text-foreground/70" />
+          ) : isError ? (
+            <AlertCircle className="h-4 w-4 text-destructive" />
           ) : (
             <Popcorn className="h-4 w-4 text-primary" />
           )}
@@ -39,17 +47,33 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {/* Content */}
         <div className={cn("min-w-0 max-w-full flex-1", isUser && "flex flex-col items-end")}>
           <p className="mb-1 text-xs font-medium text-muted-foreground">
-            {isUser ? "You" : "Arrival"}
+            {isUser ? "You" : isError ? "Connection error" : "Arrival"}
           </p>
-          <div
-            className={cn(
-              "prose prose-sm max-w-none text-foreground",
-              "prose-p:leading-relaxed prose-p:my-1",
-              isUser && "text-right",
-            )}
-          >
-            <p className="whitespace-pre-wrap">{message.content}</p>
-          </div>
+          {isError ? (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <p className="whitespace-pre-wrap">{message.content}</p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-destructive/40 bg-background px-2.5 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+                >
+                  <RotateCw className="h-3 w-3" />
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "prose prose-sm max-w-none text-foreground",
+                "prose-p:leading-relaxed prose-p:my-1",
+                isUser && "text-right",
+              )}
+            >
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            </div>
+          )}
 
           {/* Movie Recommendations */}
           {message.movieRecommendations &&

@@ -15,6 +15,8 @@ class AppLogicSettings(BaseModel):
     over_fetch_factor: int = 2
     exploration_weight: float = 0.01
     diversity_weight: float = 0.0
+    graph_weight: float = 0.0
+    graph_rerank_top_k: int = 200
 
 
 class TMDBSettings(BaseModel):

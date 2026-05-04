@@ -17,6 +17,7 @@ class RecommenderArtifacts(BaseModel):
     index_to_movie_id: dict[int, int]
     movie_id_to_title: dict[int, str]
     movie_id_to_genres: dict[int, list[str]]
+    movie_id_to_tmdb_id: dict[int, int] = {}
     all_movie_ids: np.ndarray
 
 
@@ -63,10 +64,13 @@ def load_model_artifacts() -> RecommenderArtifacts:
         int(k): int(v) for k, v in mappings["index_to_movie_id"].items()
     }
 
-    movies_df = pd.read_parquet(
-        processed_dir / "movies_filtered.parquet",
-        columns=["movie_id", "title", "genres"],
-    )
+    movies_parquet_path = processed_dir / "movies_filtered.parquet"
+    available_columns = set(pd.read_parquet(movies_parquet_path).columns)
+    columns_to_load = ["movie_id", "title", "genres"]
+    if "tmdb_id" in available_columns:
+        columns_to_load.append("tmdb_id")
+
+    movies_df = pd.read_parquet(movies_parquet_path, columns=columns_to_load)
     movie_id_to_title = {
         int(movie_id): str(title)
         for movie_id, title in zip(movies_df["movie_id"], movies_df["title"])
@@ -75,6 +79,14 @@ def load_model_artifacts() -> RecommenderArtifacts:
         int(movie_id): _parse_genres(genres)
         for movie_id, genres in zip(movies_df["movie_id"], movies_df["genres"])
     }
+    if "tmdb_id" in movies_df.columns:
+        tmdb_pairs = movies_df[["movie_id", "tmdb_id"]].dropna(subset=["tmdb_id"])
+        movie_id_to_tmdb_id = {
+            int(mid): int(tid)
+            for mid, tid in zip(tmdb_pairs["movie_id"], tmdb_pairs["tmdb_id"])
+        }
+    else:
+        movie_id_to_tmdb_id = {}
 
     all_movie_ids = np.array(
         [index_to_movie_id[i] for i in range(len(index_to_movie_id))], dtype=np.int32
@@ -88,6 +100,7 @@ def load_model_artifacts() -> RecommenderArtifacts:
         index_to_movie_id=index_to_movie_id,
         movie_id_to_title=movie_id_to_title,
         movie_id_to_genres=movie_id_to_genres,
+        movie_id_to_tmdb_id=movie_id_to_tmdb_id,
         all_movie_ids=all_movie_ids,
     )
 
