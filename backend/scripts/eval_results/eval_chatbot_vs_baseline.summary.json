@@ -1,18 +1,23 @@
 {
-  "n_users": 1,
+  "n_users": 10,
+  "n_trials": 246,
   "k": 10,
   "metrics": {
     "baseline": {
-      "hit": 0.0,
-      "prec": 0.0,
-      "rec": 0.0,
-      "ndcg": 0.0
+      "hit": 0.5366,
+      "prec": 0.0537,
+      "rec": 0.5366,
+      "ndcg": 0.2584
     },
     "agent": {
-      "hit": 0.0,
-      "prec": 0.0,
-      "rec": 0.0,
-      "ndcg": 0.0
+      "hit": 0.0203,
+      "prec": 0.002,
+      "rec": 0.0203,
+      "ndcg": 0.0067
     }
+  },
+  "personalisation_jaccard": {
+    "baseline": 0.0227,
+    "agent": 0.4579
   }
 }
